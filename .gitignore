@@ -26,8 +26,8 @@ wheels/
 MANIFEST
 
 # (user) data folders
-objects/*
-images/*
+objects/*.pkl
+images/*.fits
 old_versions/
 
 # PyInstaller

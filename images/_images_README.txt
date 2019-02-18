@@ -1,0 +1,1 @@
+Put the fits data in this directory. The program saves images here and tries to open them from here by default.

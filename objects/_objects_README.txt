@@ -1,0 +1,1 @@
+Put the pickled astronomical objects in this directory. The program saves astronomical objects here and tries to open them from here by default.
