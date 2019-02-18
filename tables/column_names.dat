@@ -1,0 +1,18 @@
+# This file enables the program to find the right columns in your isochrone files.
+# Just map your column names to the names in the first column.
+#---------------------------------------------------------------------------------
+# name		column_name
+log_age		log10_isochrone_age_yr
+M_initial  	initial_mass
+M_actual  	star_mass
+log_L  		log_L
+log_Te  	log_Teff
+log_g   	log_g
+U			Bessell_U
+B  			Bessell_B
+V  			Bessell_V
+R  			Bessell_R
+I  			Bessell_I
+J  			2MASS_J
+H  			2MASS_H
+Ks  		2MASS_Ks
