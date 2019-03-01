@@ -2630,7 +2630,7 @@ astobj = obg.AstObject(N_obj=10**9, age=[6], metal=[0.0014], distance=10**8, r_d
 print(astobj.N_obj, len(astobj.M_init))
 
 ##
-M, D, r = np.log10(5*10**6), np.log10(7*10**6), 0.345              # M, D in 10log
+M, D, r = np.log10(5*10**6), np.log10(0.8*10**6), 0.345              # M, D in 10log
 astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r)
 astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
@@ -2638,16 +2638,111 @@ image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', fi
 fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
 # zoom
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom'.format(M, D, r))
-fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom'.format(M, D, r), grid=False)
+# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom'.format(M, D, r), grid=False)
 ##
-astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True)
+astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, mag_lim=29, compact=True)
 astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r))
 fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r), grid=False)
 # zoom
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom-compact'.format(M, D, r))
-fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom-compact'.format(M, D, r), grid=False)
+# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom-compact'.format(M, D, r), grid=False)
+
+##
+# D = np.log10(8*10**5)
+astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True)
+astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r))
+src = img.MakeSource(astobj, filter='J')
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r))
+fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r), grid=False)
+# zoom
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-zoom-compact'.format(M, D, r))
+# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-zoom-compact'.format(M, D, r), grid=False)
+
+
+
+
+## 99% of the light
+age = 6
+metal = 0.0014
+M_ini, M_act, log_L, log_Te, log_g, mag, mag_names = obg.OpenIsochrone(age, metal, columns='all')
+##
+L_IMF = 10**log_L*dist.IMF(M_ini)
+
+fig, ax = plt.subplots()
+ax.plot(M_ini, L_IMF)
+# ax.plot(M_ini, np.cumsum(L_IMF))
+# ax.plot(M_ini[::-1], np.cumsum(L_IMF[::-1]))
+ax.set_xlabel('initial mass')
+ax.set_ylabel('luminosity * IMF')
+# ax.loglog()
+plt.show()
+
+integral = np.cumsum(L_IMF[::-1])                                                                   # the integral (cumulative sum) starting at the high mass
+fraction = 0.9999                                                                                   # depending on age, want following fractions: 6< 0.99, 7= 0.999, 8> 0.9999
+M_lim = M_ini[::-1][np.argmin(np.abs(integral - fraction*integral[-1]))]
+
+fig, ax = plt.subplots()
+ax.plot(M_ini[::-1], integral)
+ax.plot([M_ini[0], M_ini[-1]], [integral[-1]*fraction, integral[-1]*fraction])
+ax.plot([M_lim, M_lim], [integral[0], integral[-1]])
+ax.set_xlabel('initial mass')
+ax.set_ylabel('luminosity * IMF')
+# ax.loglog()
+plt.show()
+
+print(form.MassFraction([M_lim, M_ini[-1]]))
+
+##
+M, D, r = np.log10(5*10**6), np.log10(15*10**6), 0.345              # M, D in 10log
+astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True, tot_lum=True)
+astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r))
+src = img.MakeSource(astobj, filter='J')
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r))
+fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r), grid=False)
+# zoom
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-zoom-compact'.format(M, D, r))
+# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-zoom-compact'.format(M, D, r), grid=False)
+
+##
+# static mag lim
+M, D, r = np.log10(5*10**6), np.log10(0.8*10**6), 0.345              # M, D in 10log
+astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True)
+astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r))
+src = img.MakeSource(astobj, filter='J')
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r))
+fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r), grid=False)
+# zoom
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-zoom-compact'.format(M, D, r))
+# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-zoom-compact'.format(M, D, r), grid=False)
+
+## masslimit by number
+frac = np.arange(1, 0, -0.001)
+mass = []
+for f in frac:
+    mass.append(form.MassLimit(f))
+
+fig, ax = plt.subplots()
+ax.plot(frac, mass)
+ax.set_xlabel('fraction')
+ax.set_ylabel('lower mass limit')
+# ax.loglog()
+plt.show()
+
+##
+# number lim
+M, D, r = np.log10(5*10**6), np.log10(0.8*10**6), 0.345              # M, D in 10log
+astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True, cp_mode='num')
+astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r))
+src = img.MakeSource(astobj, filter='J')
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r))
+fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r), grid=False)
+# zoom
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(M, D, r))
+# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(M, D, r), grid=False)
+
+
 
 
 ## grid (try #2)
@@ -2707,8 +2802,8 @@ import conversions as conv
 import ImageGen as img
 
 
-# cd documents\documenten_radboud_university\masterstage\astroimsim
-
+# cd documents\documenten_radboud_university\masterstage\SMOC
+# cd Documents\GitHub\SMOC
 
 
 

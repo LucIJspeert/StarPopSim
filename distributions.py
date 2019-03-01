@@ -12,20 +12,20 @@ Distributions ending in _rho are 2D radial (cylindrical) variants.
 imf_defaults = [0.08, 150]                                                                          # lower bound, upper bound on mass
 
 
-def IMF(M, mass=imf_defaults):
-    '''(Forward) Initial Mass Function, normalized to 1 probability.
+def IMF(M, imf=imf_defaults):
+    '''(Forward) Initial Mass Function (=probability density function), normalized to 1 probability.
     Modified Salpeter IMF; actually Kroupa IMF above 0.08 solar mass.
     '''
-    M_L, M_U = mass
+    M_L, M_U = imf
     M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
     C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
     C_L = (1/0.35*M_L**(-0.35) + C_mid - M_mid/1.35*M_U**(-1.35))**-1
     C_U = C_L*M_mid
     return (M < M_mid)*C_L*M**(-1.35) + (M >= M_mid)*C_U*M**(-2.35)
     
-def invCIMF(n=1, mass=imf_defaults):
+def invCIMF(n=1, imf=imf_defaults):
     '''The inverted cumulative Initial Mass Function. Spits out n masses between lower and upper bound.'''
-    M_L, M_U = mass
+    M_L, M_U = imf
     M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
     N_dist = np.random.rand(int(n))
     # same constants as are in the IMF:

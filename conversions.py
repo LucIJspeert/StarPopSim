@@ -49,9 +49,9 @@ def RotateXZ(positions, angle):
     z_new = coords[2]*cos + coords[0]*sin
     return np.array([x_new, coords[1], z_new]).transpose()
 
-def MtotToNobj(M, mass=imf_defaults):
+def MtotToNobj(M, imf=imf_defaults):
     '''Converts from mass in a cluster (one stellar population) to number of objects using the implemented IMF.'''
-    M_L, M_U = mass
+    M_L, M_U = imf
     M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
     C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
     D_mid = (1/0.35 + 1/0.65)*M_mid**(0.65)
@@ -59,9 +59,9 @@ def MtotToNobj(M, mass=imf_defaults):
     M_mean = C_L*(D_mid - 1/0.65*M_L**(0.65) - M_mid/0.35*M_U**(-0.35))
     return np.rint(M/M_mean).astype(np.int64)
     
-def NobjToMtot(N, mass=imf_defaults):
+def NobjToMtot(N, imf=imf_defaults):
     '''Converts from number of objects in a cluster (one stellar population) to total mass using the implemented IMF.'''
-    M_L, M_U = mass
+    M_L, M_U = imf
     M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
     C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
     D_mid = (1/0.35 + 1/0.65)*M_mid**(0.65)

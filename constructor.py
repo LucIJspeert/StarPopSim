@@ -756,8 +756,10 @@ def OneLineCommand(astobj, N, M, IMF, savename):
         command += ' -bar ' + str(astobj.spiral_bar)
     if (astobj.compact != False):
         command += ' -compact '
-        if (astobj.mag_limit is not None):
-            command += ' -limit ' + str(astobj.mag_limit)
+        if (astobj.compact_mode != 'num'):
+            command += ' -cp_mode ' + str(astobj.compact_mode)
+            if (astobj.mag_limit is not None):
+                command += ' -limit ' + str(astobj.mag_limit)
     if (savename != default_object_file_name):
         command += ' -save ' + savename
     
@@ -831,6 +833,10 @@ if __name__ == '__main__':
                         
     parser.add_argument('-compact', action='store_true', required=False,
                         help='only keep bright stars above a magnitude limit')
+                        
+    parser.add_argument('-cp_mode', type=str, required=False, default='num',
+                        choices=['num', 'mag'],
+                        help='compacting mode')
                         
     parser.add_argument('-limit', type=float, required=False, default=None,
                         help='magnitude limit to use for compacting')

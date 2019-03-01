@@ -133,9 +133,9 @@ def BBLuminosity(R, T_eff):
     '''Luminosity (in Lsun) of a Black Body with given radius (Rsun) and temperature (K)'''
     return R**2*(T_eff/T_sun)**4
     
-def MassFraction(mass_limits, mass=imf_defaults):
+def MassFraction(mass_limits, imf=imf_defaults):
     '''Returns the fraction of stars in a population above and below certain mass_limits (Msol).'''
-    M_L, M_U = mass
+    M_L, M_U = imf
     M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
     M_lim_low, M_lim_high = mass_limits
     # same constants as are in the IMF:
@@ -150,6 +150,25 @@ def MassFraction(mass_limits, mass=imf_defaults):
         f = C_L*(C_mid + M_lim_low**(-0.35)/0.35 - M_mid*M_lim_high**(-1.35)/1.35)
     
     return f
+    
+def MassLimit(frac, M_max=None, imf=imf_defaults):
+    '''Returns the lower mass limit to get a certain fraction of stars generated.'''
+    M_L, M_U = imf
+    M_mid = 0.5  
+    if (M_max is None):
+        M_max = M_U
+    # same constants as are in the IMF:
+    C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
+    C_L = (1/0.35*M_L**(-0.35) + C_mid - M_mid/1.35*M_U**(-1.35))**-1
+    # the mid value in the CDF
+    N_mid = C_L*M_mid/1.35*(M_mid**(-1.35) - M_U**(-1.35))
+    
+    if (frac < N_mid):
+        M_lim = (1.35*frac/(C_L*M_mid) + M_max**(-1.35))**(-1/1.35)
+    else:
+        M_lim = (0.35*(frac/C_L - C_mid + M_mid/1.35*M_max**(-1.35)))**(-1/0.35)
+        
+    return M_lim
     
 def RemnantMass(M_init, Z=Z_sun):
     '''Very rough estimate of the final (remnant) mass given an initial (ZAMS) mass.

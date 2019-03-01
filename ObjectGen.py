@@ -27,7 +27,8 @@ personal distributions might be added to the distribution module.
 
 # global defaults
 rdist_default = 'Normal'                                                                            # see distributions module for a full list of options
-default_mag_lim = 29                                                                                # magnitude limit found by testing in Ks with exp=1800s
+default_mag_lim = 32                                                                                # magnitude limit found by testing in Ks with exp=1800s
+default_lum_fraction = 0.9999                                                                       # depending on (log)age, the following fractions might work better: <6: 0.99, ~7: 0.999, >8: 0.9999
 imf_defaults = [0.08, 150]                                                                          # lower bound, upper bound on mass
 
 
@@ -55,7 +56,8 @@ class AstObject:
                 spiral_bulge=0,
                 spiral_bar=0,
                 compact=False,
-                mag_lim=None
+                cp_mode='num',
+                mag_lim=None,
                 ):
         
         if (age is None):
@@ -124,10 +126,11 @@ class AstObject:
         self.abs_mag = np.empty([8,0])                                                              # absolute magnitudes (in various filters! [U, B, V, R, I, J, H, K])
         self.mag_names = np.array([])                                                               # names of the filters corresponding to the magnitudes
         
-        self.compact = compact  	                                                                # (compact mode) If True, generates only high mass stars based on limiting mag
+        self.compact = compact  	                                                                # (compact mode) if True, generates only high mass stars based on limiting mag
+        self.compact_mode = cp_mode                                                                 # (compact mode) mode of compacting. num=number limited, mag=magnitude limited
         self.mag_limit = mag_lim                                                                    # (compact mode) limiting magnitude, used only for compact mode
         self.fraction_generated = 1                                                                 # (compact mode) part of the total number of stars that has actually been generated for each population
-        self.mass_limit = 0                                                                         # (compact mode) lower mass limit for each population
+        self.mass_limit = np.array([])                                                              # (compact mode) mass limits imposed by compacting (for each population)
         
         self.CheckInput()                                                                           # check user input
         self.GenerateObj()                                                                          # actually generate the objects                                                                        
@@ -248,7 +251,7 @@ class AstObject:
             self.N_obj = 1000
             pop_num = np.rint(rel_frac*self.N_obj).astype(int)                                      # rounded off number
         elif (self.N_obj == 0):                                                                     # a total mass is given
-            pop_num = np.array([conv.MtotToNobj(self.M_tot_init*rel_frac[i], mass=self.imf_param[i]) for i in range(num_pop)])
+            pop_num = np.array([conv.MtotToNobj(self.M_tot_init*rel_frac[i], imf=self.imf_param[i]) for i in range(num_pop)])
             self.N_obj = np.sum(pop_num)                                                            # estimate of the number of objects to generate
         else:
             pop_num = np.rint(rel_frac*self.N_obj).astype(int)                                      # rounded off number
@@ -424,24 +427,19 @@ class AstObject:
                 self.mag_limit = default_mag_lim                                                    # if not specified, use default
             
             for i, pop_num in enumerate(self.pop_number):
-                self.mass_limit[i] = LimitingMass(self.mag_limit, self.d_lum, self.ages[i], self.metal[i], self.extinction, filter='Ks')
+                if (self.compact_mode == 'mag'):
+                    self.mass_limit[i] = MagnitudeLimited(self.ages[i], self.metal[i], mag_lim=self.mag_limit,
+                                                    d=self.d_lum, ext=self.extinction, filter='Ks')
+                else:
+                    self.mass_limit[i] = NumberLimited(self.N_obj, self.ages[i], self.metal[i], imf=self.imf_param[i])
+                
                 if (self.mass_limit[i, 1] > self.imf_param[i, 1]):
                     self.mass_limit[i, 1] = self.imf_param[i, 1]                                    # don't increase the upper limit!
-                self.fraction_generated[i] = form.MassFraction(self.mass_limit[i], mass=self.imf_param[i])
+                
+                self.fraction_generated[i] = form.MassFraction(self.mass_limit[i], imf=self.imf_param[i])
         
-            if (self.pop_number*self.fraction_generated < 10).any():                                # don't want too few stars
-                warnings.warn('AstObjectClass//GenerateObj: population compacted to <10, compensating accordingly.', SyntaxWarning)
-                k = 0
-                while (self.pop_number*self.fraction_generated < 10).any():
-                    k += 1
-                    if (i > 20):
-                        raise RuntimeError('AstObjectClass//GenerateObj: compensating failed, try not compacting or generating a higher number of stars.', SyntaxWarning)
-                    
-                    for i, pop_num in enumerate(self.pop_number):                                   # go through the loop again, now increasing the magnitude limit
-                        self.mass_limit[i] = LimitingMass(self.mag_limit + k, self.d_lum, self.ages[i], self.metal[i], self.extinction, filter='Ks')
-                        if (self.mass_limit[i, 1] > self.imf_param[i, 1]):
-                            self.mass_limit[i, 1] = self.imf_param[i, 1]                            # don't increase the upper limit!
-                        self.fraction_generated[i] = form.MassFraction(self.mass_limit[i], mass=self.imf_param[i])
+            if np.any(self.pop_number*self.fraction_generated < 10):                                # don't want too few stars
+                raise RuntimeError('AstObjectClass//GenerateObj: population compacted to <10, try not compacting or generating a higher number of stars.', SyntaxWarning)
         
         # assign the right values for generation
         if self.compact:
@@ -457,7 +455,7 @@ class AstObject:
                 coords_i = Ellipsoid(pop_num, dist_type=self.r_dist_type[i], axes=self.ellipse_axes[i], **self.r_dist_param[i])
                 if (self.inclination[i] != 0):
                     coords_i = conv.RotateXZ(coords_i, self.inclination[i])                         # rotate the XZ plane (x axis towards positive z)
-                M_init_i, M_diff_i = ObjMasses(pop_num, 0, mass=gen_imf_param[i])
+                M_init_i, M_diff_i = ObjMasses(pop_num, 0, imf=gen_imf_param[i])
                 self.coords = np.append(self.coords, coords_i, axis=0)                           
                 self.M_init = np.append(self.M_init, M_init_i)
                 self.M_diff += M_diff_i                                                             # ObjMasses already gives diff in Mass (=estimate since no mass was given)
@@ -646,7 +644,7 @@ def SpiralArms():
 def Irregular(N_obj):
     '''Make an irregular galaxy'''
     
-def ObjMasses(N_obj=0, M_tot=0, mass=[0.08, 0.5, 150]):
+def ObjMasses(N_obj=0, M_tot=0, imf=[0.08, 0.5, 150]):
     '''Generate masses using the Initial Mass Function. Either number of objects or total mass should be given.
     mass defines the lower and upper bound to the masses as well as the position of the 'knee' in the IMF.
     Also gives the difference between the total generated mass and the input mass (or estimated mass when using N_obj).
@@ -656,16 +654,16 @@ def ObjMasses(N_obj=0, M_tot=0, mass=[0.08, 0.5, 150]):
         warnings.warn('ObjectGen//ObjMasses: Input mass and number of objects cannot be zero simultaniously. Using N_obj=10', SyntaxWarning)
         N_obj = 10
     elif (N_obj == 0):                                                                              # a total mass is given
-        N_obj = conv.MtotToNobj(M_tot, mass)                                                        # estimate the number of objects to generate
+        N_obj = conv.MtotToNobj(M_tot, imf)                                                         # estimate the number of objects to generate
         
     # mass
-    M_init = dist.invCIMF(N_obj, mass)                                                              # assign initial masses using IMF
+    M_init = dist.invCIMF(N_obj, imf)                                                               # assign initial masses using IMF
     M_tot_gen = np.sum(M_init)                                                                      # total generated mass (will differ from input mass, if given)
     
     if (M_tot != 0):
         M_diff = M_tot_gen - M_tot
     else:
-        M_tot_est = conv.NobjToMtot(N_obj, mass)
+        M_tot_est = conv.NobjToMtot(N_obj, imf)
         M_diff = M_tot_gen - M_tot_est                                                              # will give the difference to the estimated total mass for n objects
         
     return M_init, M_diff
@@ -779,27 +777,42 @@ def FindSpectralType(T_eff, Lum, Mass):
     
     return indices, type_selection
     
-def LimitingMass(mag_lim, dist, age, Z, ext, filter='Ks'):
-    '''Retrieves the lower mass limit for which the given magnitude threshold is met.
-    Also gives the upper mass limit of the isochrone, eliminating stellar remnants.
+def NumberLimited(N, age, Z, imf=imf_defaults):
+    '''Retrieves the lower mass limit for which the number of stars does not exceed 10**7. Will also
+    give an upper mass limit based on the values in the isochrone.
+    The intended number of generated stars, age and metallicity are needed.
+    '''
+    fraction = np.clip(10**7/N, 0, 1)                                                               # fraction of number of stars to generate
+    
+    M_ini, mag_vals, mag_names = OpenIsochrone(age, Z, columns='mag')                               # get the isochrone values
+    mass_lim_high = M_ini[-1]                                                                       # highest value in the isochrone
+    
+    mass_lim_low = form.MassLimit(fraction, M_max=mass_lim_high, imf=imf)
+    
+    return mass_lim_low, mass_lim_high
+    
+def MagnitudeLimited(age, Z, mag_lim=default_mag_lim, d=10, ext=0, filter='Ks'):
+    '''Retrieves the lower mass limit for which the given magnitude threshold is met. Will also give
+    an upper mass limit based on the values in the isochrone.
+    Works only for resolved stars. If light is integrated along the line of sight (crowded fields), 
+    then don't use this method! Resulting images would not be accurate!
     distance, age, metallicity and extinction of the population of stars are needed.
     A filter must be specified in which the given limiting magnitude is measured.
     '''
     M_ini, mag_vals, mag_names = OpenIsochrone(age, Z, columns='mag')                               # get the isochrone values
     mag_vals = mag_vals[mag_names == filter][0]                                                     # select the right filter ([0] needed to reduce to 1D array)
-    
-    abs_mag_lim = form.AbsoluteMag(mag_lim, dist, ext=ext)                                          # calculate the limiting absolute magnitude
+
+    abs_mag_lim = form.AbsoluteMag(mag_lim, d, ext=ext)                                             # calculate the limiting absolute magnitude
     mask = (mag_vals < abs_mag_lim + 0.1)                                                           # take all mag_vals below the limit
     if not mask.any():
         mask = (mag_vals == np.min(mag_vals))                                                       # if limit too high (too low in mag) then it will break
-        warnings.warn('ObjectGen//LimitingMass: compacting will not work, distance too large.')
-    
+        warnings.warn('ObjectGen//MagnitudeLimited: compacting will not work, distance too large.')
+
     mass_lim_low = M_ini[mask][0]                                                                   # the lowest mass where mask==True
     
     mass_lim_high = M_ini[-1]                                                                       # highest value in the isochrone
     
     return mass_lim_low, mass_lim_high
-    
     
 def OpenIsochrone(age, Z, columns='all'):
     '''Opens the isochrone file and gives the relevant columns.
@@ -844,6 +857,9 @@ def OpenIsochrone(age, Z, columns='all'):
     elif (columns == 'mag'):
         log_t, M_ini = np.loadtxt(file_name, usecols=var_cols[:2], unpack=True)
         mag = np.loadtxt(file_name, usecols=mag_cols, unpack=True)
+    elif (columns == 'lum'):
+        log_t, M_ini = np.loadtxt(file_name, usecols=var_cols[:2], unpack=True)
+        log_L = np.loadtxt(file_name, usecols=(col_dict[name_dict['log_L']]), unpack=True)
     else:
         raise ValueError('ObjectGen//OpenIsochrone: wrong argument for \'columns\' given.')
     
@@ -873,16 +889,20 @@ def OpenIsochrone(age, Z, columns='all'):
     where_t = np.where(log_t == log_closest)
     
     # return the right columns (2/2)
-    M_ini = M_ini[where_t]
-    mag = np.array([m[0] for m in mag[:, where_t]])                                                 # weird conversion needed because normal slicing would result in deeper array
+    M_ini = M_ini[where_t]                                                                          # M_ini is always returned
     if (columns == 'all'):
         M_act = M_act[where_t]
         log_L = log_L[where_t]
         log_Te = log_Te[where_t]
         log_g = log_g[where_t]
+        mag = np.array([m[0] for m in mag[:, where_t]])                                             # weird conversion needed because normal slicing would result in deeper array
         return M_ini, M_act, log_L, log_Te, log_g, mag, mag_names
     elif (columns == 'mag'):
+        mag = np.array([m[0] for m in mag[:, where_t]])                                             # weird conversion needed because normal slicing would result in deeper array
         return M_ini, mag, mag_names
+    elif (columns == 'lum'):
+        log_L = log_L[where_t]
+        return M_ini, log_L
     
 def FixTotal(tot, nums):
     '''Check if nums add up to total and fixes it.''' 
