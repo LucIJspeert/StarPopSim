@@ -79,25 +79,25 @@ def AngleTheta(n=1):
     
 def Exponential_r(n=1, s=1.0):
     '''Radial exponential distribution with scale height s. Draws n numbers.'''
-    r_vals = np.logspace(-3, 4, 1000)                                                                # short to medium tail (max radius 10**4!)
+    r_vals = np.logspace(-3, 4, 1000)                                                               # short to medium tail (max radius 10**4!)
     N_vals_exp = cdf_Exponential(r_vals, s)
     return np.interp(np.random.rand(int(n)), N_vals_exp, r_vals)
     
 def Normal_r(n=1, s=1.0):
     '''Radial normal (gaussian) distribution with scale height s. Draws n numbers.'''
-    r_vals = np.logspace(-3, 4, 1000)                                                                # quite short tail (max radius 10**4!)
+    r_vals = np.logspace(-3, 4, 1000)                                                               # quite short tail (max radius 10**4!)
     N_vals_norm = cdf_Normal(r_vals, s)
     return np.interp(np.random.rand(int(n)), N_vals_norm, r_vals)
     
 def SquaredCauchy_r(n=1, s=1.0):
     '''Radial squared Cauchy distribution (Schuster with m=2) with scale height s. Draws n numbers.'''
-    r_vals = np.logspace(-3, 6, 1000)                                                                # very long tail (max radius 10**6!)
+    r_vals = np.logspace(-3, 6, 1000)                                                               # very long tail (max radius 10**6!)
     N_vals = cdf_Squaredcauchy(r_vals, s)
     return np.interp(np.random.rand(int(n)), N_vals, r_vals)
     
 def PearsonVII_r(n=1, s=1.0):
     '''Radial Pearson type VII distribution (Schuster with m=2.5) with scale height s. Draws n numbers.'''
-    r_vals = np.logspace(-3, 4, 1000)                                                                # medium tail (max radius 10**4!)
+    r_vals = np.logspace(-3, 4, 1000)                                                               # medium tail (max radius 10**4!)
     N_vals = cdf_PearsonVII(r_vals, s)
     return np.interp(np.random.rand(int(n)), N_vals, r_vals)
     
@@ -113,19 +113,19 @@ def KingGlobular_r(n=1, s=1.0, R=None):
 
 def Normal_rho(n=1, s=1.0):
     '''Radial normal (gaussian) distribution with scale height s. Draws n numbers.'''
-    r_vals = np.logspace(-3, 4, 1000)                                                                # quite short tail (max radius 10**4!)
+    r_vals = np.logspace(-3, 4, 1000)                                                               # quite short tail (max radius 10**4!)
     N_vals_norm = cdf_Normal(r_vals, s, form='cylindrical')
     return np.interp(np.random.rand(int(n)), N_vals_norm, r_vals)
 
 def SquaredCauchy_rho(n=1, s=1.0):
     '''Radial squared Cauchy distribution (Schuster with m=2) with scale height s. Draws n numbers.'''
-    r_vals = np.logspace(-3, 6, 1000)                                                                # very long tail (max radius 10**6!)
+    r_vals = np.logspace(-3, 6, 1000)                                                               # very long tail (max radius 10**6!)
     N_vals = cdf_Squaredcauchy(r_vals, s, form='cylindrical')
     return np.interp(np.random.rand(int(n)), N_vals, r_vals)
     
 def PearsonVII_rho(n=1, s=1.0):
     '''Radial Pearson type VII distribution (Schuster with m=2.5) with scale height s. Draws n numbers.'''
-    r_vals = np.logspace(-3, 4, 1000)                                                                # medium tail (max radius 10**4!)
+    r_vals = np.logspace(-3, 4, 1000)                                                               # medium tail (max radius 10**4!)
     N_vals = cdf_PearsonVII(r_vals, s, form='cylindrical')
     return np.interp(np.random.rand(int(n)), N_vals, r_vals)
 
@@ -139,119 +139,105 @@ def KingGlobular_rho(n=1, s=1.0, R=None):
     
 # below: pdf and cdf distributions for the distributions using interpolation
     
-def pdf_Exponential(r, s=1.0, form='spherical'):
+def pdf_Exponential(r, s=1.0):
     '''pdf of radial exponential distribution.'''
-    if (form == 'spherical'):
-        rs = r/s
-        pdf = rs**2/(2*s)*np.exp(-rs)
-    else:
-        pdf = r
+    rs = r/s
+    pdf = rs**2/(2*s)*np.exp(-rs)
     return pdf
 
-def cdf_Exponential(r, s=1.0, form='spherical'):
+def cdf_Exponential(r, s=1.0):
     '''cdf of radial exponential distribution.'''
-    if (form == 'spherical'):
-        rs = r/s
-        cdf = 1 - (rs**2/2 + rs + 1)*np.exp(-rs)
-    else:
-        cdf = r
+    rs = r/s
+    cdf = 1 - (rs**2/2 + rs + 1)*np.exp(-rs)
     return cdf
     
 def pdf_Normal(r, s=1.0, form='spherical'):
     '''pdf of radial normal distribution.'''
-    if (form == 'spherical'):
-        rs2 = (r/s)**2
-        pdf = 4/(np.sqrt(np.pi)*s)*rs2*np.exp(-rs2)
-    elif (form == 'cylindrical'):
+    if (form == 'cylindrical'):
         rs = r/s
         pdf = 2*rs/s*np.exp(-rs**2)
     else:
-        pdf = r
+        # form == 'spherical'
+        rs2 = (r/s)**2
+        pdf = 4/(np.sqrt(np.pi)*s)*rs2*np.exp(-rs2)
     return pdf
     
 def cdf_Normal(r, s=1.0, form='spherical'):
     '''cdf of radial normal distribution.'''
-    if (form == 'spherical'):
-        rs = r/s
-        cdf = sps.erf(rs) - 2/np.sqrt(np.pi)*rs*np.exp(-rs**2)
-    elif (form == 'cylindrical'):
+    if (form == 'cylindrical'):
         rs2 = (r/s)**2
         cdf = 1 - np.exp(-rs2)
     else:
-        cdf = r
+        # form == 'spherical'
+        rs = r/s
+        cdf = sps.erf(rs) - 2/np.sqrt(np.pi)*rs*np.exp(-rs**2)
     return cdf
     
 def pdf_gamma3(r, s=1.0, form='spherical'):
     '''pdf of radial gamma=3 distribution.'''
-    if (form == 'spherical'):
-        rs2 = (r/s)**2
-        pdf = 4/(np.pi*s)*rs2*(1 + rs2)**(-2)
-    elif (form == 'cylindrical'):
+    if (form == 'cylindrical'):
         rs = r/s
         pdf = rs/s*(1 + rs**2)**(-3/2)
     else:
-        pdf = r
+        # form == 'spherical'
+        rs2 = (r/s)**2
+        pdf = 4/(np.pi*s)*rs2*(1 + rs2)**(-2)
     return pdf
     
 def cdf_gamma3(r, s=1.0, form='spherical'):
     '''cdf of radial gamma=3 distribution.'''
-    if (form == 'spherical'):
-        rs = r/s
-        cdf = 2/np.pi*(np.arctan(rs) - rs/(1 + rs**2))
-    elif (form == 'cylindrical'):
+    if (form == 'cylindrical'):
         rs2 = (r/s)**2
         cdf = 1- (1 + rs2)**(-1/2)
     else:
-        cdf = r
+        # form == 'spherical'
+        rs = r/s
+        cdf = 2/np.pi*(np.arctan(rs) - rs/(1 + rs**2))
     return cdf
     
 def pdf_SquaredCauchy(r, s=1.0, form='spherical'):
     '''pdf of radial squared Cauchy distribution.'''
-    if (form == 'spherical'):
-        rs2 = (r/s)**2
-        pdf = 3/s*rs2*(1 + rs2)**(-5/2)                                                             # the spherical equivalent
-    elif (form == 'cylindrical'):
+    if (form == 'cylindrical'):
         rs = r/s
         pdf = 2/s*rs*(1 + rs**2)**(-2)                                                              # the actual observational profile
     else:
-        pdf = r
+        # form == 'spherical'
+        rs2 = (r/s)**2
+        pdf = 3/s*rs2*(1 + rs2)**(-5/2)                                                             # the spherical equivalent
     return pdf
 
 def cdf_Squaredcauchy(r, s=1.0, form='spherical'):
     '''cdf of radial squared Cauchy distribution.'''
-    if (form == 'spherical'):
-        rs = r/s
-        cdf = rs**3*(1 + rs**2)**(-3/2)
-    elif (form == 'cylindrical'):
+    if (form == 'cylindrical'):
         rs2 = (r/s)**2
         cdf = rs2*(1 + rs2)**(-1)
     else:
-        cdf = r
+        # form == 'spherical'
+        rs = r/s
+        cdf = rs**3*(1 + rs**2)**(-3/2)
     return cdf
     
 def pdf_PearsonVII(r, s=1.0, form='spherical'):
     '''pdf of radial Pearson type VII distribution.'''
-    if (form == 'spherical'):
-        rs2 = (r/s)**2
-        pdf = 16/(np.pi*s)*rs2*(1 + rs2)**(-3)
-    elif (form == 'cylindrical'):
+    if (form == 'cylindrical'):
         rs = r/s
         pdf = 3/s*rs*(1 + rs**2)**(-5/2)
     else:
-        pdf = r
+        # form == 'spherical'
+        rs2 = (r/s)**2
+        pdf = 16/(np.pi*s)*rs2*(1 + rs2)**(-3)
     return pdf
     
 def cdf_PearsonVII(r, s=1.0, form='spherical'):
     '''cdf of radial Pearson type VII distribution.'''
-    if (form == 'spherical'):
-        rs = r/s
-        rs2 = (r/s)**2
-        cdf = 2/np.pi*(rs*((1 + rs2)**(-1) - 2*(1 + rs2)**(-2)) + np.arctan(rs))
-    elif (form == 'cylindrical'):
+    if (form == 'cylindrical'):
         rs2 = (r/s)**2
         cdf = 1 - (1 + rs2)**(-3/2)
     else:
-        cdf = r
+        # form == 'spherical'
+        rs = r/s
+        rs2 = (r/s)**2
+        cdf = 2/np.pi*(rs*((1 + rs2)**(-1) - 2*(1 + rs2)**(-2)) + np.arctan(rs))
     return cdf
 
 def pdf_KingGlobular(r, s=1.0, R=None, form='spherical'):
@@ -263,16 +249,16 @@ def pdf_KingGlobular(r, s=1.0, R=None, form='spherical'):
     Rs2 = (R/s)**2
     C2 = (1 + Rs2)**(-1/2)
     
-    if (form == 'spherical'):
+    if (form == 'cylindrical'):
+        C = (np.log(1 + Rs2)/2 + 2*C2 - 2 + Rs2/2*C2**2)**(-1)
+        pdf = C/s*r/s*(1/(1 + rs2)**(1/2) - C2)**2
+    else:
+        # form == 'spherical'
         Rs = R/s
         C3 = (4 - np.pi)/(2*np.pi)*C2**3
         C = (np.arcsinh(Rs)/2 + 2*C2/np.pi*np.arctan(Rs) - (1/2 + 2/np.pi)*C2*Rs + C3/3*Rs**3)**(-1)
         pdf = C/s*rs2*((1 + rs2)**(-3/2)/2 - 2*C2/np.pi*(1 + rs2)**(-1) + C3)
-    elif (form == 'cylindrical'):
-        C = (np.log(1 + Rs2)/2 + 2*C2 - 2 + Rs2/2*C2**2)**(-1)
-        pdf = C/s*r/s*(1/(1 + rs2)**(1/2) - C2)**2
-    else:
-        pdf = r
+        
     return pdf
     
 def cdf_KingGlobular(r, s=1.0, R=None, form='spherical'):
@@ -285,17 +271,17 @@ def cdf_KingGlobular(r, s=1.0, R=None, form='spherical'):
     Rs2 = (R/s)**2
     C2 = (1 + Rs2)**(-1/2)
     
-    if (form == 'spherical'):
+    if (form == 'cylindrical'):
+        C = (np.log(1 + Rs2)/2 + 2*C2 - 2 + Rs2/2*C2**2)**(-1)
+        cdf = C*(np.log(1 + rs2)/2 + 2*C2*(1 - (1 + rs2)**(1/2)) + rs2/2*C2**2)  
+    else:
+        # form == 'spherical'
         rs = r/s
         Rs = R/s
         C3 = (4 - np.pi)/(2*np.pi)*C2**3
         C = (np.arcsinh(Rs)/2 + 2*C2/np.pi*np.arctan(Rs) - (1/2 + 2/np.pi)*C2*Rs + C3/3*Rs**3)**(-1)
         cdf = C*(np.arcsinh(rs)/2 - rs/2/(1 + rs2)**(1/2) + 2*C2/np.pi*np.arctan(rs) - 2*C2/np.pi*rs + C3/3*rs**3)
-    elif (form == 'cylindrical'):
-        C = (np.log(1 + Rs2)/2 + 2*C2 - 2 + Rs2/2*C2**2)**(-1)
-        cdf = C*(np.log(1 + rs2)/2 + 2*C2*(1 - (1 + rs2)**(1/2)) + rs2/2*C2**2)  
-    else:
-        cdf = r
+        
     return cdf
 
 
