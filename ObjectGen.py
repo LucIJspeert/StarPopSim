@@ -255,6 +255,7 @@ class AstObject:
             self.N_obj = np.sum(pop_num)                                                            # estimate of the number of objects to generate
         else:
             pop_num = np.rint(rel_frac*self.N_obj).astype(int)                                      # rounded off number
+            self.N_obj = np.rint(np.sum(pop_num)).astype(int)                                       # make sure N_obj is int and rounded off
         
         # check if the population numbers add up to N total and save correct ones
         self.pop_number = FixTotal(self.N_obj, pop_num)
@@ -782,7 +783,7 @@ def NumberLimited(N, age, Z, imf=imf_defaults):
     give an upper mass limit based on the values in the isochrone.
     The intended number of generated stars, age and metallicity are needed.
     '''
-    fraction = np.clip(10**7/N, 0, 1)                                                               # fraction of number of stars to generate
+    fraction = np.clip(10**7/N, 0, 1)                                                               # fraction of the total number of stars to generate
     
     M_ini, mag_vals, mag_names = OpenIsochrone(age, Z, columns='mag')                               # get the isochrone values
     mass_lim_high = M_ini[-1]                                                                       # highest value in the isochrone

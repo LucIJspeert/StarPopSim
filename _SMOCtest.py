@@ -2742,6 +2742,17 @@ fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r), gri
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(M, D, r))
 # fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(M, D, r), grid=False)
 
+##
+N, D, r = np.log10(2*10**8), np.log10(15*10**6), 0.345              # M, D in 10log
+astobj = obg.AstObject(N_obj=10**N, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True, cp_mode='num')
+astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r))
+src = img.MakeSource(astobj, filter='J')
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r))
+fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r), grid=False)
+# zoom
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(N, D, r))
+# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(N, D, r), grid=False)
+
 
 
 
