@@ -74,7 +74,7 @@ def AnglePhi(n=1):
     return 2*np.pi*np.random.rand(int(n)) 
     
 def AngleTheta(n=1):
-    '''Angle(s) between 0 and pi chosen from a sinus distribution.'''
+    '''Angle(s) between 0 and pi chosen from a sine distribution.'''
     return np.arccos(2*np.random.rand(int(n)) - 1)
     
 def Exponential_r(n=1, s=1.0):

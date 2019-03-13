@@ -30,6 +30,7 @@ rdist_default = 'Normal'                                                        
 default_mag_lim = 32                                                                                # magnitude limit found by testing in Ks with exp=1800s
 default_lum_fraction = 0.9999                                                                       # depending on (log)age, the following fractions might work better: <6: 0.99, ~7: 0.999, >8: 0.9999
 imf_defaults = [0.08, 150]                                                                          # lower bound, upper bound on mass
+limiting_number = 10**7                                                                             # used in compact mode as maximum number of stars
 
 
 class AstObject:
@@ -645,7 +646,7 @@ def SpiralArms():
 def Irregular(N_obj):
     '''Make an irregular galaxy'''
     
-def ObjMasses(N_obj=0, M_tot=0, imf=[0.08, 0.5, 150]):
+def ObjMasses(N_obj=0, M_tot=0, imf=[0.08, 150]):
     '''Generate masses using the Initial Mass Function. Either number of objects or total mass should be given.
     mass defines the lower and upper bound to the masses as well as the position of the 'knee' in the IMF.
     Also gives the difference between the total generated mass and the input mass (or estimated mass when using N_obj).
@@ -783,7 +784,7 @@ def NumberLimited(N, age, Z, imf=imf_defaults):
     give an upper mass limit based on the values in the isochrone.
     The intended number of generated stars, age and metallicity are needed.
     '''
-    fraction = np.clip(10**7/N, 0, 1)                                                               # fraction of the total number of stars to generate
+    fraction = np.clip(limiting_number/N, 0, 1)                                                               # fraction of the total number of stars to generate
     
     M_ini, mag_vals, mag_names = OpenIsochrone(age, Z, columns='mag')                               # get the isochrone values
     mass_lim_high = M_ini[-1]                                                                       # highest value in the isochrone

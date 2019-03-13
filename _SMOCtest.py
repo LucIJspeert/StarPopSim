@@ -2559,6 +2559,29 @@ src = sim.source.stars(mags=magnitudes, x=xs, y=ys, filter_name=filter, spec_typ
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='scao', filename='img_test_save')
 fh.PlotFits('img_test_save')
 
+## AO tests
+import numpy as np
+import ImageGen as img
+import simcado as sim
+import fitshandler as fh
+
+n = int(5)
+filter = 'Ks'
+minmax = 4
+
+xs = np.linspace(-1, 1, 5)                                                            # coords in as
+ys = np.linspace(-1, 1, 5)                                                            # coords in as
+
+magnitudes = np.linspace(12, 18, n)
+
+# Magnitude 28 seems to be where you loose it
+
+src = sim.source.stars(mags=magnitudes, x=xs, y=ys, filter_name=filter, spec_types=['M0V'])
+
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='PSF_MCAO.fits', filename='img_test_save')
+fh.PlotFits('img_test_save', grid=False)
+
+
 ##
 abs_mag_lim = form.AbsoluteMag(28, 2*10**8, ext=0)
 # bolometric correction is added the second time, when an estimate for Teff is known
@@ -2755,6 +2778,54 @@ image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', fi
 
 
 
+## save fitsplots
+import os
+import astropy.io.fits as fits
+from astropy.visualization import astropy_mpl_style
+
+def GetData(filename, index=0):
+    '''Returns the requested data. [NOTE: data[1, 4] gives pixel value at x=5, y=2.] Optional arg: (HDUlist) index'''
+    with fits.open(os.path.join('images', filename)) as hdul:
+        return hdul[index].data
+
+M, D, r = par_grid[-10]
+
+astobj = obg.AstObject.LoadFrom('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+src = img.MakeSource(astobj, filter='J')
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+##
+
+def SaveFitsPlot(filename, index=0, colours='gray', grid=True):
+    '''Saves the plotted image in a fits file. Optional args: (HDUlist) index, colours.
+    Can also take image objects directly.
+    '''
+    if isinstance(filename, str):
+        if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+            filename += '.fits'
+    
+        image_data = GetData(filename, index)
+    else:
+        image_data = filename[index].data
+        
+    plt.style.use(astropy_mpl_style)                                                                # use nice plot parameters
+    fig, ax = plt.subplots(figsize=[12.0, 12.0])
+    cax = ax.imshow(image_data, cmap=colours)
+    
+    ax.grid(grid)
+    cbar = fig.colorbar(cax)
+    
+    if isinstance(filename, str):
+        name = os.path.join('images', filename.replace('.fits', '.png').replace('.fit', '.png'))
+    else:
+        name = os.path.join('images', default_picture_file_name + '.png')
+    
+    plt.savefig(name, bbox_inches='tight', dpi=600)
+    return
+
+
+SaveFitsPlot('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
+
+
 
 ## grid (try #2)
 '''
@@ -2777,7 +2848,7 @@ par_grid[:, 0:2] = np.log10(par_grid[:, 0:2])
 
 def objsaver(pars):
     M, D, r = pars              # M, D in 10log
-    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r)
+    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True)
     astobj.SaveTo('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     return
     
@@ -2786,19 +2857,88 @@ def imgsaver(pars):
     astobj = obg.AstObject.LoadFrom('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     src = img.MakeSource(astobj, filter='J')
     image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+    fh.SaveFitsPlot('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
     return
     
     
 ##
-# run (part of) the grid    
-for pars in par_grid[par_grid[:,0] < 6.7]:
+# run the grid    
+for pars in par_grid:
     objsaver(pars)
-
-
-
 ##
-python3 constructor.py -struct ellipsoid -N 1000 -ages 9.65 10.0 9.0 -z 0.014 0.0014 0.014 -relN 1 1 1 -D 100.0
+# make images
+for pars in par_grid:
+    imgsaver(pars)
 
+
+## command test
+# python3 constructor.py -struct ellipsoid -N 1000 -ages 9.65 10.0 9.0 -z 0.014 0.0014 0.014 -relN 1 1 1 -D 100.0
+
+
+## zoom in for grid-7.004-5.903-2.069
+M, D, r = 7.004,  5.903, 2.069
+fh.PlotFits('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
+
+## more filters for grid-7.004-5.903-2.069
+M, D, r = 7.004,  5.903, 2.069
+astobj = obg.AstObject.LoadFrom('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+filters = ['U', 'B', 'V', 'R', 'I', 'H', 'Ks']
+
+for fil in filters:
+    src = img.MakeSource(astobj, filter=fil)
+    image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=fil, ao_mode='scao', filename='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, fil))
+    fh.PlotFits('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, fil), grid=False)
+
+## RGB
+# http://docs.astropy.org/en/stable/visualization/rgb.html
+# https://www.astrobetter.com/blog/2010/10/22/making-rgb-images-from-fits-files-with-pythonmatplotlib/
+import numpy as np
+import matplotlib.pyplot as plt
+import fitshandler as fh
+import astropy.visualization as avis
+import img_scale
+
+M, D, r = 7.004,  5.903, 2.069                                                                      # try: I, J, H, Ks
+
+R_data = fh.GetData('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-Ks'.format(M, D, r))
+G_data = fh.GetData('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-H'.format(M, D, r))
+B_data = fh.GetData('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+##
+img = np.zeros((R_data.shape[0], R_data.shape[1], 3), dtype=float)
+
+# linear
+img[:,:,0] = (R_data - np.min(R_data))/(np.max(R_data) - np.min(R_data))
+img[:,:,1] = (G_data - np.min(G_data))/(np.max(G_data) - np.min(G_data))
+img[:,:,2] = (B_data - np.min(B_data))/(np.max(B_data) - np.min(B_data))
+# seems equivalent
+# img[:,:,0] = img_scale.linear(R_data)
+# img[:,:,1] = img_scale.linear(G_data)
+# img[:,:,2] = img_scale.linear(B_data)
+
+# sqrt
+# img[:,:,0] = np.sqrt(R_data - np.min(R_data))/np.sqrt(np.max(R_data) - np.min(R_data))
+# img[:,:,1] = np.sqrt(G_data - np.min(G_data))/np.sqrt(np.max(G_data) - np.min(G_data))
+# img[:,:,2] = np.sqrt(B_data - np.min(B_data))/np.sqrt(np.max(B_data) - np.min(B_data))
+# seems equivalent
+# img[:,:,0] = img_scale.sqrt(R_data)
+# img[:,:,1] = img_scale.sqrt(G_data)
+# img[:,:,2] = img_scale.sqrt(B_data)
+
+# asinh
+# img[:,:,0] = np.arcsinh(R_data - np.min(R_data))/np.arcsinh(np.max(R_data) - np.min(R_data))
+# img[:,:,1] = np.arcsinh(G_data - np.min(G_data))/np.arcsinh(np.max(G_data) - np.min(G_data))
+# img[:,:,2] = np.arcsinh(B_data - np.min(B_data))/np.arcsinh(np.max(B_data) - np.min(B_data))
+# seems equivalent
+# img[:,:,0] = img_scale.asinh(R_data)
+# img[:,:,1] = img_scale.asinh(G_data)
+# img[:,:,2] = img_scale.asinh(B_data)
+# this is different
+# img = avis.make_lupton_rgb(R_data, G_data, B_data)
+
+fig, ax = plt.subplots(figsize=[12.0, 12.0])
+ax.imshow(img, origin='upper')
+plt.tight_layout()
+plt.show()
 
 ##
 import numpy as np

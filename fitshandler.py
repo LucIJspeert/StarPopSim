@@ -12,6 +12,10 @@ from astropy.visualization import astropy_mpl_style
 It is assumed that the fits data is in a file called 'images', positioned within the working directory.
 '''
 
+# global defaults
+default_picture_file_name = 'picture_default_save'
+
+
 def ShowInfo(filename):
     '''Shows the info of the HDUlist'''
     # clean way to open file (closes it automagically)
@@ -74,6 +78,9 @@ def GetCardValue(filename, keyword, index=0):
 
 def GetData(filename, index=0):
     '''Returns the requested data. [NOTE: data[1, 4] gives pixel value at x=5, y=2.] Optional arg: (HDUlist) index'''
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+            
     with fits.open(os.path.join('images', filename)) as hdul:
         return hdul[index].data
 
@@ -124,6 +131,32 @@ def PlotFits(filename, index=0, colours='gray', grid=True):
     plt.show()
     return
 
+def SaveFitsPlot(filename, index=0, colours='gray', grid=True):
+    '''Saves the plotted image in a fits file. Optional args: (HDUlist) index, colours.
+    Can also take image objects directly.
+    '''
+    if isinstance(filename, str):
+        if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+            filename += '.fits'
+    
+        image_data = GetData(filename, index)
+    else:
+        image_data = filename[index].data
+        
+    plt.style.use(astropy_mpl_style)                                                                # use nice plot parameters
+    fig, ax = plt.subplots(figsize=[12.0, 12.0])
+    cax = ax.imshow(image_data, cmap=colours)
+    
+    ax.grid(grid)
+    cbar = fig.colorbar(cax)
+    
+    if isinstance(filename, str):
+        name = os.path.join('images', filename.replace('.fits', '.png').replace('.fit', '.png'))
+    else:
+        name = os.path.join('images', default_picture_file_name + '.png')
+    
+    plt.savefig(name, bbox_inches='tight', dpi=600)
+    return
 
 
 
