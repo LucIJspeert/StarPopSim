@@ -28,6 +28,7 @@ MANIFEST
 # (user) data folders
 objects/*.pkl
 images/*.fits
+images/*.png
 old_versions/
 
 # PyInstaller
