@@ -123,7 +123,6 @@ class AstObject:
         self.remnant = np.array([], dtype=bool)                                                     # keep track if the star has died (==no longer in isoc file) (bool)
         self.log_L = np.array([])                                                                   # logarithm of luminosities in Lsol
         self.log_Te = np.array([])                                                                  # effective temperature of the objects in K
-        self.log_g = np.array([])                                                                   # log of the surface gravity (in cgs!)
         self.abs_mag = np.empty([8,0])                                                              # absolute magnitudes (in various filters! [U, B, V, R, I, J, H, K])
         self.mag_names = np.array([])                                                               # names of the filters corresponding to the magnitudes
         
@@ -475,7 +474,7 @@ class AstObject:
         # use the isochrone files to extrapolate properties
         for i, age in enumerate(self.ages):
             index = np.cumsum(np.append([0], gen_pop_number))
-            M_cur_i, log_L_i, log_Te_i, log_g_i, abs_mag_i, mag_names = IsocProps(self.M_init[index[i]:index[i+1]], age, self.metal[i])
+            M_cur_i, log_L_i, log_Te_i, abs_mag_i, mag_names = IsocProps(self.M_init[index[i]:index[i+1]], age, self.metal[i])
             
             # IsocProps assigns wildly wrong properties to remnants (i.e. M_cur=0). to get better properties, also run RemnantProps
             remnants_i = np.array([M_cur_i == 0])
@@ -491,7 +490,6 @@ class AstObject:
             self.M_cur = np.append(self.M_cur, M_cur_i)  
             self.log_L = np.append(self.log_L, log_L_i)
             self.log_Te = np.append(self.log_Te, log_Te_i)
-            self.log_g = np.append(self.log_g, log_g_i)
             self.abs_mag = np.append(self.abs_mag, abs_mag_i, axis=1)
             
         
@@ -675,21 +673,20 @@ def IsocProps(M_init, age, Z):
     the given initial masses of the objects.
     The objects should not have a lower initial mass than the lowest mass in the isochrone file.
     '''
-    M_ini, M_act, log_L, log_Te, log_g, mag, mag_names = OpenIsochrone(age, Z, columns='all')       # get the isochrone values
+    M_ini, M_act, log_L, log_Te, mag, mag_names = OpenIsochrone(age, Z, columns='all')       # get the isochrone values
     mag_num = len(mag_names)
     
     # interpolate the mass at log_age to get values for the other parameters
     M_act_obj = np.interp(M_init, M_ini, M_act, right=0)                                            # return 0 for stars heavier than boundary in isoc file (dead stars) [may change later in the program]
     log_L_obj = np.interp(M_init, M_ini, log_L, right=-9)                                           # return -9 --> L = 10**-9 Lsun     [subject to change]
     log_Te_obj = np.interp(M_init, M_ini, log_Te, right=1)                                          # return 1 --> Te = 10 K            [subject to change]
-    log_g_obj = np.interp(M_init, M_ini, log_g, right=5)                                            # return 5 --> g = 10**5 cm/s^2     [subject to change]
     # [note] assigning the right properties to remnants has been moved to the function RemnantProps
     
     mag_obj = np.zeros([mag_num, len(M_init)])
     for i in range(mag_num):
         mag_obj[i] = np.interp(M_init, M_ini, mag[i], left=30, right=30)                            # return 30 --> L of less than 10**-9
     
-    return M_act_obj, log_L_obj, log_Te_obj, log_g_obj, mag_obj, mag_names
+    return M_act_obj, log_L_obj, log_Te_obj, mag_obj, mag_names
     
 def RemnantProps(M_init, age, Z, remnants='all'):
     '''Assigns properties to the stellar remnants based on their initial mass (and maybe age).
@@ -827,8 +824,8 @@ def OpenIsochrone(age, Z, columns='all'):
         raise FileNotFoundError('ObjectGen//OpenIsochrone: file {0} not found. Try a different metallicity.'.format(file_name))
     
     # names to use in the code, and a mapping to the isoc file column names 
-    code_names = np.array(['log_age', 'M_initial', 'M_actual', 'log_L', 'log_Te', 'log_g', 'U', 'B', 'V', 'R', 'I', 'J', 'H', 'Ks'])
-    mag_names = code_names[6:]                                                                      # names of filters for later reference
+    code_names = np.array(['log_age', 'M_initial', 'M_actual', 'log_L', 'log_Te', 'U', 'B', 'V', 'R', 'I', 'J', 'H', 'Ks'])
+    mag_names = code_names[5:]                                                                      # names of filters for later reference
     mag_num = len(mag_names)
     var_names, column_names = np.loadtxt(os.path.join('tables', 'column_names.dat'), dtype=str, unpack=True)
     
@@ -854,7 +851,7 @@ def OpenIsochrone(age, Z, columns='all'):
     
     # load the right columns (1/2)
     if (columns == 'all'):
-        log_t, M_ini, M_act, log_L, log_Te, log_g = np.loadtxt(file_name, usecols=var_cols, unpack=True)
+        log_t, M_ini, M_act, log_L, log_Te = np.loadtxt(file_name, usecols=var_cols, unpack=True)
         mag = np.loadtxt(file_name, usecols=mag_cols, unpack=True)
     elif (columns == 'mag'):
         log_t, M_ini = np.loadtxt(file_name, usecols=var_cols[:2], unpack=True)
@@ -896,9 +893,8 @@ def OpenIsochrone(age, Z, columns='all'):
         M_act = M_act[where_t]
         log_L = log_L[where_t]
         log_Te = log_Te[where_t]
-        log_g = log_g[where_t]
         mag = np.array([m[0] for m in mag[:, where_t]])                                             # weird conversion needed because normal slicing would result in deeper array
-        return M_ini, M_act, log_L, log_Te, log_g, mag, mag_names
+        return M_ini, M_act, log_L, log_Te, mag, mag_names
     elif (columns == 'mag'):
         mag = np.array([m[0] for m in mag[:, where_t]])                                             # weird conversion needed because normal slicing would result in deeper array
         return M_ini, mag, mag_names
