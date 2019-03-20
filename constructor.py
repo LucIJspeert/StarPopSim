@@ -1,25 +1,25 @@
 # Luc IJspeert
 # Part of smoc: program used for constructing an astronomical object
 ##
+"""This module provides a function (Construct) for user input for making an astronomical object 
+as well as an interactive function (DynamicConstruct) that leads the user through all the options.
+"""
 import argparse
 import fnmatch
 import inspect
 import numpy as np
 
 import distributions as dist
-import ObjectGen as obg
+import objectgenerator as obg
 
-'''This module provides a function (Construct) for user input for making an astronomical object 
-as well as an interactive function (DynamicConstruct) that leads the user through all the options.
-'''
 
 # global defaults
 default_object_file_name = 'astobj_default_save'
 
 
 def Construct(struct, N, M, ages, Z, relN, D, D_type='l', IMF=None, SFH=None, A=0, i=0, rdist=None, 
-                rdistpar=None, axes=None, arms=0, bulge=0, bar=0, compact=False, limit=None):
-    '''Construct the object.'''
+              rdistpar=None, axes=None, arms=0, bulge=0, bar=0, compact=False, limit=None):
+    """Construct the object."""
     if ((N == 0) & (M == 0)):
         raise ValueError('constructor//Construct: N and M cannot be simultaniously zero.')
         
@@ -48,7 +48,7 @@ def Construct(struct, N, M, ages, Z, relN, D, D_type='l', IMF=None, SFH=None, A=
     return astobj
     
 def DynamicConstruct():
-    '''Dynamically give parameters for construction via this interactive function.'''
+    """Dynamically give parameters for construction via this interactive function."""
     print('--------------------------------------------------------------------------------')
     print('The program will now ask for the parameters to construct your object.')
     print('Type <quit> to exit this function. Type <help> for additional information.')
@@ -107,7 +107,8 @@ def DynamicConstruct():
     
     savename = SaveFileName()
     
-    astobj = Construct(struct, N, M, ages, Z, relN, D_z, D_type, IMF, SFH, A, i, rdist, rdistpar, axes, arms, bulge, bar)
+    astobj = Construct(struct, N, M, ages, Z, relN, D_z, D_type, IMF, SFH, A, i, 
+                       rdist, rdistpar, axes, arms, bulge, bar)
     
     astobj.SaveTo(savename + '.pkl')                                                                # save the object
     
@@ -120,7 +121,7 @@ def DynamicConstruct():
     return astobj
     
 def isfloat(value, integer=False):
-    '''Just a little thing to check input.'''
+    """Just a little thing to check input."""
     if integer:                                                                                     # check for int instead
         try:
             int(value)
@@ -139,15 +140,15 @@ def isfloat(value, integer=False):
         return False
        
 def WhileAsk(question, options, add_opt=None, function='', check='str', help_arg=''):
-    '''Asks a question and checks input in a while loop.
+    """Asks a question and checks input in a while loop.
     question: string containing the question to ask  
     options: list of options separated by </>; can be an empty string
     add_opt: list of additional options that are not printed (i.e. to define abbreviations)
     function: the name of the calling function, for use in Help
     check: type of answer to check for; can be <str>, <float> or <int>
     args: passed to Help function
-    '''
-    if (add_opt == None):
+    """
+    if (add_opt is None):
         add_opt = []
     
     a = 0
@@ -187,7 +188,7 @@ def WhileAsk(question, options, add_opt=None, function='', check='str', help_arg
     return ans
     
 def CheckAnswer(ans, question, options, default, function, *args):
-    '''Helper function of WhileAsk.'''
+    """Helper function of WhileAsk."""
     if ((ans == '') & (default != '')):
         ans = default
     elif (ans in ['help', 'h']):
@@ -207,50 +208,63 @@ def CheckAnswer(ans, question, options, default, function, *args):
     return ans
         
 def AskHelp(function, add_args):
-    '''Shows the help on a particular function.'''
+    """Shows the help on a particular function."""
     if (function == 'StructureType'):
         print(' |  [WIP] Only clusters can be made at the moment.')
     elif (function == 'PopulationAmount'):
-        print(' |  Amount of stellar populations to generate (each having different age/metallicity).')
-        print(' |  If making a spiral galaxy, this is the amount of populations in the disk only (separate from the bulge and bar).')
+        print(' |  Amount of stellar populations to generate '
+              '(each having different age/metallicity).')
+        print(' |  If making a spiral galaxy, this is the amount of populations '
+              'in the disk only (separate from the bulge and bar).')
     elif (function == 'PopAges'):
-        print(' |  Values above 100 are taken to be in years. Values below 11 are taken to be log(years).')
+        print(' |  Values above 100 are taken to be in years. '
+              'Values below 11 are taken to be log(years).')
     elif (function == 'PopMetallicity'):
         print(' |  Check the isochrone files for available metallicities.')
     elif (function == 'OptionalParam'):
-        print(' |  Change parameters like the mass boundaries for the IMF, radial distribution type and more.')
+        print(' |  Change parameters like the mass boundaries for the IMF, '
+              'radial distribution type and more.')
     elif (function == 'IMFParam'):
         print(' |  The Kroupa IMF above 0.08 solar mass is used by default.')
-        print(' |  This uses a low mass slope of -1.35 and a high mass slope of -2.35 (as Salpeter IMF).')
-        print(' |  The lower bound is 0.08 M_sol, position of the knee is 0.5 M_sol, upper bound is at 150 M_sol.')
+        print(' |  This uses a low mass slope of -1.35 and a high mass slope of -2.35 '
+              '(as Salpeter IMF).')
+        print(' |  The lower bound is 0.08 M_sol, position of the knee is 0.5 M_sol, '
+              'upper bound is at 150 M_sol.')
     elif (function == 'SFHType'):
         print(' |  A fixed (given) age is used by default.')
-        print(' |  A period of star formation can be included: this effectively gives the stars a certain age distribution.')
+        print(' |  A period of star formation can be included: this effectively gives '
+              'the stars a certain age distribution.')
         print(' |  The Star Formation History type is just the form of this distribution.')
-        print(' |  The given ages will be used as maximum ages in this case. Choose from: [{0}]'.format(add_args))
+        print(' |  The given ages will be used as maximum ages in this case. Choose from: '
+              '[{0}]'.format(add_args))
     elif (function == 'RadialDistribution'):
         print(' |  A normal (gaussian) radial distribution is used by default.')
-        print(' |  For more information on the available radial distributions, see the documentation.')
-        print(' |  Radial distributions can be added to the module <distributions> (use the right format!).')
+        print(' |  For more information on the available radial distributions, '
+              'see the documentation.')
+        print(' |  Radial distributions can be added to the module <distributions> '
+              '(use the right format!).')
         print(' |  List of available distributions: [{0}]'.format(add_args))
     elif (function == 'RadialParameters'):
         print(' |  Parameters for the function: {0}'.format(add_args[0]))
         print(' |  The parameters and their default values are: {0}'.format(add_args[1]))
     elif (function == 'EllipseAxes'):
-        print(' |  The axes are scaled relatively to eachother so that the volume of the ellipsiod stays constant.')
+        print(' |  The axes are scaled relatively to eachother so that the volume '
+              'of the ellipsiod stays constant.')
     elif (function == 'SaveFileName'):
-        print(' |  The default savename is astobj_default_save. Enter a name without file extention (.pkl)')
+        print(' |  The default savename is astobj_default_save. Enter a name without '
+              'file extention (.pkl)')
     else:
         print(' |  No help available for this function at this stage.')
         
     return
     
 def StructureType():
-    '''Asks what structure type you want.'''
+    """Asks what structure type you want."""
     cluster = ['cluster', 'c']                                                                      # cluster synonyms
     galaxy = ['galaxy', 'g']                                                                        # galaxy synonyms
     
-    clu_gal = WhileAsk('Do you want a', '[cluster]/galaxy', add_opt=['c', 'g'], function='StructureType')
+    clu_gal = WhileAsk('Do you want a', '[cluster]/galaxy', add_opt=['c', 'g'], 
+                        function='StructureType')
         
     if (clu_gal.lower() in cluster):
         clu_gal = 'cluster'
@@ -261,26 +275,29 @@ def StructureType():
         
     print(' |  Available structures: {0}'.format(', '.join(structlist)))
     
-    struct = WhileAsk(' |  Kind of structure to generate', '[{0}]'.format(structlist[0]), add_opt=structlist, function='StructureType')
+    struct = WhileAsk(' |  Kind of structure to generate', '[{0}]'.format(structlist[0]), 
+                      add_opt=structlist, function='StructureType')
     
     print(' |  Selected: {0} -> {1}'.format(clu_gal, struct))
     return struct
 
 def NumAndMass():
-    '''Asks how many stars or mass you want.'''
+    """Asks how many stars or mass you want."""
     NorM = WhileAsk('Use number of stars or total mass', '[N]/M', function='NumAndMass')
     
     N = 0
     M = 0
     
     if (NorM.lower() in ['n']):
-        Nstr = WhileAsk(' |  Number of stars to generate', '[1000]', function='NumAndMass', check='float')
+        Nstr = WhileAsk(' |  Number of stars to generate', '[1000]', function='NumAndMass', 
+                        check='float')
 
         Nstr = Nstr.replace('*10**', 'e')
         Nstr = Nstr.replace('10**', '1e')
         N = int(float(Nstr))
     elif (NorM.lower() == 'm'):
-        Mstr = WhileAsk(' |  Total mass in stars to generate', '[1000]', function='NumAndMass', check='float')
+        Mstr = WhileAsk(' |  Total mass in stars to generate', '[1000]', function='NumAndMass', 
+                        check='float')
 
         Mstr = Mstr.replace('*10**', 'e')
         Mstr = Mstr.replace('10**', '1e')
@@ -289,26 +306,30 @@ def NumAndMass():
     return N, M
 
 def PopulationAmount():
-    '''Asks how many stellar populations you want.'''
-    pop_str = WhileAsk('Amount of stellar populations', '[1]', function='PopulationAmount', check='int')
+    """Asks how many stellar populations you want."""
+    pop_str = WhileAsk('Amount of stellar populations', '[1]', function='PopulationAmount', 
+                       check='int')
     return int(pop_str)
     
 def PopAges(pop_n):
-    '''Asks what population ages you want.'''
+    """Asks what population ages you want."""
     default_val = '9.65'
     
     if (pop_n == 1):
         same_age = 'y'
     else:
-        same_age = WhileAsk('Use the same age for all populations?', 'y/[n]', function='PopAges', add_opt=['yes', 'no'])
+        same_age = WhileAsk('Use the same age for all populations?', 'y/[n]', 
+                            function='PopAges', add_opt=['yes', 'no'])
     
     if (same_age.lower() in ['y', 'yes']):
-        age_str = WhileAsk(' |  Give the age', '[{0}]'.format(default_val), function='PopAges', check='float')
+        age_str = WhileAsk(' |  Give the age', '[{0}]'.format(default_val), 
+                           function='PopAges', check='float')
         age_list = [float(age_str) for i in range(pop_n)]
     elif (same_age.lower() in ['n', 'no']):
         age_list = []
         for i in range(pop_n):
-            age_str = WhileAsk(' |  Age for population {0}'.format(i+1), '[{0}]'.format(default_val), function='PopAges', check='float')
+            age_str = WhileAsk(' |  Age for population {0}'.format(i+1), 
+                               '[{0}]'.format(default_val), function='PopAges', check='float')
             age_list.append(float(age_str))
     
     for i in range(pop_n):    
@@ -319,21 +340,24 @@ def PopAges(pop_n):
     return age_list
 
 def PopMetallicity(pop_n):
-    '''Asks what metallicities you want.'''
+    """Asks what metallicities you want."""
     default_val = '0.014'
     
     if (pop_n == 1):
         same_z = 'y'
     else:
-        same_z = WhileAsk('Use the same metallicity for all populations?', 'y/[n]', function='PopMetallicity', add_opt=['yes', 'no'])
+        same_z = WhileAsk('Use the same metallicity for all populations?', 'y/[n]', 
+                          function='PopMetallicity', add_opt=['yes', 'no'])
     
     if (same_z.lower() in ['y', 'yes']):
-        z_str = WhileAsk(' |  Give the metallicity', '[{0}]'.format(default_val), function='PopMetallicity', check='float')
+        z_str = WhileAsk(' |  Give the metallicity', '[{0}]'.format(default_val), 
+                         function='PopMetallicity', check='float')
         z_list = [float(z_str) for i in range(pop_n)]
     elif (same_z.lower() in ['n', 'no']):
         z_list = []
         for i in range(pop_n):
-            z_str = WhileAsk(' |  Metallicity for population {0}'.format(i+1), '[{0}]'.format(default_val), function='PopMetallicity', check='float')
+            z_str = WhileAsk(' |  Metallicity for population {0}'.format(i+1), 
+                             '[{0}]'.format(default_val), function='PopMetallicity', check='float')
             z_list.append(float(z_str))
     
     for i in range(pop_n):    
@@ -347,18 +371,20 @@ def PopMetallicity(pop_n):
     return z_list
     
 def PopRelativeN(pop_n):
-    '''Asks what relative (population) numbers you want.'''
+    """Asks what relative (population) numbers you want."""
     if (pop_n == 1):
         rel_list = [1]
     else:
-        same_rel = WhileAsk('Use equal numbers of stars in all populations?', '[y]/n', function='PopRelativeN', add_opt=['yes', 'no'])
+        same_rel = WhileAsk('Use equal numbers of stars in all populations?', '[y]/n', 
+                            function='PopRelativeN', add_opt=['yes', 'no'])
         
         if (same_rel.lower() in ['n', 'no']):
             print(' |  Give the relative number of stars in each population')
             
             rel_list = []
             for i in range(pop_n):
-                rel_str = WhileAsk(' |  Relative number for population {0}'.format(i+1), '[1]', function='PopRelativeN', check='float')
+                rel_str = WhileAsk(' |  Relative number for population {0}'.format(i+1), '[1]', 
+                                   function='PopRelativeN', check='float')
                 rel_list.append(float(rel_str))
         elif (same_rel.lower() in ['y', 'yes']):
             rel_list = [1 for i in range(pop_n)]
@@ -366,15 +392,17 @@ def PopRelativeN(pop_n):
     return rel_list
 
 def Distance():
-    '''Asks what distance to the object you want.'''
+    """Asks what distance to the object you want."""
     l_opt = ['l', 'lum', 'luminosity']
     z_opt = ['z', 'r', 'red', 'redshift']
     options = l_opt + z_opt
     
-    d_type = WhileAsk('Use luminosity based distance or redshift?', '[l]/z', add_opt=options, function='Distance')
+    d_type = WhileAsk('Use luminosity based distance or redshift?', '[l]/z', add_opt=options, 
+                      function='Distance')
     
     if (d_type in l_opt):
-        D_str = WhileAsk('Distance to the object in pc', '[100]', function='Distance', check='float')
+        D_str = WhileAsk('Distance to the object in pc', '[100]', function='Distance', 
+                         check='float')
         D_type = 'l'
         val = float(D_str)
     elif (d_type in z_opt):
@@ -385,8 +413,9 @@ def Distance():
     return val, D_type
     
 def OptionalParam():
-    '''Asks if optional parameters are used.'''
-    change = WhileAsk('Do you want to use optional parameters?', 'y/[n]/help', function='OptionalParam')
+    """Asks if optional parameters are used."""
+    change = WhileAsk('Do you want to use optional parameters?', 'y/[n]/help', 
+                      function='OptionalParam')
     if (change.lower() in ['yes', 'y']):
         opt = True
     else:
@@ -394,15 +423,17 @@ def OptionalParam():
     return opt
     
 def IMFParam(pop_n, default=False):
-    '''Asks to change the IMF parameters'''
+    """Asks to change the IMF parameters"""
     if default:
         change = 'n'
     else:
-        change = WhileAsk('Do you want to change the IMF parameters?', 'y/[n]', add_opt=['yes', 'no'], function='IMFParam')
+        change = WhileAsk('Do you want to change the IMF parameters?', 'y/[n]', 
+                          add_opt=['yes', 'no'], function='IMFParam')
             
     if (change.lower() in ['y', 'yes']):
         if (pop_n > 1):
-            same_imf = WhileAsk(' |  Use the same IMF parameters for all populations?', '[y]/n', function='IMFParam', add_opt=['yes', 'no'])
+            same_imf = WhileAsk(' |  Use the same IMF parameters for all populations?', 
+                                '[y]/n', function='IMFParam', add_opt=['yes', 'no'])
         else:
             same_imf = 'y'
         
@@ -410,14 +441,20 @@ def IMFParam(pop_n, default=False):
             param_list = []
             for i in range(pop_n):
                 print(' |  IMF parameters for population {0}:'.format(i+1))
-                low = WhileAsk(' |  Lower bound to use (in M_sol) for population {0}'.format(i+1), '[0.08]', function='IMFParam', check='float')
-                mid = WhileAsk(' |  Knee position to use (in M_sol) for population {0}'.format(i+1), '[0.5]', function='IMFParam', check='float')
-                upp = WhileAsk(' |  Upper bound to use (in M_sol) for population {0}'.format(i+1), '[150]', function='IMFParam', check='float')    
+                low = WhileAsk((' |  Lower bound to use (in M_sol) for population {0}'
+                                ).format(i+1), '[0.08]', function='IMFParam', check='float')
+                mid = WhileAsk((' |  Knee position to use (in M_sol) for population {0}'
+                                ).format(i+1), '[0.5]', function='IMFParam', check='float')
+                upp = WhileAsk((' |  Upper bound to use (in M_sol) for population {0}'
+                                ).format(i+1), '[150]', function='IMFParam', check='float')    
                 param_list.append([float(low), float(mid), float(upp)])
         elif (same_sfh.lower() in ['y', 'yes']):
-            low = WhileAsk(' |  Lower bound to use (in M_sol)', '[0.08]', function='IMFParam', check='float')
-            mid = WhileAsk(' |  Knee position to use (in M_sol)', '[0.5]', function='IMFParam', check='float')
-            upp = WhileAsk(' |  Upper bound to use (in M_sol)', '[150]', function='IMFParam', check='float')    
+            low = WhileAsk(' |  Lower bound to use (in M_sol)', '[0.08]', function='IMFParam', 
+                           check='float')
+            mid = WhileAsk(' |  Knee position to use (in M_sol)', '[0.5]', function='IMFParam', 
+                           check='float')
+            upp = WhileAsk(' |  Upper bound to use (in M_sol)', '[150]', function='IMFParam', 
+                           check='float')    
             param_list = [[float(low), float(mid), float(upp)]]
                 
     elif (change.lower() in ['n', 'no']):
@@ -426,18 +463,20 @@ def IMFParam(pop_n, default=False):
     return param_list
     
 def SFHType(pop_n, default=False):
-    '''Asks what SFH type to use (if at all).'''
+    """Asks what SFH type to use (if at all)."""
     sfh_types = ['none', 'exp']                                                                     # list of available SFH types
     joined_sfhlist = ', '.join(sfh_types)
     
     if default:
         change = 'n'
     else:
-        change = WhileAsk('Do you want to change the SFH type?', 'y/[n]', add_opt=['yes', 'no'], function='SFHType', help_arg=joined_sfhlist)
+        change = WhileAsk('Do you want to change the SFH type?', 'y/[n]', add_opt=['yes', 'no'], 
+                          function='SFHType', help_arg=joined_sfhlist)
             
     if (change.lower() in ['y', 'yes']):
         if (pop_n > 1):
-            same_sfh = WhileAsk(' |  Use the same SFH for all populations?', '[y]/n', function='SFHType', add_opt=['yes', 'no'])
+            same_sfh = WhileAsk(' |  Use the same SFH for all populations?', '[y]/n', 
+                                function='SFHType', add_opt=['yes', 'no'])
         else:
             same_sfh = 'y'
         
@@ -445,10 +484,12 @@ def SFHType(pop_n, default=False):
         if (same_sfh.lower() in ['n', 'no']):
             sfh_list = []
             for i in range(pop_n):
-                sfhtype = WhileAsk(' |  SFH type to use for population {0}'.format(i+1), '[none]', add_opt=sfh_types, function='SFHType', help_arg=joined_sfhlist)
+                sfhtype = WhileAsk(' |  SFH type to use for population {0}'.format(i+1), '[none]', 
+                                   add_opt=sfh_types, function='SFHType', help_arg=joined_sfhlist)
                 sfh_list.append(sfhtype)
         elif (same_sfh.lower() in ['y', 'yes']):
-                sfhtype = WhileAsk(' |  SFH type to use', '[none]', add_opt=sfh_types, function='SFHType', help_arg=joined_sfhlist)
+                sfhtype = WhileAsk(' |  SFH type to use', '[none]', add_opt=sfh_types, 
+                                   function='SFHType', help_arg=joined_sfhlist)
                 sfh_list = [sfhtype for i in range(pop_n)]
                 
     elif (change.lower() in ['n', 'no']):
@@ -457,35 +498,39 @@ def SFHType(pop_n, default=False):
     return sfh_list
 
 def Extinction(default=False):
-    '''Asks what the extinction is for the source.'''
+    """Asks what the extinction is for the source."""
     def_val = '0'
     
     if default:
         change = 'n'
     else:
-        change = WhileAsk('Do you want to change the extiction?', 'y/[n]', add_opt=['yes', 'no'], function='Extinction')
+        change = WhileAsk('Do you want to change the extiction?', 'y/[n]', add_opt=['yes', 'no'], 
+                          function='Extinction')
     
     if (change.lower() in ['n', 'no']):
         A_str = def_val
     elif (change.lower() in ['y', 'yes']):
-        A_str = WhileAsk(' |  Extinction magnitude', '[{0}]'.format(def_val), function='Extinction', check='float')                                                                      
+        A_str = WhileAsk(' |  Extinction magnitude', '[{0}]'.format(def_val), 
+                         function='Extinction', check='float')                                                                      
         
     return abs(float(A_str))                                                                        # make sure it is positive
 
 def Inclination(struct, pop_n, default=False):
-    '''Asks what the inclination of the object is.'''
+    """Asks what the inclination of the object is."""
     def_val = '0'
     
     if default:
         change = 'n'
     else:
-        change = WhileAsk('Do you want to change the inclination?', 'y/[n]', add_opt=['yes', 'no'], function='Inclination')
+        change = WhileAsk('Do you want to change the inclination?', 'y/[n]', 
+                          add_opt=['yes', 'no'], function='Inclination')
     
     if (change.lower() in ['n', 'no']):
         incl_arr = np.array([float(def_val) for i in range(pop_n)])
     elif (change.lower() in ['y', 'yes']):
         if ((pop_n > 1) & (struct in ['ellipsoid', 'elliptical'])):
-            same_incl = WhileAsk(' |  Use the same inclination for all populations?', '[y]/n', function='Inclination', add_opt=['yes', 'no'])
+            same_incl = WhileAsk(' |  Use the same inclination for all populations?', '[y]/n', 
+                                 function='Inclination', add_opt=['yes', 'no'])
         else:
             same_incl = 'y'                                                                         # if we have a spiral, only use one inclination
         
@@ -493,22 +538,25 @@ def Inclination(struct, pop_n, default=False):
         
         if (same_incl.lower() in ['n', 'no']):
             for i in range(pop_n):
-                incl = WhileAsk(' |  Inclination angle in radians for population {0}'.format(i+1), '[{0}]'.format(def_val), function='Inclination', check='float')
+                incl = WhileAsk(' |  Inclination angle in radians for population {0}'.format(i+1), 
+                                '[{0}]'.format(def_val), function='Inclination', check='float')
                 incl_arr[i] = float(incl)
         elif (same_incl.lower() in ['y', 'yes']):
-            incl = WhileAsk(' |  Inclination angle in radians', '[{0}]'.format(def_val), function='Inclination', check='float')
+            incl = WhileAsk(' |  Inclination angle in radians', '[{0}]'.format(def_val), 
+                            function='Inclination', check='float')
             incl_arr[:] = float(incl)
     
     return incl_arr
     
 def RadialDistribution(struct, pop_n, default=False):
-    '''Asks what radial distribution to use.'''
+    """Asks what radial distribution to use."""
     def_val = 'Normal'
     
     if default:
         change = 'n'
     else:
-        change = WhileAsk('Do you want to change the radial distribution?', 'y/[n]', add_opt=['yes', 'no'], function='RadialDistribution')
+        change = WhileAsk('Do you want to change the radial distribution?', 'y/[n]', 
+                          add_opt=['yes', 'no'], function='RadialDistribution')
     
     dist_list_r = list(set(fnmatch.filter(dir(dist), '*_r')))                                       # get all available radial distributions
     dist_list = [item.replace('_r', '') for item in dist_list_r]                                    # format without trailing _r
@@ -519,7 +567,8 @@ def RadialDistribution(struct, pop_n, default=False):
         dist_type_list = [dist_type[0] for i in range(pop_n)]
     elif (change.lower() in ['y', 'yes']):
         if (pop_n > 1):
-            same_dist = WhileAsk(' |  Use the same radial distribution for all populations?', '[y]/n', function='RadialDistribution', add_opt=['yes', 'no'])
+            same_dist = WhileAsk(' |  Use the same radial distribution for all populations?', 
+                                 '[y]/n', function='RadialDistribution', add_opt=['yes', 'no'])
         else:
             same_dist = 'y' 
             
@@ -532,7 +581,9 @@ def RadialDistribution(struct, pop_n, default=False):
         if (same_dist.lower() in ['n', 'no']):
             dist_type_list = []
             for i in range(pop_n):
-                dist_type = WhileAsk(' |  Radial distribution for population {0}'.format(i+1), '[{0}]'.format(def_val), add_opt=dist_list_lwr + short_list, function='RadialDistribution', help_arg=joined_dist_list)
+                dist_type = WhileAsk(' |  Radial distribution for population {0}'.format(i+1), 
+                                     '[{0}]'.format(def_val), add_opt=dist_list_lwr + short_list, 
+                                     function='RadialDistribution', help_arg=joined_dist_list)
             
                 if (dist_type.lower() in short_list):
                     for item in dist_list_lwr:
@@ -542,7 +593,9 @@ def RadialDistribution(struct, pop_n, default=False):
                 dist_type = np.array(dist_list_r)[np.array(dist_list_lwr) == dist_type.lower()]     # get back the right format
                 dist_type_list.append(dist_type[0])
         elif (same_dist.lower() in ['y', 'yes']):
-            dist_type = WhileAsk(' |  Radial distribution', '[{0}]'.format(def_val), add_opt=dist_list_lwr + short_list, function='RadialDistribution', help_arg=joined_dist_list)
+            dist_type = WhileAsk(' |  Radial distribution', '[{0}]'.format(def_val), 
+                                 add_opt=dist_list_lwr + short_list, 
+                                 function='RadialDistribution', help_arg=joined_dist_list)
         
             if (dist_type.lower() in short_list):
                 for item in dist_list_lwr:
@@ -556,14 +609,18 @@ def RadialDistribution(struct, pop_n, default=False):
     return dist_type_list
     
 def RadialParameters(struct, dist_type_list, default=False):
-    '''Asks what parameters to use for the radial distribution.'''
+    """Asks what parameters to use for the radial distribution."""
     if default:
         change = 'n'
     else:
-        change = WhileAsk('Do you want to change the radial distribution parameters?', '[y]/n', function='RadialParameters', add_opt=['yes', 'no'])
+        change = WhileAsk('Do you want to change the radial distribution parameters?', '[y]/n', 
+                          function='RadialParameters', add_opt=['yes', 'no'])
         
-    if ((dist_type_list[1:] == dist_type_list[:-1]) & (change.lower() in ['y', 'yes']) & (len(dist_type_list) != 1)):
-        same_par = WhileAsk(' |  Use the same radial parameters for all populations?', '[y]/n', function='RadialParameters', add_opt=['yes', 'no'])
+    if ((dist_type_list[1:] == dist_type_list[:-1]) 
+            & (change.lower() in ['y', 'yes']) 
+            & (len(dist_type_list) != 1)):
+        same_par = WhileAsk(' |  Use the same radial parameters for all populations?', '[y]/n', 
+                            function='RadialParameters', add_opt=['yes', 'no'])
     elif (len(dist_type_list) == 1):
         same_par = 'y'
     else:
@@ -573,7 +630,8 @@ def RadialParameters(struct, dist_type_list, default=False):
         dict_list = []
         for i, dist_type in enumerate(dist_type_list):
             sig = inspect.signature(eval('dist.' + dist_type))                                              # parameters of the dist function (includes n)
-            joined_par = ', '.join(['{0}={1}'.format(k, v.default) for k, v in sig.parameters.items() if k is not 'n'])
+            joined_par = ', '.join(['{0}={1}'.format(k, v.default) 
+                                    for k, v in sig.parameters.items() if k is not 'n'])
             
             if (change.lower() in ['n', 'no']):
                 par_dict = {k: v.default for k, v in sig.parameters.items() if k is not 'n'}
@@ -583,11 +641,15 @@ def RadialParameters(struct, dist_type_list, default=False):
                 for k, v in sig.parameters.items():                                                         # loop through needed parameters (except n)
                     if (k != 'n'):
                         if ((dist_type == 'KingGlobular_r') & (k == 'R')):                                  # catch the default (None) in KingGlobular_r
-                            value = WhileAsk(' |  Value for parameter {0}'.format(k), '[{0}]'.format(30*par_dict['s']), 
-                                                function='RadialParameters', check='float', help_arg=[dist_type, joined_par])
+                            value = WhileAsk(' |  Value for parameter {0}'.format(k), 
+                                             '[{0}]'.format(30*par_dict['s']), 
+                                             function='RadialParameters', check='float', 
+                                             help_arg=[dist_type, joined_par])
                         else:
-                            value = WhileAsk(' |  Value for parameter {0}'.format(k), '[{0}]'.format(v.default), 
-                                                function='RadialParameters', check='float', help_arg=[dist_type, joined_par])
+                            value = WhileAsk(' |  Value for parameter {0}'.format(k), 
+                                             '[{0}]'.format(v.default), 
+                                             function='RadialParameters', check='float', 
+                                             help_arg=[dist_type, joined_par])
                         
                         par_dict[k] = float(value)
                         
@@ -595,7 +657,8 @@ def RadialParameters(struct, dist_type_list, default=False):
     elif (same_par.lower() in ['y', 'yes']):
         dist_type = dist_type_list[0]
         sig = inspect.signature(eval('dist.' + dist_type))                                              # parameters of the dist function (includes n)
-        joined_par = ', '.join(['{0}={1}'.format(k, v.default) for k, v in sig.parameters.items() if k is not 'n'])
+        joined_par = ', '.join(['{0}={1}'.format(k, v.default) 
+                                for k, v in sig.parameters.items() if k is not 'n'])
         
         if (change.lower() in ['n', 'no']):
             par_dict = {k: v.default for k, v in sig.parameters.items() if k is not 'n'}
@@ -604,11 +667,15 @@ def RadialParameters(struct, dist_type_list, default=False):
             for k, v in sig.parameters.items():                                                         # loop through needed parameters (except n)
                 if (k != 'n'):
                     if ((dist_type == 'KingGlobular_r') & (k == 'R')):                                  # catch the default (None) in KingGlobular_r
-                        value = WhileAsk(' |  Value for parameter {0}'.format(k), '[{0}]'.format(30*par_dict['s']), 
-                                            function='RadialParameters', check='float', help_arg=[dist_type, joined_par])
+                        value = WhileAsk(' |  Value for parameter {0}'.format(k), 
+                                         '[{0}]'.format(30*par_dict['s']), 
+                                        function='RadialParameters', check='float', 
+                                        help_arg=[dist_type, joined_par])
                     else:
-                        value = WhileAsk(' |  Value for parameter {0}'.format(k), '[{0}]'.format(v.default), 
-                                            function='RadialParameters', check='float', help_arg=[dist_type, joined_par])
+                        value = WhileAsk(' |  Value for parameter {0}'.format(k), 
+                                         '[{0}]'.format(v.default), 
+                                         function='RadialParameters', check='float', 
+                                         help_arg=[dist_type, joined_par])
                     
                     par_dict[k] = float(value)
         dict_list = [par_dict]            
@@ -616,14 +683,16 @@ def RadialParameters(struct, dist_type_list, default=False):
     return dict_list
     
 def EllipseAxes(struct, pop_n, default=False):
-    '''Asks what the relative axes scales must be.'''
+    """Asks what the relative axes scales must be."""
     if (default | (struct == 'spiral')):
         axes_arr = np.ones([pop_n, 3])
     elif (struct in ['ellipsoid', 'elliptical']):
-        change = WhileAsk('Do you want to change the axes scaling (default=[1,1,1])?', 'y/[n]', function='EllipseAxes', add_opt=['yes', 'no'])
+        change = WhileAsk('Do you want to change the axes scaling (default=[1,1,1])?', 
+                          'y/[n]', function='EllipseAxes', add_opt=['yes', 'no'])
         
         if ((pop_n > 1) & (change.lower() in ['y', 'yes'])):
-            same_axes = WhileAsk(' |  Use same axes for all populations?', '[y]/n', function='EllipseAxes', add_opt=['yes', 'no'])
+            same_axes = WhileAsk(' |  Use same axes for all populations?', 
+                                 '[y]/n', function='EllipseAxes', add_opt=['yes', 'no'])
         else:
             same_axes = 'y'
         
@@ -633,17 +702,19 @@ def EllipseAxes(struct, pop_n, default=False):
             for i in range(pop_n):
                 print(' |  Scaling of the axes for population {0}:'.format(i+1))
                 for j, axis in enumerate(['x', 'y', 'z']):
-                    scale = WhileAsk(' |  Relative axis scale for {0}'.format(axis), '[1]', function='EllipseAxes', check='float')
+                    scale = WhileAsk(' |  Relative axis scale for {0}'.format(axis), '[1]', 
+                                     function='EllipseAxes', check='float')
                     axes_arr[i,j] = float(scale)
         elif ((change.lower() in ['y', 'yes']) & (same_axes.lower() in ['y', 'yes'])):
             for j, axis in enumerate(['x', 'y', 'z']):
-                scale = WhileAsk(' |  Relative axis scale for {0}'.format(axis), '[1]', function='EllipseAxes', check='float')
+                scale = WhileAsk(' |  Relative axis scale for {0}'.format(axis), '[1]', 
+                                 function='EllipseAxes', check='float')
                 axes_arr[:,j] = float(scale)
     
     return axes_arr
     
 def SpiralArms(struct, default=False):
-    '''Asks what the number of spiral arms must be.'''
+    """Asks what the number of spiral arms must be."""
     if (default & (struct == 'spiral')):
         arms = 2
     elif (default | (struct in ['ellipsoid', 'elliptical'])):
@@ -659,13 +730,14 @@ def SpiralArms(struct, default=False):
     return arms
     
 def SpiralBulge(struct, default=False):
-    '''Asks what the relative size (to the disk) of the bulge must be.'''
+    """Asks what the relative size (to the disk) of the bulge must be."""
     if (default & (struct == 'spiral')):
         bulge = 0.1
     elif (default | (struct in ['ellipsoid', 'elliptical'])):
         bulge = 0.0
     elif (struct == 'spiral'):
-        bulge_str = WhileAsk('Relative size of the bulge', '[0.1]', function='SpiralBulge', check='float')
+        bulge_str = WhileAsk('Relative size of the bulge', '[0.1]', function='SpiralBulge', 
+                             check='float')
         
         bulge = float(bulge_str)
         bulge = np.clip(bulge, 0.0, 1.0)
@@ -673,13 +745,14 @@ def SpiralBulge(struct, default=False):
     return bulge
     
 def SpiralBar(struct, default=False):
-    '''Asks what the relative size (to the disk) of the bar must be.'''
+    """Asks what the relative size (to the disk) of the bar must be."""
     if (default & (struct == 'spiral')):
         bar = 0.2
     elif (default | (struct in ['ellipsoid', 'elliptical'])):
         bar = 0.0
     elif (struct == 'spiral'):
-        bar_str = WhileAsk('Relative size of the central bar', '[0.2]', function='SpiralBar', check='float')
+        bar_str = WhileAsk('Relative size of the central bar', '[0.2]', function='SpiralBar', 
+                           check='float')
         
         bar = float(bar_str)
         bar = np.clip(bar, 0.0, 1.0)
@@ -687,27 +760,31 @@ def SpiralBar(struct, default=False):
     return bar
     
 def SpiralProps(bulge, comp):
-    '''Asks what the properties of the bulge or bar must be.'''
+    """Asks what the properties of the bulge or bar must be."""
     if (comp not in ['bulge', 'bar']):
         return 10.0, 0.008, 1
     
-    age_str = WhileAsk('Give the age of the {0} (in yr or log(yr))'.format(comp), '[10.0]', function='SpiralProps', check='float')
+    age_str = WhileAsk('Give the age of the {0} (in yr or log(yr))'.format(comp), '[10.0]', 
+                       function='SpiralProps', check='float')
     age = float(age_str)
     
-    z_str = WhileAsk('Give the metallicity of the {0}'.format(comp), '[0.008]', function='SpiralProps', check='float')
+    z_str = WhileAsk('Give the metallicity of the {0}'.format(comp), '[0.008]', 
+                     function='SpiralProps', check='float')
     z = float(z_str)
     
-    relN_str = WhileAsk('Give the relative number of stars in the {0}'.format(comp), '[1]', function='SpiralProps', check='float')
+    relN_str = WhileAsk('Give the relative number of stars in the {0}'.format(comp), '[1]', 
+                        function='SpiralProps', check='float')
     relN = float(relN_str)
     
     return age, z, relN
     
 def SaveFileName():
-    '''Asks if you want to change the filename.'''
+    """Asks if you want to change the filename."""
     file_name = default_object_file_name
     
     print('The object will be saved under the name ' + file_name)
-    change = WhileAsk('Save object with a different filename?', 'y/[n]', add_opt=['yes', 'no'], function='SaveFileName')
+    change = WhileAsk('Save object with a different filename?', 'y/[n]', 
+                      add_opt=['yes', 'no'], function='SaveFileName')
     
     if (change.lower() in ['y', 'yes']):
         file_name = WhileAsk('Give the new name', '', function='SaveFileName')
@@ -715,7 +792,7 @@ def SaveFileName():
     return file_name
 
 def OneLineCommand(astobj, N, M, IMF, savename):
-    '''Gives the command line format to get the generated object.'''
+    """Gives the command line format to get the generated object."""
     command = 'python3 constructor.py'
     command += ' -struct ' + astobj.structure
     if (N != 0):
@@ -806,11 +883,12 @@ if __name__ == '__main__':
                         help='extinction between source and observer')
                         
     parser.add_argument('-i', type=float, nargs='+', required=False, default=[0.],
-                        help='inclination angle (rotation of object\'s x-axis towards z-axis (=l.o.s.))')
+                        help='inclination angle (rotation of object\'s '
+                        'x-axis towards z-axis (=l.o.s.))')
                         
     parser.add_argument('-rdist', type=str, nargs='+', required=False, default=['Normal'],
-                        choices=['Exponential','Normal','SquaredCauchy','PearsonVII','KingGlobular'],
-                        help='(ellipse) type of radial distribution')
+                        choices=['Exponential','Normal','SquaredCauchy','PearsonVII',
+                        'KingGlobular'], help='(ellipse) type of radial distribution')
                         
     parser.add_argument('-rdistpar', type=float, nargs='+', required=False, default=[1.0],
                         help='(ellipse) radial distribution parameters (s, R)')

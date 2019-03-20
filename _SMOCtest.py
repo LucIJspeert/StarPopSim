@@ -463,7 +463,7 @@ plt.show()
 # IMFprob (forward pdf), invIMF2 (inverted pdf), CIMF (cdf) and invCIMF (inverted cdf)
 
 def CIMF(M, M_L=0.08, M_U=150, M_mid=0.5):
-    '''The cumulative IMF'''
+    """The cumulative IMF"""
     C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
     C_L = 1/(1/0.35*M_L**(-0.35) + C_mid - M_mid/1.35*M_U**(-1.35))
     N_a = C_L/0.35*(M_L**(-0.35) - M**(-0.35))
@@ -471,7 +471,7 @@ def CIMF(M, M_L=0.08, M_U=150, M_mid=0.5):
     return (M < M_mid)*N_a + (M >= M_mid)*N_b
 
 def invCIMF(n=1, M_L=0.08, M_U=150, M_mid=0.5):
-    '''The inverted cumulative IMF'''
+    """The inverted cumulative IMF"""
     N_dist = np.random.rand(n)
     # same constants as are in the IMF:
     C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
@@ -502,7 +502,7 @@ plt.show()
 ## total M to N_obj
 
 def invCIMF2(N_dist, M_L=0.08, M_U=150, M_mid=0.5):
-    '''The inverted cumulative IMF'''
+    """The inverted cumulative IMF"""
     # same constants as are in the IMF:
     C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
     C_L = 1/(1/0.35*M_L**(-0.35) + C_mid - M_mid/1.35*M_U**(-1.35))
@@ -538,12 +538,12 @@ import ObjectGen as obg
 import AstObjectClass as aoc
 
 def BVmagToTemp(BV):
-    '''[Experimental, use at own risk (onlky works (somewhat) up to ~10kK)]'''
+    """[Experimental, use at own risk (onlky works (somewhat) up to ~10kK)]"""
     return 4600*(1/(0.92*(BV) + 1.7) + 1/(0.92*(BV) + 0.62))
 
-M_obj = obg.ObjMasses(N_obj=10000, M_tot=0, mass=[0.15, 0.5, 150])[0]
-M_obj_act, logL_obj, logTe_obj, mag_obj = obg.IsocProps(M_obj, 8.2, 0.019)
-M_obj_act2, logL_obj2, logTe_obj2, mag_obj2 = obg.IsocProps(M_obj, 6.8, 0.004)
+M_obj = obg.ObjectMasses(N_obj=10000, M_tot=0, mass=[0.15, 0.5, 150])[0]
+M_obj_act, logL_obj, logTe_obj, mag_obj = obg.IsochroneProps(M_obj, 8.2, 0.019)
+M_obj_act2, logL_obj2, logTe_obj2, mag_obj2 = obg.IsochroneProps(M_obj, 6.8, 0.004)
 
 logTe_obj = np.append(logTe_obj, logTe_obj2)
 logL_obj = np.append(logL_obj, logL_obj2)
@@ -658,12 +658,12 @@ plt.show()
 
 ## exp (interpolated)
 def Exponential_r(r, s=1.0):
-    '''pdf of radial exponential distribution.'''
+    """pdf of radial exponential distribution."""
     rs = r/s
     return rs**2/(2*s)*np.exp(-rs)
 
 def Nexponential_r(r, s=1.0):
-    '''cdf of radial exponential distribution.'''
+    """cdf of radial exponential distribution."""
     rs = r/s
     return 1 - (rs**2/2 + rs + 1)*np.exp(-rs)
     
@@ -684,12 +684,12 @@ plt.show()
 
 ## norm (interpolated)
 def Normal_r(r, s=1.0):
-    '''pdf of radial normal distribution.'''
+    """pdf of radial normal distribution."""
     rs2 = (r/s)**2
     return 4/(np.sqrt(np.pi)*s)*rs2*np.exp(-rs2)
     
 def Nnormal_r(r, s=1.0):
-    '''cdf of radial normal distribution.'''
+    """cdf of radial normal distribution."""
     rs = r/s
     return sps.erf(rs) - 2/np.sqrt(np.pi)*rs*np.exp(-rs**2)
     
@@ -710,12 +710,12 @@ plt.show()
 
 ## Cauchy (interpolated)
 def SquaredCauchy_r(r, s=1.0):
-    '''cdf of radial squared Cauchy distribution.'''
+    """cdf of radial squared Cauchy distribution."""
     rs2 = (r/s)**2
     return 4/(np.pi*s)*rs2*(1 + rs2)**(-2)
 
 def Nsquaredcauchy_r(r, s=1.0):
-    '''cdf of radial squared Cauchy distribution.'''
+    """cdf of radial squared Cauchy distribution."""
     rs = r/s
     return 2/np.pi*(np.arctan(rs) - rs/(1 + rs**2))
     
@@ -736,12 +736,12 @@ plt.show()
 
 ## Pearson (interpolated)
 def PearsonVII_r(r, s=1.0):
-    '''pdf of radial Pearson type VII distribution.'''
+    """pdf of radial Pearson type VII distribution."""
     rs2 = (r/s)**2
     return 3/s*rs2*(1 + rs2)**(-2.5)
     
 def NpearsonVII_r(r, s=1.0):
-    '''cdf of radial Pearson type VII distribution.'''
+    """cdf of radial Pearson type VII distribution."""
     rs = r/s
     return rs**3/(1 + rs**2)**(3/2)
 
@@ -856,8 +856,8 @@ plt.show()
 
 ## King Globular
 def KingGlobular_r(r, s=1.0, R=None):
-    '''pdf of radial King distribution for Globular clusters.'''
-    if (R == None):
+    """pdf of radial King distribution for Globular clusters."""
+    if (R is None):
         R = 30*s                                                                                  # typical globular cluster has R/s ~ 30
     rs2 = (r/s)**2
     Rs = R/s
@@ -866,8 +866,8 @@ def KingGlobular_r(r, s=1.0, R=None):
     return C/s*rs2*(1/(1 + rs2)**(1/2) - 1/(1 + Rs2)**(1/2))**2
     
 def N_KingGlobular_r(r, s=1.0, R=None):
-    '''cdf of radial King distribution for Globular clusters.'''
-    if (R == None):
+    """cdf of radial King distribution for Globular clusters."""
+    if (R is None):
         R = 30*s                                                                                  # typical globular cluster has R/s ~ 30
     rs = r/s
     rs2 = (r/s)**2
@@ -1132,25 +1132,25 @@ import visualizer as vis
 import conversions as conv
 
 def AnglePhi(n=1):
-    '''Uniformly chosen angle(s) between 0 and 2 pi.'''
+    """Uniformly chosen angle(s) between 0 and 2 pi."""
     return 2*np.pi*np.random.rand(int(n)) 
     
 def AngleTheta(n=1):
-    '''Angle(s) between 0 and pi chosen from a sinus distribution.'''
+    """Angle(s) between 0 and pi chosen from a sinus distribution."""
     return np.arccos(2*np.random.rand(int(n)) - 1)
     
 def Radius(n=1, power=2):
-    '''Uniform radius'''
+    """Uniform radius"""
     k = power
     return Power(n, k)
 
 def Power(n, k, x_max=1):
-    '''Positive power law distribution with power k. Draws n numbers.'''
+    """Positive power law distribution with power k. Draws n numbers."""
     N_dist = np.random.rand(int(n))
     return N_dist**(1/(k + 1))*x_max
     
 def GenSphereProj(n, r_dist=Radius):
-    '''Generates the spherical dist and projects it.'''
+    """Generates the spherical dist and projects it."""
     r = r_dist(n)
     theta = AngleTheta(n)
     phi = AnglePhi(n)
@@ -1287,8 +1287,8 @@ plt.show()
 import matplotlib.pyplot as plt
 
 def pdf_KingGlobular_rho(r, s=1.0, R=None):
-    '''pdf of 2D radial King distribution for Globular clusters.'''
-    if (R == None):
+    """pdf of 2D radial King distribution for Globular clusters."""
+    if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
     rs2 = (r/s)**2
     Rs2 = (R/s)**2
@@ -1296,8 +1296,8 @@ def pdf_KingGlobular_rho(r, s=1.0, R=None):
     return C/s*r/s*(1/(1 + rs2)**(1/2) - 1/(1 + Rs2)**(1/2))**2
     
 def cdf_KingGlobular_rho(r, s=1.0, R=None):
-    '''cdf of 2D radial King distribution for Globular clusters.'''
-    if (R == None):
+    """cdf of 2D radial King distribution for Globular clusters."""
+    if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
     r = np.clip(r, 0, R)                                                                            # make sure r doesn't go above R (cdf is wrong there)
     rs2 = (r/s)**2
@@ -1307,8 +1307,8 @@ def cdf_KingGlobular_rho(r, s=1.0, R=None):
     return C*(np.log(1 + rs2)/2 - 2*C2*(1 + rs2)**(1/2) + C2**2*rs2/2)
     
 def KingGlobular_rho(n=1, s=1.0, R=None):
-    '''2D Radial King distribution for globular clusters with scale height s and outter radius R. Draws n numbers.'''
-    if (R == None):
+    """2D Radial King distribution for globular clusters with scale height s and outter radius R. Draws n numbers."""
+    if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
     rvals = np.logspace(-2, np.log10(R), 1000)
     Nvals = cdf_KingGlobular_rho(rvals, s, R)
@@ -1330,8 +1330,8 @@ plt.show()
 
 ## conversion between King 3D and 2D
 def cdf_KingGlobular_r(r, s=1.0, R=None):
-    '''cdf of radial King distribution for Globular clusters.'''
-    if (R == None):
+    """cdf of radial King distribution for Globular clusters."""
+    if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
     r = np.clip(r, 0, R)                                                                            # make sure r doesn't go above R (cdf is wrong there)
     rs = r/s
@@ -1343,16 +1343,16 @@ def cdf_KingGlobular_r(r, s=1.0, R=None):
     return C*(rs - np.arctan(rs) - C2*rs*(1 + rs2)**(1/2) + C2*np.log(rs + (1 + rs2)**(1/2)) + C2**2*rs**3/3)
     
 def KingGlobular_r(n=1, s=1.0, R=None):
-    '''Radial King distribution for globular clusters with scale height s and outter radius R. Draws n numbers.'''
-    if (R == None):
+    """Radial King distribution for globular clusters with scale height s and outter radius R. Draws n numbers."""
+    if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
     rvals = np.logspace(-2, np.log10(R), 1000)
     Nvals = cdf_KingGlobular_r(rvals, s, R)
     return np.interp(np.random.rand(int(n)), Nvals, rvals)
     
 def pdf_KingGlobular_r(r, s=1.0, R=None):
-    '''pdf of radial King distribution for Globular clusters.'''
-    if (R == None):
+    """pdf of radial King distribution for Globular clusters."""
+    if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
     rs2 = (r/s)**2
     Rs = R/s
@@ -1361,21 +1361,21 @@ def pdf_KingGlobular_r(r, s=1.0, R=None):
     return C/s*rs2*(1/(1 + rs2)**(1/2) - 1/(1 + Rs2)**(1/2))**2
 
 def AnglePhi(n=1):
-    '''Uniformly chosen angle(s) between 0 and 2 pi.'''
+    """Uniformly chosen angle(s) between 0 and 2 pi."""
     return 2*np.pi*np.random.rand(int(n)) 
     
 def AngleTheta(n=1):
-    '''Angle(s) between 0 and pi chosen from a sinus distribution.'''
+    """Angle(s) between 0 and pi chosen from a sinus distribution."""
     return np.arccos(2*np.random.rand(int(n)) - 1)
     
 def PolToCart(r, theta):
-    '''Converts polar coords to Cartesian. Optimized for arrays.'''
+    """Converts polar coords to Cartesian. Optimized for arrays."""
     x = r*np.cos(theta)
     y = r*np.sin(theta)
     return np.array([x, y])
     
 def SpherToCart(r, theta, phi):
-    '''Converts spherical coords to Cartesian. Optimized for arrays.'''
+    """Converts spherical coords to Cartesian. Optimized for arrays."""
     x = r*np.sin(theta)*np.cos(phi)
     y = r*np.sin(theta)*np.sin(phi)
     z = r*np.cos(theta)
@@ -1462,15 +1462,15 @@ plt.show()
 
 # projections
 def AnglePhi(n=1):
-    '''Uniformly chosen angle(s) between 0 and 2 pi.'''
+    """Uniformly chosen angle(s) between 0 and 2 pi."""
     return 2*np.pi*np.random.rand(int(n)) 
     
 def AngleTheta(n=1):
-    '''Angle(s) between 0 and pi chosen from a sinus distribution.'''
+    """Angle(s) between 0 and pi chosen from a sinus distribution."""
     return np.arccos(2*np.random.rand(int(n)) - 1)
     
 def SpherToCart(r, theta, phi):
-    '''Converts spherical coords to Cartesian. Optimized for arrays.'''
+    """Converts spherical coords to Cartesian. Optimized for arrays."""
     x = r*np.sin(theta)*np.cos(phi)
     y = r*np.sin(theta)*np.sin(phi)
     z = r*np.cos(theta)
@@ -1618,12 +1618,12 @@ sim.run(src, filename='data\my_first_sim.fits', mode='zoom', detector_layout='ce
 fh.PlotFits('my_first_sim.fits')
 
 ##
-'''
+"""
 SimCADO is controlled with a series of keyword-value pairs contained in a configuration file. The defaults are the best approximation to MICADO so changing them is not recommended if you want to simulate MICADO images. There are however some which are useful to play around with.
 -------
 Unfortunately SimCADO doesn't yet have a MCAO PSF
 Using the SCAO PSF instead
-'''
+"""
 
 print(sim.optics.get_filter_set())
 sim.commands.dump_defaults()
@@ -2109,9 +2109,9 @@ mag_num = len(mag_names)
 var_names, column_names = np.loadtxt(os.path.join('tables', 'column_names.dat'), dtype=str, unpack=True)
 
 if (len(code_names) != len(var_names)):
-    raise SyntaxError('ObjectGen//IsocProps: file \'column_names.dat\' has incorrect names specified. Use: {0}'.format(', '.join(code_names)))
+    raise SyntaxError('ObjectGen//IsochroneProps: file "column_names.dat" has incorrect names specified. Use: {0}'.format(', '.join(code_names)))
 elif np.any(code_names != var_names):
-    raise SyntaxError('ObjectGen//IsocProps: file \'column_names.dat\' has incorrect names specified. Use: {0}'.format(', '.join(code_names)))
+    raise SyntaxError('ObjectGen//IsochroneProps: file "column_names.dat" has incorrect names specified. Use: {0}'.format(', '.join(code_names)))
     
 name_dict = {vn: cn for vn, cn in zip(var_names, column_names)}
 
@@ -2194,7 +2194,7 @@ qtt = np.append(qtt, np.random.rand(10**8))
 
 
 ## grid
-'''
+"""
 D   800 kpc - 15 Mpc
 M   10**5 - 10**7
 half light r 1-20 pc    (globular profile)
@@ -2203,7 +2203,7 @@ age 10**10      (as well as much younger)
 out to what D can you resolve up to half light radius
 
 foreground stars (models for MW)
-'''
+"""
 M_range = np.arange(1, 102, 20)*10**5                                       # in solar mass
 D_range = np.arange(0.8, 15.3, 3.2)*10**6                                   # in pc
 r_range = np.round(np.arange(1, 22, 5)/2.9, decimals=3)                     # in pc
@@ -2346,9 +2346,9 @@ fh.PlotFits('img_test_save')
 
 ## second IMF tests
 def IMF(M, mass=[0.08, 150]):
-    '''(Forward) Initial Mass Function, normalized to 1 probability.
+    """(Forward) Initial Mass Function, normalized to 1 probability.
     Modified Salpeter IMF; actually Kroupa IMF above 0.08 solar mass.
-    '''
+    """
     M_L, M_U = mass
     M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
     C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
@@ -2357,7 +2357,7 @@ def IMF(M, mass=[0.08, 150]):
     return (M < M_mid)*C_L*M**(-1.35) + (M >= M_mid)*C_U*M**(-2.35)
     
 def invCIMF(n=1, mass=[0.08, 150]):
-    '''The inverted cumulative Initial Mass Function. Spits out n masses between lower and upper bound.'''
+    """The inverted cumulative Initial Mass Function. Spits out n masses between lower and upper bound."""
     M_L, M_U = mass
     M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
     N_dist = np.random.rand(int(n))
@@ -2372,7 +2372,7 @@ def invCIMF(n=1, mass=[0.08, 150]):
     return (N_dist < N_mid)*M_a + (N_dist >= N_mid)*M_b
 
 def MassFraction(M, mass=[0.08, 150]):
-    '''Returns the fraction of stars in a population above a certain mass M (Msol).'''
+    """Returns the fraction of stars in a population above a certain mass M (Msol)."""
     M_L, M_U = mass
     M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
     # same constants as are in the IMF:
@@ -2479,9 +2479,9 @@ mag_num = len(mag_names)
 var_names, column_names = np.loadtxt(os.path.join('tables', 'column_names.dat'), dtype=str, unpack=True)
 
 if (len(code_names) != len(var_names)):
-    raise SyntaxError('ObjectGen//IsocProps: file \'column_names.dat\' has incorrect names specified. Use: {0}'.format(', '.join(code_names)))
+    raise SyntaxError('ObjectGen//IsochroneProps: file "column_names.dat" has incorrect names specified. Use: {0}'.format(', '.join(code_names)))
 elif np.any(code_names != var_names):
-    raise SyntaxError('ObjectGen//IsocProps: file \'column_names.dat\' has incorrect names specified. Use: {0}'.format(', '.join(code_names)))
+    raise SyntaxError('ObjectGen//IsochroneProps: file "column_names.dat" has incorrect names specified. Use: {0}'.format(', '.join(code_names)))
     
 name_dict = {vn: cn for vn, cn in zip(var_names, column_names)}
 
@@ -2784,7 +2784,7 @@ import astropy.io.fits as fits
 from astropy.visualization import astropy_mpl_style
 
 def GetData(filename, index=0):
-    '''Returns the requested data. [NOTE: data[1, 4] gives pixel value at x=5, y=2.] Optional arg: (HDUlist) index'''
+    """Returns the requested data. [NOTE: data[1, 4] gives pixel value at x=5, y=2.] Optional arg: (HDUlist) index"""
     with fits.open(os.path.join('images', filename)) as hdul:
         return hdul[index].data
 
@@ -2796,9 +2796,9 @@ image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', fi
 ##
 
 def SaveFitsPlot(filename, index=0, colours='gray', grid=True):
-    '''Saves the plotted image in a fits file. Optional args: (HDUlist) index, colours.
+    """Saves the plotted image in a fits file. Optional args: (HDUlist) index, colours.
     Can also take image objects directly.
-    '''
+    """
     if isinstance(filename, str):
         if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
             filename += '.fits'
@@ -2828,7 +2828,7 @@ SaveFitsPlot('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
 
 
 ## grid (try #2)
-'''
+"""
 D   800 kpc - 15 Mpc
 M   10**5 - 10**7
 half light r 1-20 pc    (globular profile)
@@ -2837,7 +2837,7 @@ age 10**10      (as well as much younger)
 out to what D can you resolve up to half light radius
 
 foreground stars (models for MW)
-'''
+"""
 M_range = np.arange(1, 102, 20)*10**5                                       # in solar mass
 D_range = np.arange(0.8, 15.3, 3.2)*10**6                                   # in pc
 r_range = np.round(np.arange(1, 22, 5)/2.9, decimals=3)                     # in pc

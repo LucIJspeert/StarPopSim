@@ -1,17 +1,17 @@
 # Luc IJspeert
 # Part of smoc: program used for making the astronomical image
 ##
+"""This module provides a function (Image) that takes user input for making an astronomical image
+as well as an interactive function (DynamicImage) that leads the user through all the options.
+"""
 import argparse
 import os
 import numpy as np
 
 import fitshandler as fh
-import ImageGen as img
-import ObjectGen as obg
+import imagegenerator as img
+import objectgenerator as obg
 
-'''This module provides a function (Image) that takes user input for making an astronomical image
-as well as an interactive function (DynamicImage) that leads the user through all the options.
-'''
 
 # defaults
 default_image_file_name = 'image_default_save'
@@ -24,7 +24,7 @@ default_ao = 'scao'
 
 
 def Image(astobj, exp_time, ndit, filter_name, view_mode, chip_mode, ao_mode, savename):
-    '''Image the given object.'''
+    """Image the given object."""
     if isinstance(astobj, str):
         astobj = obg.AstObject.LoadFrom(astobj)
     
@@ -42,16 +42,16 @@ def Image(astobj, exp_time, ndit, filter_name, view_mode, chip_mode, ao_mode, sa
     return astimage
     
 def DynamicImage(astobj=None, name=None):
-    '''Dynamically give parameters for imaging via this interactive function.'''
+    """Dynamically give parameters for imaging via this interactive function."""
     print('--------------------------------------------------------------------------------')
     print('The program will now ask for the parameters to image your object.')
     print('Type <quit> to exit this function. Type <help> for additional information.')
     print('--------------------------------------------------------------------------------')
     
-    if ((astobj == None) | (isinstance(astobj, str))):
+    if ((astobj is None) | (isinstance(astobj, str))):
         astobj, astobj_str = LoadAstObj(str(astobj))
     else:
-        if (name == None):
+        if (name is None):
             astobj_str = default_object_file_name                                                   # no name was given for the preloaded obj, assume default
         else:
             astobj_str = str(name)
@@ -71,7 +71,8 @@ def DynamicImage(astobj=None, name=None):
     
     print('')
     
-    command = OneLineCommand(astobj_str, exp_time, ndit, filter, view_mode, chip_mode, ao_mode, savename)
+    command = OneLineCommand(astobj_str, exp_time, ndit, filter, view_mode, chip_mode, 
+                             ao_mode, savename)
     
     print('To make this astronomical image quickly, the following command can be used:')
     if (command == 'python imager'):
@@ -83,7 +84,7 @@ def DynamicImage(astobj=None, name=None):
     return astimage
 
 def isfloat(value, integer=False):
-    '''Just a little thing to check input.'''
+    """Just a little thing to check input."""
     if integer:                                                                                     # check for int instead
         try:
             int(value)
@@ -102,15 +103,15 @@ def isfloat(value, integer=False):
         return False
        
 def WhileAsk(question, options, add_opt=None, function='', check='str', help_arg=''):
-    '''Asks a question and checks input in a while loop.
+    """Asks a question and checks input in a while loop.
     question: string containing the question to ask  
     options: list of options separated by </>; can be an empty string
     add_opt: list of additional options that are not printed (i.e. to define abbreviations)
     function: the name of the calling function, for use in Help
     check: type of answer to check for; can be <str>, <float> or <int>
     args: passed to Help function
-    '''
-    if (add_opt == None):
+    """
+    if (add_opt is None):
         add_opt = []
     
     a = 0
@@ -121,7 +122,7 @@ def WhileAsk(question, options, add_opt=None, function='', check='str', help_arg
         elif (char == ']'):
             b = i
             
-    default_val = options[a+1:b]                                                                        # default option is between the [brackets]
+    default_val = options[a+1:b]                                                                    # default option is between the [brackets]
     
     if (options == ''):
         ans = input(question + ': ')                                                                # ask the question
@@ -150,7 +151,7 @@ def WhileAsk(question, options, add_opt=None, function='', check='str', help_arg
     return ans
     
 def CheckAnswer(ans, question, options, default, function, *args):
-    '''Helper function of WhileAsk.'''
+    """Helper function of WhileAsk."""
     if ((ans == '') & (default != '')):
         ans = default
     elif (ans in ['help', 'h']):
@@ -170,31 +171,33 @@ def CheckAnswer(ans, question, options, default, function, *args):
     return ans
         
 def AskHelp(function, add_args):
-    '''Shows the help on a particular function.'''
+    """Shows the help on a particular function."""
     if (function == 'Filter'):
         print(' |  Filters must be in the intersection of the filter set in the isochrone files')
         print(' |  and the set of the imaging program (SimCADO).')
         print(' |  The available filters are: {0}.'.format(', '.join(add_args)))
     elif (function == 'FieldOfView'):
-        print(' |  The setting \'wide\' gives a fov of 53 arcsec with 4 mas/pixel,')
-        print(' |  \'zoom\' gives a fov of 16 arcsec having 1.5 mas/pixel.')
+        print(' |  The setting "wide" gives a fov of 53 arcsec with 4 mas/pixel,')
+        print(' |  "zoom" gives a fov of 16 arcsec having 1.5 mas/pixel.')
     elif (function == 'ChipConfig'):
-        print(' |  Choose \'full\' to use all 9 of the 4k chips on the detector,')
-        print(' |  \'centre\' to use only the centre chip (4096x4096 pixels) and')
-        print(' |  \'small\' for the middle 1024x1024 pixels')
+        print(' |  Choose "full" to use all 9 of the 4k chips on the detector,')
+        print(' |  "centre" to use only the centre chip (4096x4096 pixels) and')
+        print(' |  "small" for the middle 1024x1024 pixels')
     elif (function == 'AdaptiveOptics'):
-        print(' |  Selects what PSF file is used. Choose from: scao, ltao, (mcao not available yet)')
+        print(' |  Selects what PSF file is used. Choose from: scao, ltao, '
+              '(mcao not available yet)')
     else:
         print(' |  No help available for this function at this stage.')
         
     return
 
 def LoadAstObj(astobj_name=''):
-    '''Asks what astobj you want to load.'''
+    """Asks what astobj you want to load."""
     # make a list of available files (can only pick available files in this way)
     fnames_cur_folder = [f for f in os.listdir() if os.path.isfile(f)]
     if os.path.isdir('objects'):                                                                     # make sure the folder is there
-        fnames_pkl_folder = [f for f in os.listdir('objects') if os.path.isfile(os.path.join('objects', f))]
+        fnames_pkl_folder = [f for f in os.listdir('objects') 
+                             if os.path.isfile(os.path.join('objects', f))]
         fnames_available = fnames_pkl_folder + fnames_cur_folder
     else:
         fnames_available = fnames_cur_folder
@@ -202,7 +205,8 @@ def LoadAstObj(astobj_name=''):
     fnames_list = [f for f in fnames_available if (f[-4:] == '.pkl')]
     
     if (len(fnames_list) == 0):
-        raise OSError('imager//LoadAstObj: no astronomical object files available: first make an object.')
+        raise OSError('imager//LoadAstObj: no astronomical object files available: '
+                      'first make an object.')
     
     fnames_list += [f.replace('.pkl', '') for f in fnames_list]
     
@@ -214,35 +218,38 @@ def LoadAstObj(astobj_name=''):
         else:
             default = ''
         
-        file_name = WhileAsk('Which astronomical object file do you want to load?', '{}'.format(default), add_opt=fnames_list, function='LoadAstObj')
+        file_name = WhileAsk('Which astronomical object file do you want to load?', 
+                             '{}'.format(default), add_opt=fnames_list, function='LoadAstObj')
     
     astobj = obg.AstObject.LoadFrom(file_name)
     return astobj, file_name
     
 def ExposureTime():
-    '''Asks how long the exposure time must be.'''
-    exp_str = WhileAsk('Exposure time for the observation (seconds)', '[{}]'.format(default_exp), function='ExposureTime', check='int')
+    """Asks how long the exposure time must be."""
+    exp_str = WhileAsk('Exposure time for the observation (seconds)', 
+                       '[{}]'.format(default_exp), function='ExposureTime', check='int')
     return int(exp_str)
     
 def NIterations():
-    '''Asks how many iterations to make.'''
+    """Asks how many iterations to make."""
     ndit_str = WhileAsk('Number of exposures to make:', '[1]', function='NIterations', check='int')
     
     if (ndit_str != '1'):
-        print(' |  [Note: thenumber of iterations doesn\'t seem to do anything at the moment*, except make readout slower.]')
+        print(' |  [Note: the number of iterations doesn\'t seem to do anything '
+              'at the moment*, except make readout slower.]')
         print(' |  [*except when you changed some default to True in the config file of SimCADO]')
         
     return int(ndit_str)
     
 def Filter(filters):
-    '''Asks what astronomical filter to use.'''
+    """Asks what astronomical filter to use."""
     filter_default = '/'.join(filters)
     filter_default = filter_default.replace(default_filter, '[' + default_filter + ']')
     filter = WhileAsk('Filter to use:', filter_default, function='Filter', help_arg=filters)
     return filter
     
 def FieldOfView():
-    '''Asks what view mode the telescope should be set to.'''
+    """Asks what view mode the telescope should be set to."""
     options = 'wide/zoom'.replace(default_fov, '[' + default_fov + ']')
     
     fov = WhileAsk('View mode:', options, add_opt=['w', 'z'], function='FieldOfView')
@@ -255,7 +262,7 @@ def FieldOfView():
     return fov
     
 def ChipConfig():
-    '''Asks what detector layout to use.'''
+    """Asks what detector layout to use."""
     options = 'full/centre/small'.replace(default_chip, '[' + default_chip + ']')
     
     chip = WhileAsk('Detector layout:', options, add_opt=['f', 'c', 's'], function='ChipConfig')
@@ -270,10 +277,11 @@ def ChipConfig():
     return chip
     
 def AdaptiveOptics():
-    '''Asks what AO mode to use.'''
+    """Asks what AO mode to use."""
     options = 'scao/mcao/ltao'.replace(default_ao, '[' + default_ao + ']')
     
-    ao = WhileAsk('Adaptive optics mode:', options, add_opt=['sc', 'mc', 'lt'], function='AdaptiveOptics')
+    ao = WhileAsk('Adaptive optics mode:', options, add_opt=['sc', 'mc', 'lt'], 
+                  function='AdaptiveOptics')
     
     if (ao.lower() == 'sc'):
         ao = 'scao'
@@ -286,11 +294,12 @@ def AdaptiveOptics():
     
 
 def SaveFileName():
-    '''Asks if you want to change the filename.'''
+    """Asks if you want to change the filename."""
     file_name = default_image_file_name
     
     print('The image will be saved under the name ' + file_name)
-    change = WhileAsk(' |  Save image with a different filename?', 'y/[n]', add_opt=['yes', 'no'], function='SaveFileName')
+    change = WhileAsk(' |  Save image with a different filename?', 'y/[n]', 
+                      add_opt=['yes', 'no'], function='SaveFileName')
     
     if (change.lower() in ['y', 'yes']):
         file_name = WhileAsk(' |  Give the new name', '', function='SaveFileName')
@@ -298,7 +307,7 @@ def SaveFileName():
     return file_name
     
 def ShowImage(image_name):
-    '''Asks if you want the image displayed.'''
+    """Asks if you want the image displayed."""
     show = WhileAsk('Display the image?', '[y]/n', add_opt=['yes', 'no'], function='ShowImage')
     
     if (show in ['y', 'yes']):
@@ -307,7 +316,7 @@ def ShowImage(image_name):
     return
 
 def OneLineCommand(astobj_str, exp, ndit, filter, fov, chip, ao, savename):
-    '''Gives the command line format to get the generated object.'''
+    """Gives the command line format to get the generated object."""
     command = 'python imager'
     if (astobj_str != default_object_file_name):
         command += ' -astobj ' + astobj_str

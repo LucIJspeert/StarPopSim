@@ -5,10 +5,10 @@
 
 
 def UserInterface():
-    '''Acts as an interface for the various functions of this program'''
+    """Acts as an interface for the various functions of this program"""
     print('--------------------------------------------------------------------------------')
     print('')
-    print('placeholder name')
+    print('Simulator for Mock Observations of star Clusters')
     print('')
     print('--------------------------------------------------------------------------------')
     print('Hello. This UI will guide you through the functionality of this simulation code.')

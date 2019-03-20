@@ -1,16 +1,19 @@
 # Luc IJspeert
 # Part of smoc: Visualizer
 ##
+"""Visualize data by making images/plots in 2D or 3D. 
+Just for convenience really. And nice plots.
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 import conversions as conv
 
-'''Visualize data by making images/plots in 2D or 3D. Just for convenience really. And nice pictures.'''
 
-def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', T_eff=None, dark_theme=True):
-    '''Plots a 2D scatter of a 3D object (array) along given axes [xy, yz, zx].'''
+def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
+              axes='xy', colour='blue', T_eff=None, dark_theme=True):
+    """Plots a 2D scatter of a 3D object (array) along given axes [xy, yz, zx]."""
     # determine which axes to put on the horizontal and vertical axis of the plot
     axes_list = np.array([[0, 1], [1, 2], [2, 0]])
     hor_axis, vert_axis = axes_list[np.array(['xy', 'yz', 'zx']) == axes][0]
@@ -23,7 +26,8 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y', axes='xy', colou
         colour = 'tab:blue'
     
     fig, ax = plt.subplots()
-    ax.scatter(objects[:,hor_axis], objects[:,vert_axis], marker='.', linewidths=0.0, alpha=0.5, c=colour)
+    ax.scatter(objects[:,hor_axis], objects[:,vert_axis], 
+               marker='.', linewidths=0.0, alpha=0.5, c=colour)
     
     # take the maximum distance from the origin as axis scale
     if (np.shape(objects[0]) == (2,)):
@@ -55,9 +59,11 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y', axes='xy', colou
     ax.set_ylabel(ylabel)
     plt.show() 
     return
-    
-def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z', colour='blue', T_eff=None, dark_theme=True):
-    '''Plots a 3D scatter of a 3D object (array).'''
+
+
+def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z', 
+              colour='blue', T_eff=None, dark_theme=True):
+    """Plots a 3D scatter of a 3D object (array)."""
     # colours can be made to match the temperature (uses T_eff)
     if (colour == 'temperature'):
         colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
@@ -100,10 +106,13 @@ def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z', colo
     ax.set_zlabel(zlabel)
     plt.show() 
     return
-    
-def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)', ylabel=r'Luminosity log($L/L_\odot$)', colour='temperature', dark_theme=True, mask=None):
-    '''Plot the Herzsprung Russell Diagram. Use mask to select certain stars.'''
-    # colours can be made to match the temperature (default behaviour)
+
+
+def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)', 
+        ylabel=r'Luminosity log($L/L_\odot$)', colour='temperature', dark_theme=True, mask=None):
+    """Plot the Herzsprung Russell Diagram. Use mask to select certain stars.
+    colours can be made to match the temperature (default behaviour)
+    """
     if (colour == 'temperature'):
         colour = conv.TemperatureToRGB(T_eff).transpose()
     elif (colour == 'blue'):
@@ -139,10 +148,13 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)', ylabel=r'Luminosi
     ax.set_ylabel(ylabel)
     plt.show() 
     return
-    
-def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude', colour='blue', T_eff=None, dark_theme=False, adapt_axes=True, mask=None):
-    '''Plot the Colour Magnitude Diagram. Use mask to select certain stars.'''
-    # colours can be made to match the temperature (default behaviour)
+
+
+def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude', 
+        colour='blue', T_eff=None, dark_theme=False, adapt_axes=True, mask=None):
+    """Plot the Colour Magnitude Diagram. Use mask to select certain stars.
+    colours can be made to match the temperature (default behaviour)
+    """
     if (colour == 'temperature'):
         colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
     elif (colour == 'blue'):
@@ -187,11 +199,13 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude', colour='bl
     ax.set_ylabel(ylabel)
     plt.show() 
     return
-    
-def DistHist(dist, title='Histogram', xlabel='parameter', ylabel='relative number', step=True, type='linear', labels=[]):
-    '''Display the histogram for some distribution. Can handle multiple distributions.
+
+
+def DistHist(dist, title='Histogram', xlabel='parameter', ylabel='relative number', 
+             step=True, type='linear', labels=[]):
+    """Display the histogram for some distribution. Can handle multiple distributions.
     type can be linear, linlog, loglin (x,y) and loglog. Step=False will give a plot instead.
-    '''
+    """
     dim = len(np.shape(dist))                                                                       # see if multiple dists given
     if (dim != 1):
         num_dists = np.shape(dist)[0]                                                               # number of dists

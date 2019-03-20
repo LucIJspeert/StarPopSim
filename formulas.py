@@ -1,9 +1,11 @@
 # Luc IJspeert
 # Part of smoc: (physical) formulas
 ##
+"""Formulas that are not just conversions (to keep things more organized). 
+Most functions optimized for processing many numbers at once (ndarray).
+"""
 import numpy as np
 
-'''Formulas that are not just conversions (to keep things more organized). Optimized for processing many numbers at once (ndarray).'''
 
 # global constants
 c_light = 299792458.0           # m/s speed of light 
@@ -19,23 +21,27 @@ om_m = 0.315                    # omega matter
 om_l = 0.685                    # omega lambda ('dark energy')
 
 # global defaults
-imf_defaults = [0.08, 150]                                                                          # lower bound, upper bound on mass
+imf_defaults = [0.08, 150]      # lower bound, upper bound on mass
 
 
 def Distance(points, position=[0,0,0]):
-    '''Calculates the distance between a set of points and a position (default at origin).'''
+    """Calculates the distance between a set of points and a position (default at origin)."""
     coords = points.transpose()                                                                     # change array to [xs, ys, zs]
-    return ((coords[0] - position[0])**2 + (coords[1] - position[1])**2 + (coords[2] - position[2])**2)**(1/2)
-    
+    return ((coords[0] - position[0])**2 
+            + (coords[1] - position[1])**2 
+            + (coords[2] - position[2])**2)**(1/2)
+
+
 def Distance2D(points):
-    '''Calculates the 2 dimensional distance to the origin of a point set in the xy plane.'''
+    """Calculates the 2 dimensional distance to the origin of a point set in the xy plane."""
     coords = points.transpose()                                                                     # take only x and y coordinates
     return (coords[0]**2 + coords[1]**2)**(1/2)
-    
+
+
 def PlanckBB(nu, T, var='freq'):
-    '''Planck distribution of Black Body radiation. If var='wavl', use wavelength instead.
+    """Planck distribution of Black Body radiation. If var='wavl', use wavelength instead.
     Units are either W/sr^1/m^2/Hz^1 or W/sr^1/m^3 (for freq/wavl).
-    '''
+    """
     if (var == 'wavl'):
         lam = nu
         spec = (2*h_plank*c_light**2/lam**5)/(np.e**((h_plank*c_light)/(lam*k_B*T)) - 1)
@@ -43,9 +49,10 @@ def PlanckBB(nu, T, var='freq'):
         spec = (2*h_plank*nu**3/c_light**2)/(np.e**((h_plank*nu)/(k_B*T)) - 1)                      # else assume freq
         
     return spec
-        
+
+
 def DComoving(z):
-    '''Gives the comoving distance (in pc) given the redshift z.'''
+    """Gives the comoving distance (in pc) given the redshift z."""
     num_points = 10**5
     
     if isinstance(z, list):
@@ -62,11 +69,12 @@ def DComoving(z):
         integral =  np.trapz(ys, zs)
         
     return integral*d_H
-        
+
+
 def DLToRedshift(dist):
-    '''Calculates the redshift assuming luminosity distance (in pc) is given.
+    """Calculates the redshift assuming luminosity distance (in pc) is given.
     Quite slow for arrays (usually not what it would be used for anyway).
-    '''
+    """
     num_points = 1000
     
     if isinstance(dist, list):
@@ -85,28 +93,31 @@ def DLToRedshift(dist):
         z_best = z_range[np.argmin(np.abs(DLuminosity(z_range) - dist))]
         
     return z_best
-    
+
+
 def DLuminosity(z):
-    '''Gives the luminosity distance (in pc) to the object given the redshift z.'''
+    """Gives the luminosity distance (in pc) to the object given the redshift z."""
     if isinstance(z, list):
         z = np.array(z)                                                                             # just making sure it works for lists
         
     d_C = DComoving(z)
     return (1 + z)*d_C
 
+
 def DAngular(z):
-    '''Gives the angular diameter distance (in pc) to the object given the redshift z.'''
+    """Gives the angular diameter distance (in pc) to the object given the redshift z."""
     if isinstance(z, list):
         z = np.array(z)                                                                             # just making sure it works for lists
         
     d_C = DComoving(z)
     return d_C/(1 + z)
 
+
 def ApparentMag(mag, dist, ext=0, sigma=[0]):
-    '''Compute the apparent magnitude for the absolute magnitude plus a distance (in pc!). 
+    """Compute the apparent magnitude for the absolute magnitude plus a distance (in pc!). 
     sigma defines individual distances relative to the distance of the objects distance.
     ext is an optional extinction to add (waveband dependent).
-    '''
+    """
     if (np.shape(mag) != ()):
         if (len(sigma) == len(mag)):
             z_coord = np.array(sigma)                                                               # can use given coordinates
@@ -116,25 +127,29 @@ def ApparentMag(mag, dist, ext=0, sigma=[0]):
         z_coord = 0
         
     return mag + 5*np.log10((dist + z_coord)/10.) + ext                                             # sigma and dist in pc!
-    
+
+
 def AbsoluteMag(mag, dist, ext=0):
-    '''Compute the absolute magnitude for the apparant magnitude plus a distance (in pc!).
+    """Compute the absolute magnitude for the apparant magnitude plus a distance (in pc!).
     ext is an optional extinction to subtract (waveband dependent).
-    '''
+    """
     return mag - 5*np.log10(dist/10.) - ext                                                         # dist in pc!
-    
+
+
 def MSLifetime(M):
-    '''Estimate the MS lifetime in years of a star of certain initial mass M (in Msun).
+    """Estimate the MS lifetime in years of a star of certain initial mass M (in Msun).
     Applies to stars from 0.1 to 50 Msun (strictly speaking)
-    '''
+    """
     return 10**10*(M)**-2.5
-    
+
+
 def BBLuminosity(R, T_eff):
-    '''Luminosity (in Lsun) of a Black Body with given radius (Rsun) and temperature (K)'''
+    """Luminosity (in Lsun) of a Black Body with given radius (Rsun) and temperature (K)"""
     return R**2*(T_eff/T_sun)**4
-    
+
+
 def MassFraction(mass_limits, imf=imf_defaults):
-    '''Returns the fraction of stars in a population above and below certain mass_limits (Msol).'''
+    """Returns the fraction of stars in a population above and below certain mass_limits (Msol)."""
     M_L, M_U = imf
     M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
     M_lim_low, M_lim_high = mass_limits
@@ -150,9 +165,10 @@ def MassFraction(mass_limits, imf=imf_defaults):
         f = C_L*(C_mid + M_lim_low**(-0.35)/0.35 - M_mid*M_lim_high**(-1.35)/1.35)
     
     return f
-    
+
+
 def MassLimit(frac, M_max=None, imf=imf_defaults):
-    '''Returns the lower mass limit to get a certain fraction of stars generated.'''
+    """Returns the lower mass limit to get a certain fraction of stars generated."""
     M_L, M_U = imf
     M_mid = 0.5  
     if (M_max is None):
@@ -169,12 +185,13 @@ def MassLimit(frac, M_max=None, imf=imf_defaults):
         M_lim = (0.35*(frac/C_L - C_mid + M_mid/1.35*M_max**(-1.35)))**(-1/0.35)
         
     return M_lim
-    
+
+
 def RemnantMass(M_init, Z=Z_sun):
-    '''Very rough estimate of the final (remnant) mass given an initial (ZAMS) mass.
+    """Very rough estimate of the final (remnant) mass given an initial (ZAMS) mass.
     Also metallicity dependent.
     Taken from various papers
-    '''
+    """
     if isinstance(M_init, (list, tuple)):
         M_init = np.array(M_init)
     
@@ -202,7 +219,8 @@ def RemnantMass(M_init, Z=Z_sun):
     M_36_72 = 0.107*M_init[mask_4] + 0.471                                                          # mass range 3.60-7.20 [J.D.Cummings 2018]
     # NS/BH masses
     M_72_11 = 1.28                                                                                  # mass range 7.20-11 (to close the gap, based on [C.L.Fryer 2011])
-    M_11_30 = 1.1 + 0.2*np.exp((M_init[mask_6] - 11)/4) - (2.0 + Z_f)*np.exp(0.4*(M_init[mask_6] - 26))         # mass range 11-30 [C.L.Fryer 2011]
+    M_11_30 = (1.1 + 0.2*np.exp((M_init[mask_6] - 11)/4) 
+              - (2.0 + Z_f)*np.exp(0.4*(M_init[mask_6] - 26)))                                      # mass range 11-30 [C.L.Fryer 2011]
     
     M_30_50_1 = 33.35 + (4.75 + 1.25*Z_f)*(M_init[mask_789] - 34)
     M_30_50_2 = M_init[mask_789] - (Z_f)**0.5*(1.3*M_init[mask_789] - 18.35)
@@ -229,9 +247,10 @@ def RemnantMass(M_init, Z=Z_sun):
         M_remnant[mask_9] = M_90_low
         
     return M_remnant
-    
+
+
 def RemnantRadius(M_rem):
-    '''Approximate radius (in Rsun) of remnant with mass M_rem (in Msun).'''
+    """Approximate radius (in Rsun) of remnant with mass M_rem (in Msun)."""
     R_remnant = np.zeros_like(M_rem)
     
     mask_WD = M_rem < 1.2
@@ -242,11 +261,13 @@ def RemnantRadius(M_rem):
     
     return R_remnant
 
+
 def RemnantTeff(M_rem, R_rem, t_cool, BH_mass=2.0):
-    '''Approximation of the effective temperature. M_rem and R_rem in solar units and t_cool in years.
+    """Approximation of the effective temperature. 
+    M_rem and R_rem in solar units and t_cool in years.
     These have to be arrays of the same length.
     Based on WD cooling from Althaus et al. 2010: https://arxiv.org/abs/1007.2659
-    '''
+    """
     A = 12                                                                                          # (mean) atomic weight (assumes C WD)
     
     Temps = np.zeros_like(M_rem)
@@ -258,10 +279,11 @@ def RemnantTeff(M_rem, R_rem, t_cool, BH_mass=2.0):
     
     return Temps
 
+
 def RemnantMagnitudes(T_rem, L_rem):
-    '''Estimates very roughly what the magnitudes should be in various filters,
+    """Estimates very roughly what the magnitudes should be in various filters,
     from the temperatures (K) and the luminosities (Lsun).
-    '''
+    """
     
     
     
