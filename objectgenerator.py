@@ -536,22 +536,6 @@ class AstObject:
         self.spec_names = spec_names
         
         return
-    
-    def MtotCurrent(self):
-        """Returns the total current mass in Msun."""
-        return np.sum(self.M_cur)
-    
-    def TotalLuminosity(self):
-        """Returns log of the total luminosity in Lsun."""
-        return np.log10(np.sum(10**self.log_L))
-        
-    def ObjRadii(self, spher=True):
-        """Returns the radii of the objects (spherical or cylindrical) in pc."""
-        if spher:
-            radii = form.Distance(self.coords)
-        else:
-            radii = form.Distance2D(self.coords)
-        return radii
         
     def ApparentMagnitude(self, filter_name='all'):
         """Compute the apparent magnitude from the absolute magnitude 
@@ -576,6 +560,22 @@ class AstObject:
         true_dist = np.tile(true_dist, num_mags).reshape(num_mags, dimension_2)
         
         return self.abs_mag[mask] + 5*np.log10((true_dist)/10) + self.extinction                    # true_dist in pc!
+    
+    def MtotCurrent(self):
+        """Returns the total current mass in Msun."""
+        return np.sum(self.M_cur)
+    
+    def TotalLuminosity(self):
+        """Returns log of the total luminosity in Lsun."""
+        return np.log10(np.sum(10**self.log_L))
+        
+    def ObjRadii(self, spher=True):
+        """Returns the radii of the objects (spherical or cylindrical) in pc."""
+        if spher:
+            radii = form.Distance(self.coords)
+        else:
+            radii = form.Distance2D(self.coords)
+        return radii
     
     def HalfMassRadius(self, spher=False):
         """Returns the (spherical or cylindrical) half mass radius in pc."""
