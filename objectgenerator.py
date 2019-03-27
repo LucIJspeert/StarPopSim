@@ -502,9 +502,9 @@ class AstObject:
             self.M_diff = mass_generated - self.M_tot_init                                          # if negative: too little mass generated, else too much
             self.M_tot_init = mass_generated                                                        # set to actual initial mass
         
-        # use the isochrone files to extrapolate properties
+        # use the isochrone files to interpolate properties
+        index = np.cumsum(np.append([0], gen_pop_number))
         for i, age in enumerate(self.ages):
-            index = np.cumsum(np.append([0], gen_pop_number))
             properties = IsochroneProps(self.M_init[index[i]:index[i+1]], age, self.metal[i])
             M_cur_i, log_L_i, log_Te_i, abs_mag_i, mag_names = properties
             
