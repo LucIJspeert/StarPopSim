@@ -152,7 +152,7 @@ def PlotFits(filename, index=0, colours='gray', grid=True):
         image_data = filename[index].data
         
     # use nice plot parameters
-    plt.style.use(astropy_mpl_style
+    plt.style.use(astropy_mpl_style)
     
     fig, ax = plt.subplots(figsize=[12.0, 12.0])
     cax = ax.imshow(image_data, cmap=colours)
