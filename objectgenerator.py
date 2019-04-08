@@ -501,6 +501,32 @@ class AstObject:
         self.mag_names = OpenIsochrone(self.ages[0], self.metal[0], columns='filters')
         
         return
+        
+    def GenerateFieldStars(self):
+        """Adds (Milky Way) field stars to the object."""
+        # self.field_stars = 
+        
+    def GenerateBackGround(self):
+        """Adds additional structures to the background,
+        like more clusters or galaxies. These will be unresolved.
+        """
+        # self.back_ground = 
+        
+    def GenerateNGS(self, mag=[13]):
+        """Adds one or more natural guide star(s) for the adaptive optics.
+        The scao mode can only use one NGS that has to be within a magnitude of 10-16 (optical).
+        """
+        if (len(mag) == 1):
+            pos_x = [7.1]                                                                           # x position in as
+            pos_y = [10.6]                                                                          # y position in as
+        else:
+            pos_x = []
+            pos_y = []
+            # todo: more positions
+        
+        spec_types = np.full_like(mag, 'G0V')                                                       # just to give them a spectral type
+        self.natural_guide_stars = np.array([pos_x, pos_y, mag, spec_types])
+        
     
     def CurrentMasses(self):
         """Gives the current masses of the stars in Msun.
@@ -687,7 +713,7 @@ class AstObject:
         
         return remnants
     
-    def MtotCurrent(self):
+    def TotalCurrentMass(self):
         """Returns the total current mass in Msun."""
         return np.sum(self.CurrentMasses())
     
@@ -705,7 +731,7 @@ class AstObject:
     
     def HalfMassRadius(self, spher=False):
         """Returns the (spherical or cylindrical) half mass radius in pc."""
-        tot_mass = self.MtotCurrent()
+        tot_mass = self.TotalCurrentMass()
         if spher:
             r_star = form.Distance(self.coords)                                                      # spherical radii of the stars
         else:

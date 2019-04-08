@@ -22,10 +22,17 @@ def MakeSource(astobj, filter='V'):
     magnitudes = astobj.ApparentMagnitude(filter_name=filter)[0]
     
     src = sim.source.stars(mags=magnitudes, 
-                            x=x_as, 
-                            y=y_as, 
-                            filter_name=filter, 
-                            spec_types=astobj.spec_names[astobj.spec_types])
+                           x=x_as, 
+                           y=y_as, 
+                           filter_name=filter, 
+                           spec_types=astobj.spec_names[astobj.spec_types])
+                            
+    if hasattr(astobj, 'natural_guide_stars'):
+        src += sim.source.stars(mags=magnitudes, 
+                                x=x_as, 
+                                y=y_as, 
+                                filter_name=filter, 
+                                spec_types=astobj.spec_names[astobj.spec_types])
     
     return src
     
@@ -49,18 +56,18 @@ def MakeImage(src, exposure=60, NDIT=1, view='wide', chip='centre', filter='V', 
         cmd, opt, fpa = None, None, None
     
     image_int = sim.run(src, 
-                         filename=savename, 
-                         mode=view, 
-                         detector_layout=chip, 
-                         filter_name=filter, 
-                         SCOPE_PSF_FILE=ao_mode, 
-                         OBS_EXPTIME=exposure, 
-                         OBS_NDIT=NDIT,
-                         cmds=cmd,
-                         opt_train=opt, 
-                         fpa=fpa,
-                         return_internals=return_int
-                         )
+                        filename=savename, 
+                        mode=view, 
+                        detector_layout=chip, 
+                        filter_name=filter, 
+                        SCOPE_PSF_FILE=ao_mode, 
+                        OBS_EXPTIME=exposure, 
+                        OBS_NDIT=NDIT,
+                        cmds=cmd,
+                        opt_train=opt, 
+                        fpa=fpa,
+                        return_internals=return_int
+                        )
     
     if return_int:
         image, internals = image_int
