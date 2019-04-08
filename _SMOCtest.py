@@ -2539,7 +2539,7 @@ plt.show()
 
 ## limiting magnitude
 import numpy as np
-import ImageGen as img
+import imagegenerator as img
 import simcado as sim
 import fitshandler as fh
 
@@ -2848,27 +2848,44 @@ par_grid[:, 0:2] = np.log10(par_grid[:, 0:2])
 
 def objsaver(pars):
     M, D, r = pars              # M, D in 10log
-    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True)
+    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r)
     astobj.SaveTo('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     return
     
-def imgsaver(pars):
+def imgsaver(pars, int=None, ret_int=False):
     M, D, r = pars              # M, D in 10log
-    astobj = obg.AstObject.LoadFrom('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
-    src = img.MakeSource(astobj, filter='J')
-    image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
-    fh.SaveFitsPlot('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
-    return
+    f = 'J'
+    view='zoom'                 # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
+    chip='full'                 # read out, small middle bit, centre chip or full detector
+    exp = 1800                  # exposure time in s
     
+    obj_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r)
+    img_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, f)
+    
+    astobj = obg.AstObject.LoadFrom(obj_name)
+    src = img.MakeSource(astobj, filter=f)
+    if ret_int:
+        image, internals = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=f, ao_mode='scao', filename=img_name, internals=int)
+    else:
+        image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=f, ao_mode='scao', filename=img_name, internals=int)
+        
+    fh.SaveFitsPlot(img_name, grid=False)
+    
+    if ret_int:
+        return internals
+    else:
+        return None
     
 ##
 # run the grid    
 for pars in par_grid:
     objsaver(pars)
 ##
-# make images
-for pars in par_grid:
-    imgsaver(pars)
+# make images (edited)
+
+internals = imgsaver(pars[0], ret_int=True)
+for pars in par_grid[1:]:
+    imgsaver(pars, int=internals)
 
 
 ## command test
@@ -2896,7 +2913,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import fitshandler as fh
 import astropy.visualization as avis
-import img_scale
+import img_scale    # download from https://www.astrobetter.com/wiki/tiki-index.php?page=RGB+Images+with+matplotlib
 
 M, D, r = 7.004,  5.903, 2.069                                                                      # try: I, J, H, Ks
 
@@ -2973,27 +2990,29 @@ plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
 plt.show()
 ##
 from photutils.detection import IRAFStarFinder
-from photutils.psf import IntegratedGaussianPRF, DAOGroup
+from photutils.psf import IntegratedGaussianPRF, DAOGroup, IterativelySubtractedPSFPhotometry
 from photutils.background import MMMBackground, MADStdBackgroundRMS
 from astropy.modeling.fitting import LevMarLSQFitter
 from astropy.stats import gaussian_sigma_to_fwhm
 #
+# std = MADStdBackgroundRMS(image)                                                                    # Class to calculate the background RMS in an array as using the median absolute deviation (MAD).
 bkgrms = MADStdBackgroundRMS()
-std = bkgrms(image)
+std = bkgrms.calc_background_rms(data=image)
+# DAOStarFinder()                                                                                     # Detect stars in an image using the DAOFIND (Stetson 1987) algorithm. (uses DAOGroup, DAOStarFinder and MMMBackground)
 iraffind = IRAFStarFinder(threshold=3.5*std,
                           fwhm=sigma_psf*gaussian_sigma_to_fwhm,
                           minsep_fwhm=0.01, roundhi=5.0, roundlo=-5.0,
                           sharplo=0.0, sharphi=2.0)
-daogroup = DAOGroup(2.0*sigma_psf*gaussian_sigma_to_fwhm)
-mmm_bkg = MMMBackground()
-fitter = LevMarLSQFitter()
-psf_model = IntegratedGaussianPRF(sigma=sigma_psf)
-from photutils.psf import IterativelySubtractedPSFPhotometry
+daogroup = DAOGroup(2.0*sigma_psf*gaussian_sigma_to_fwhm)                                           # This class implements the DAOGROUP algorithm presented by Stetson (1987).
+mmm_bkg = MMMBackground()                                                                           # Class to calculate the background in an array using the DAOPHOT MMM algorithm.
+fitter = LevMarLSQFitter()                                                                          # Levenberg-Marquardt algorithm and least squares statistic.
+psf_model = IntegratedGaussianPRF(sigma=sigma_psf)                                                  # Circular Gaussian model integrated over pixels. Because it is integrated, this model is considered a PRF, not a PSF 
+
 photometry = IterativelySubtractedPSFPhotometry(finder=iraffind,
                                                 group_maker=daogroup,
                                                 bkg_estimator=mmm_bkg,
                                                 psf_model=psf_model,
-                                                fitter=LevMarLSQFitter(),
+                                                fitter=fitter,
                                                 niters=1, fitshape=(11,11))
 result_tab = photometry(image=image)
 residual_image = photometry.get_residual_image()
@@ -3012,34 +3031,122 @@ plt.show()
 
 # https://photutils.readthedocs.io/en/stable/psf.html
 
-# https://astwro.readthedocs.io/en/latest/pydaophot.html
+# https://astwro.readthedocs.io/en/latest/pydaophot.html                needs DAOphot installation
 
 ## try it myself
-import photutils.detection as pde
-import photutils.psf as pps
-import photutils.background as pba
+# first build ePSF
+import numpy as np
+import matplotlib.pyplot as plt
 
-from photutils.detection import IRAFStarFinder
-from photutils.psf import IntegratedGaussianPRF, DAOGroup
-from photutils.background import MMMBackground, MADStdBackgroundRMS
-from astropy.modeling.fitting import LevMarLSQFitter
-from astropy.stats import gaussian_sigma_to_fwhm
+import imagegenerator as img
+import simcado as sim
+import fitshandler as fh
 
-from photutils.psf import IterativelySubtractedPSFPhotometry
+import photutils as phu
+import astropy as apy
+import astropy.table as apta
 
+n = 5
+filter = 'J'
+
+xs = np.array([0, -0.9, -0.9, 0.9, 0.9])                                                            # coords in as
+ys = np.array([0, -0.9, 0.9, -0.9, 0.9])                                                            # coords in as
+
+magnitudes = np.linspace(18, 20, n)
+
+src = sim.source.stars(mags=magnitudes, x=xs, y=ys, filter_name=filter, spec_types=['M0V'])
+
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='scao', filename='img_test_save')
+fh.PlotFits('img_test_save', grid=False)
+##
+img_data = fh.GetData('img_test_save')
+
+peaks_tbl = phu.find_peaks(img_data, threshold=20000., box_size=50)
+peaks_tbl['peak_value'].info.format = '%.8g'  # for consistent table output
+print(peaks_tbl)
+
+stars_tbl = apta.Table()
+stars_tbl['x'] = peaks_tbl['x_peak']
+stars_tbl['y'] = peaks_tbl['y_peak']
+
+mean_val, median_val, std_val = apy.stats.sigma_clipped_stats(img_data, sigma=2.)
+img_data -= median_val
+
+nddata = apy.nddata.NDData(data=img_data)
+
+stars = phu.psf.extract_stars(nddata, stars_tbl, size=180)
+
+fig, ax = plt.subplots(nrows=1, ncols=5, figsize=(15, 5), squeeze=True)
+ax = ax.ravel()
+for i in range(nrows*ncols):
+    norm = apy.visualization.simple_norm(stars[i], 'log', percent=99.)
+    ax[i].imshow(stars[i], norm=norm, origin='lower', cmap='viridis')
+    
+plt.show()
+
+epsf_builder = phu.EPSFBuilder(oversampling=4, maxiters=5, progress_bar=False)
+epsf, fitted_stars = epsf_builder(stars)
+
+norm = apy.visualization.simple_norm(epsf.data, 'log', percent=99.)
+plt.imshow(epsf.data, norm=norm, origin='lower', cmap='viridis')
+plt.colorbar()
+plt.show()
+
+
+## to the photometry
+import photutils as phu
+import astropy as apy
+import astropy.modeling as asm
+
+import fitshandler as fh
+
+# show the image
+image_name = 'grid-5.000-5.903-2.069'
+fh.PlotFits(image_name, grid=False)
+img_data = fh.GetData(image_name)
+##
+sigma_psf = 2.0
+sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
+bkgrms = phu.background.MADStdBackgroundRMS()
+std = bkgrms.calc_background_rms(data=img_data)
+psf = epsf                                                                                          # phu.psf.IntegratedGaussianPRF(sigma=sigma_psf)
+
+photometry = phu.psf.DAOPhotPSFPhotometry(crit_separation=2.0*sigma_psf*sigma_to_fwhm, 
+                                          threshold=3.5*std, 
+                                          fwhm=sigma_psf*sigma_to_fwhm, 
+                                          psf_model=psf, 
+                                          fitshape=(11,11), 
+                                          fitter=asm.fitting.LevMarLSQFitter(), 
+                                          niters=1, aperture_radius=20, 
+                                          sharplo=0.0, sharphi=2.0, roundlo=-5.0, roundhi=5.0
+                                          )
+result_tab = photometry(image=img_data)
+residual_image = photometry.get_residual_image()
+##
+plt.subplot(1, 2, 1)
+plt.imshow(img_data, cmap='viridis', aspect=1, interpolation='nearest', origin='lower')
+plt.title('Simulated data')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+
+plt.subplot(1, 2, 2)
+plt.imshow(residual_image, cmap='viridis', aspect=1,
+           interpolation='nearest', origin='lower')
+plt.title('Residual Image')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+plt.show()
 
 
 ##
 import numpy as np
 import matplotlib.pyplot as plt
 import simcado as sim
-import ObjectGen as obg
+import objectgenerator as obg
 import fitshandler as fh
 import visualizer as vis
 import formulas as form
 import distributions as dist
 import conversions as conv
-import ImageGen as img
+import imagegenerator as img
 
 
 # cd documents\documenten_radboud_university\masterstage\SMOC
