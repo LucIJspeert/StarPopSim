@@ -2539,7 +2539,7 @@ plt.show()
 
 ## limiting magnitude
 import numpy as np
-import ImageGen as img
+import imagegenerator as img
 import simcado as sim
 import fitshandler as fh
 
@@ -2848,27 +2848,44 @@ par_grid[:, 0:2] = np.log10(par_grid[:, 0:2])
 
 def objsaver(pars):
     M, D, r = pars              # M, D in 10log
-    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True)
+    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r)
     astobj.SaveTo('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     return
     
-def imgsaver(pars):
+def imgsaver(pars, int=None, ret_int=False):
     M, D, r = pars              # M, D in 10log
-    astobj = obg.AstObject.LoadFrom('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
-    src = img.MakeSource(astobj, filter='J')
-    image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
-    fh.SaveFitsPlot('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
-    return
+    f = 'J'
+    view='zoom'                 # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
+    chip='full'                 # read out, small middle bit, centre chip or full detector
+    exp = 1800                  # exposure time in s
     
+    obj_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r)
+    img_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, f)
+    
+    astobj = obg.AstObject.LoadFrom(obj_name)
+    src = img.MakeSource(astobj, filter=f)
+    if ret_int:
+        image, internals = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=f, ao_mode='scao', filename=img_name, internals=int)
+    else:
+        image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=f, ao_mode='scao', filename=img_name, internals=int)
+        
+    fh.SaveFitsPlot(img_name, grid=False)
+    
+    if ret_int:
+        return internals
+    else:
+        return None
     
 ##
 # run the grid    
 for pars in par_grid:
     objsaver(pars)
 ##
-# make images
-for pars in par_grid:
-    imgsaver(pars)
+# make images (edited)
+
+internals = imgsaver(pars[0], ret_int=True)
+for pars in par_grid[1:]:
+    imgsaver(pars, int=internals)
 
 
 ## command test

@@ -30,7 +30,7 @@ def MakeSource(astobj, filter='V'):
     return src
     
 def MakeImage(src, exposure=60, NDIT=1, view='wide', chip='centre', filter='V', ao_mode='scao', 
-              filename='image_default_save'):
+              filename='image_default_save', internals=None, return_int=False):
     """Make the image with SimCADO.
     exposure = time in seconds, NDIT = number of exposures taken.
     view = mode = ['wide', 'zoom']: fov 53 arcsec (4 mas/pixel) or 16 (1.5 mas/pixel)
@@ -43,17 +43,31 @@ def MakeImage(src, exposure=60, NDIT=1, view='wide', chip='centre', filter='V', 
     if (savename[-5:] != '.fits'):
         savename += '.fits'
     
-    image = sim.run(src, 
-                    filename=savename, 
-                    mode=view, 
-                    detector_layout=chip, 
-                    filter_name=filter, 
-                    SCOPE_PSF_FILE=ao_mode, 
-                    OBS_EXPTIME=exposure, 
-                    OBS_NDIT=NDIT)
+    if internals is not None:
+        cmd, opt, fpa = internals
+    else:
+        cmd, opt, fpa = None, None, None
     
-    return image
-
+    image_int = sim.run(src, 
+                         filename=savename, 
+                         mode=view, 
+                         detector_layout=chip, 
+                         filter_name=filter, 
+                         SCOPE_PSF_FILE=ao_mode, 
+                         OBS_EXPTIME=exposure, 
+                         OBS_NDIT=NDIT,
+                         cmds=cmd,
+                         opt_train=opt, 
+                         fpa=fpa,
+                         return_internals=return_int
+                         )
+    
+    if return_int:
+        image, internals = image_int
+        return image, internals
+    else:
+        image = image_int
+        return image
 
 
 
