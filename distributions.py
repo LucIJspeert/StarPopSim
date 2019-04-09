@@ -95,6 +95,12 @@ def AnglePhi(n=1):
 def AngleTheta(n=1):
     """Angle(s) between 0 and pi chosen from a sine distribution."""
     return np.arccos(2*np.random.rand(int(n)) - 1)
+    
+
+def Uniform_r(n=1, min=0, max=1):
+    """Uniformly distributed (spherical) radius between min and max."""
+    C = (max**3 - min**3)
+    return (C*np.random.rand(int(n)) + min**3)**(1/3)
 
 
 def Exponential_r(n=1, s=1.0):
@@ -140,6 +146,12 @@ def KingGlobular_r(n=1, s=1.0, R=None):
     return np.interp(np.random.rand(int(n)), N_vals, r_vals)
     
 # below: distributions for cylindrical coordinates
+
+def Uniform_rho(n=1, min=0, max=1):
+    """Uniformly distributed (cylindrical) radius between min and max."""
+    C = (max**2 - min**2)
+    return (C*np.random.rand(int(n)) + min**2)**(1/2)
+
 
 def Normal_rho(n=1, s=1.0):
     """Radial normal (gaussian) distribution with scale height s. Draws n numbers."""

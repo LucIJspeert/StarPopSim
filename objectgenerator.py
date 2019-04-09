@@ -504,29 +504,38 @@ class AstObject:
         
     def GenerateFieldStars(self):
         """Adds (Milky Way) field stars to the object."""
-        # self.field_stars = 
+        # self.field_stars = np.array([pos_x, pos_y, mag, filt, spec_types])
+        return
         
     def GenerateBackGround(self):
         """Adds additional structures to the background,
         like more clusters or galaxies. These will be unresolved.
         """
         # self.back_ground = 
+        return
         
-    def GenerateNGS(self, mag=[13]):
+    def GenerateNGS(self, mag=[13], filter='V'):
         """Adds one or more natural guide star(s) for the adaptive optics.
         The scao mode can only use one NGS that has to be within a magnitude of 10-16 (optical).
+        [The generated positions are specific to the ELT]
         """
         if (len(mag) == 1):
+            # just outside fov for 1.5 mas/p scale, but inside patrol field of scao
             pos_x = [7.1]                                                                           # x position in as
             pos_y = [10.6]                                                                          # y position in as
+            # todo: could add more position options
         else:
-            pos_x = []
-            pos_y = []
-            # todo: more positions
+            # assume we are using MCAO now. generate random positions within patrol field
+            angle = dist.AnglePhi(n=len(mag))
+            radius = dist.Uniform_rho(n=len(mag), min=46, max=90)                                   # radius of patrol field in as
+            pos_x_y = conv.PolToCart(radius, angle)
+            pos_x = pos_x_y[0]
+            pos_y = pos_x_y[1]
         
+        filt = np.full_like(mag, filter)                                                            # the guide stars can be in a different filter than the observations 
         spec_types = np.full_like(mag, 'G0V')                                                       # just to give them a spectral type
-        self.natural_guide_stars = np.array([pos_x, pos_y, mag, spec_types])
-        
+        self.natural_guide_stars = np.array([pos_x, pos_y, mag, filt, spec_types])
+        return
     
     def CurrentMasses(self):
         """Gives the current masses of the stars in Msun.
