@@ -2892,8 +2892,12 @@ for pars in par_grid[1:]:
 # python3 constructor.py -struct ellipsoid -N 1000 -ages 9.65 10.0 9.0 -z 0.014 0.0014 0.014 -relN 1 1 1 -D 100.0
 
 
-## test of NGS
-astobj = obg.AstObject()
+## test of NGS (+ restructuring)
+import objectgenerator as obg
+astobj = obg.AstObject(N_stars=10**6, age=[7, 9], metal=[0.014], rel_num=[1, 2])
+astobj.GenerateNGS(mag=[13, 13, 12])
+print(astobj.natural_guide_stars)
+# all seems to work fine now.
 
 ## zoom in for grid-7.004-5.903-2.069
 M, D, r = 7.004,  5.903, 2.069

@@ -31,13 +31,13 @@ def Image(astobj, exp_time, ndit, filter_name, view_mode, chip_mode, ao_mode, sa
     src = img.MakeSource(astobj, filter=filter_name)
     
     astimage = img.MakeImage(src, 
-                            exposure=exp_time, 
-                            NDIT=ndit, 
-                            view=view_mode, 
-                            chip=chip_mode, 
-                            filter=filter_name, 
-                            ao_mode=ao_mode, 
-                            filename=savename)
+                             exposure=exp_time, 
+                             NDIT=ndit, 
+                             view=view_mode, 
+                             chip=chip_mode, 
+                             filter=filter_name, 
+                             ao_mode=ao_mode, 
+                             filename=savename)
     
     return astimage
     
@@ -75,7 +75,7 @@ def DynamicImage(astobj=None, name=None):
                              ao_mode, savename)
     
     print('To make this astronomical image quickly, the following command can be used:')
-    if (command == 'python imager'):
+    if (command == 'python imager.py'):
         print(' |  [Note: all default values were used, the command is very short!]')
     print(command)
     
@@ -317,7 +317,7 @@ def ShowImage(image_name):
 
 def OneLineCommand(astobj_str, exp, ndit, filter, fov, chip, ao, savename):
     """Gives the command line format to get the generated object."""
-    command = 'python imager'
+    command = 'python imager.py'
     if (astobj_str != default_object_file_name):
         command += ' -astobj ' + astobj_str
     if (exp != default_exp):
@@ -378,11 +378,11 @@ if __name__ == '__main__':
         astimage = DynamicImage(args.astobj)
     else:
         astimage = Image(args.astobj, 
-                        args.exp, 
-                        args.ndit, 
-                        args.filter,
-                        args.fov,
-                        args.chip,
-                        args.ao,
-                        args.save)
+                         args.exp, 
+                         args.ndit, 
+                         args.filter,
+                         args.fov,
+                         args.chip,
+                         args.ao,
+                         args.save)
     

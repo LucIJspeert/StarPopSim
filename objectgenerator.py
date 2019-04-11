@@ -81,7 +81,7 @@ class AstObject:
             ellipse_axes = [1, 1, 1]
         
         self.structure = struct                                                                     # type of object
-        self.N_stars = N_stars                                                                          # number of stars
+        self.N_stars = N_stars                                                                      # number of stars
         self.M_tot_init = M_tot_init                                                                # total initial mass in Msun
         self.ages = age                                                                             # ages of the populations (=max age if SFH is used)
         self.metal = metal                                                                          # metallicity (of each population)
@@ -119,7 +119,7 @@ class AstObject:
         self.M_init = np.array([])                                                                  # the masses of the stars
         self.M_diff = 0                                                                             # mass difference between given and generated (total) mass (if given)
         
-        self.spec_names = []                                                                        # corresponding spectral type names
+        self.spec_names = np.array([])                                                              # corresponding spectral type names
         self.mag_names = np.array([])                                                               # names of the filters corresponding to the magnitudes
         
         # compact mode parameters
@@ -131,7 +131,7 @@ class AstObject:
         self.gen_pop_number = np.array([])                                                          # (compact mode) actually generated number of stars per population
         
         self.CheckInput()                                                                           # check user input
-        self.GenerateStars()                                                                          # actually generate the stars                                                                        
+        self.GenerateStars()                                                                        # actually generate the stars                                                                        
         return
         
     def CheckInput(self):
@@ -246,14 +246,14 @@ class AstObject:
             warnings.warn(('objectgenerator//CheckInput: Input mass and number of stars '
                            'cannot be zero simultaniously. Using N_stars=1000'), SyntaxWarning)
             self.N_stars = 1000
-            pop_num = np.rint(rel_frac*self.N_stars).astype(int)                                      # rounded off number
-        elif (self.N_stars == 0):                                                                     # a total mass is given
+            pop_num = np.rint(rel_frac*self.N_stars).astype(int)                                    # rounded off number
+        elif (self.N_stars == 0):                                                                   # a total mass is given
             pop_num = np.array([conv.MtotToNstars(self.M_tot_init*rel_frac[i], 
                                 imf=self.imf_param[i]) for i in range(num_pop)])
-            self.N_stars = np.sum(pop_num)                                                            # estimate of the number of stars to generate
+            self.N_stars = np.sum(pop_num)                                                          # estimate of the number of stars to generate
         else:
-            pop_num = np.rint(rel_frac*self.N_stars).astype(int)                                      # rounded off number
-            self.N_stars = np.rint(np.sum(pop_num)).astype(int)                                       # make sure N_stars is int and rounded off
+            pop_num = np.rint(rel_frac*self.N_stars).astype(int)                                    # rounded off number
+            self.N_stars = np.rint(np.sum(pop_num)).astype(int)                                     # make sure N_stars is int and rounded off
         
         # check if the population numbers add up to N total and save correct ones
         self.pop_number = FixTotal(self.N_stars, pop_num)
@@ -368,7 +368,7 @@ class AstObject:
                 self.r_dist_param = temp_par_dict_list
                     
         else:
-            raise TypeError('objectgenerator//CheckInput: Incompatible data type for rdistpar')           # it is something else... burn it with fire!
+            raise TypeError('objectgenerator//CheckInput: Incompatible data type for rdistpar')     # it is something else... burn it with fire!
             
         for i, param_dict in enumerate(self.r_dist_param):
             if not bool(param_dict):                                                                # if dict empty, fill with defaults
@@ -517,7 +517,7 @@ class AstObject:
     def GenerateNGS(self, mag=[13], filter='V'):
         """Adds one or more natural guide star(s) for the adaptive optics.
         The scao mode can only use one NGS that has to be within a magnitude of 10-16 (optical).
-        [The generated positions are specific to the ELT]
+        [The generated positions are specific to the ELT!]
         """
         if (len(mag) == 1):
             # just outside fov for 1.5 mas/p scale, but inside patrol field of scao
@@ -532,9 +532,9 @@ class AstObject:
             pos_x = pos_x_y[0]
             pos_y = pos_x_y[1]
         
-        filt = np.full_like(mag, filter)                                                            # the guide stars can be in a different filter than the observations 
-        spec_types = np.full_like(mag, 'G0V')                                                       # just to give them a spectral type
-        self.natural_guide_stars = np.array([pos_x, pos_y, mag, filt, spec_types])
+        filt = np.full_like(mag, filter, dtype='U5')                                                 # the guide stars can be in a different filter than the observations 
+        spec_types = np.full_like(mag, 'G0V', dtype='U5')                                            # just to give them a spectral type
+        self.natural_guide_stars = [pos_x, pos_y, mag, filt, spec_types]
         return
     
     def CurrentMasses(self):
@@ -637,29 +637,29 @@ class AstObject:
         
         return log_Te
         
-    def AbsoluteMagnitudes(self, filter_name='all'):
+    def AbsoluteMagnitudes(self, filter='all'):
         """Gives the absolute magnitudes of the stars.
         Uses isochrone files and the given initial masses of the stars.
         Stars should not have a lower initial mass than the lowest mass in the isochrone file.
         """
-        if (filter_name == 'all'):
+        if (filter == 'all'):
             num_mags = len(self.mag_names)
             mask = np.full_like(self.mag_names, True, dtype=bool)
         else:
             num_mags = 1
-            mask = (self.mag_names == filter_name)
+            mask = (self.mag_names == filter)
             
-        abs_mag = np.empty([mag_num, 0])
+        abs_mag = np.empty([num_mags, 0])
         index = np.cumsum(np.append([0], self.gen_pop_number))                                      # indices defining the different populations
         
         for i, age in enumerate(self.ages):
             # use the isochrone files to interpolate properties
             iso_M_ini, iso_mag = OpenIsochrone(age, self.metal[i], columns='mag')                   # get the isochrone values
-            M_init_i = self.M_init[index[i]:index[i+1]]
+            M_init_i = self.M_init[index[i]:index[i+1]]                                             # select the masses of one population
             
-            mag_i = np.zeros([mag_num, len(self.M_init)])
-            for i in range(mag_num):
-                mag_i[i] = np.interp(M_init_i, iso_M_ini, iso_mag[i], left=30, right=30)            # (right) return 30 --> L of less than 10**-9
+            mag_i = np.zeros([num_mags, len(M_init_i)])
+            for j, mag in enumerate(iso_mag[mask]):
+                mag_i[j] = np.interp(M_init_i, iso_M_ini, mag, left=30, right=30)                   # (right) return 30 --> L of less than 10**-9
             
             # Isochrones assign wildly wrong properties to remnants (i.e. mag=30).
             # The following functions give estimates for remnant magnitudes
@@ -667,22 +667,22 @@ class AstObject:
             r_mag_i = 11          # ~typical WD
             #TODO: add better remnant magnitudes
             
-            mag_i[remnants_i] = r_mag_i
+            mag_i[:, remnants_i] = r_mag_i
             abs_mag = np.append(abs_mag, mag_i, axis=1)
         
         return abs_mag
     
-    def ApparentMagnitudes(self, filter_name='all'):
+    def ApparentMagnitudes(self, filter='all'):
         """Compute the apparent magnitude from the absolute magnitude 
         and the individual distances (in pc!). 
-        The filter_name can be specified. 'all' will give all the filters.
+        The filter can be specified. 'all' will give all the filters.
         """
-        if (filter_name == 'all'):
+        if (filter == 'all'):
             num_mags = len(self.mag_names)
             mask = np.full_like(self.mag_names, True, dtype=bool)
         else:
             num_mags = 1
-            mask = (self.mag_names == filter_name)
+            mask = (self.mag_names == filter)
         
         delta_d = -self.coords[:,2]                                                                 # delta distances relative to distance (taken to be minus the z-coordinate)
         if (self.d_lum > 100*np.abs(np.min(delta_d))):                                              # distance 'much larger' than individual variations
@@ -694,7 +694,7 @@ class AstObject:
         dimension_2 = np.sum(np.rint(self.pop_number*self.fraction_generated)).astype(int)
         true_dist = np.tile(true_dist, num_mags).reshape(num_mags, dimension_2)
         
-        abs_mag = self.AbsoluteMagnitudes(filter_name=filter_name)
+        abs_mag = self.AbsoluteMagnitudes(filter=filter)
         
         return abs_mag + 5*np.log10((true_dist)/10) + self.extinction                               # true_dist in pc!
         
@@ -704,14 +704,23 @@ class AstObject:
         Uses isochrone files and the given initial masses of the stars.
         Stars should not have a lower initial mass than the lowest mass in the isochrone file.
         """
-        spec_indices, spec_names = FindSpectralType(self.log_Te, self.log_L, np.log10(self.M_cur))  # assign spectra to the stars
+        log_T_eff = self.LogTemperatures()
+        log_L = self.LogLuminosities()
+        log_M_cur = np.log10(self.CurrentMasses())
+        
+        spec_indices, spec_names = FindSpectralType(log_T_eff, log_L, log_M_cur)                    # assign spectra to the stars
+        
+        # if this is run for the first time, save the spectral names
+        if len(self.spec_names == 0):
+            self.spec_names = spec_names
+        
         return spec_indices, spec_names
     
     def Remnants(self):
-        """Gives the indices of the positions of remnants (not white dwarfs). 
+        """Gives the indices of the positions of remnants (not white dwarfs) as a boolean array. 
         (WD should be handled with the right isochrone files, but NS/BHs are not)
         """
-        remnants = np.array([])
+        remnants = np.array([], dtype=bool)
         index = np.cumsum(np.append([0], self.gen_pop_number))                                      # indices defining the different populations
         
         for i, age in enumerate(self.ages):
@@ -728,7 +737,7 @@ class AstObject:
     
     def TotalLuminosity(self):
         """Returns log of the total luminosity in Lsun."""
-        return np.log10(np.sum(10**self.LogLuminosities(realistic_remnants=False)))                 # remnants don't add much, so leave them out
+        return np.log10(np.sum(10**self.LogLuminosities(realistic_remnants=False)))                 # remnants don't add much, so leave them as is
         
     def StarRadii(self, spher=True):
         """Returns the radial coordinate of the stars (spherical or cylindrical) in pc."""
@@ -740,29 +749,33 @@ class AstObject:
     
     def HalfMassRadius(self, spher=False):
         """Returns the (spherical or cylindrical) half mass radius in pc."""
-        tot_mass = self.TotalCurrentMass()
+        M_cur = self.CurrentMasses()
+        tot_mass = np.sum(M_cur)                                                                    # do this locally, to avoid unnecesairy overhead
+        
         if spher:
-            r_star = form.Distance(self.coords)                                                      # spherical radii of the stars
+            r_star = form.Distance(self.coords)                                                     # spherical radii of the stars
         else:
-            r_star = form.Distance2D(self.coords)                                                    # cylindrical radii of the stars
+            r_star = form.Distance2D(self.coords)                                                   # cylindrical radii of the stars
             
-        indices = np.argsort(r_star)                                                                 # indices that sort the radii
-        r_sorted = r_star[indices]                                                                   # sorted radii
-        mass_sorted = self.M_cur[indices]                                                           # masses sorted for radius
+        indices = np.argsort(r_star)                                                                # indices that sort the radii
+        r_sorted = r_star[indices]                                                                  # sorted radii
+        mass_sorted = M_cur[indices]                                                                # masses sorted for radius
         mass_sum = np.cumsum(mass_sorted)                                                           # cumulative sum of sorted masses
         return np.max(r_sorted[mass_sum <= tot_mass/2])                                             # 2D/3D radius at half the mass
         
     def HalfLumRadius(self, spher=False):
         """Returns the (spherical or cylindrical) half luminosity radius in pc."""
-        tot_lum = 10**self.TotalLuminosity()
+        log_L = self.LogLuminosities()
+        tot_lum = np.sum(10**log_L)                                                                 # do this locally, to avoid unnecesairy overhead
+        
         if spher:
-            r_star = form.Distance(self.coords)                                                      # spherical radii of the stars
+            r_star = form.Distance(self.coords)                                                     # spherical radii of the stars
         else:
-            r_star = form.Distance2D(self.coords)                                                    # cylindrical radii of the stars
+            r_star = form.Distance2D(self.coords)                                                   # cylindrical radii of the stars
             
-        indices = np.argsort(r_star)                                                                 # indices that sort the radii
-        r_sorted = r_star[indices]                                                                   # sorted radii
-        lum_sorted = 10**self.LogLuminosities()[indices]                                              # luminosities sorted for radius
+        indices = np.argsort(r_star)                                                                # indices that sort the radii
+        r_sorted = r_star[indices]                                                                  # sorted radii
+        lum_sorted = 10**log_L[indices]                                                             # luminosities sorted for radius
         lum_sum = np.cumsum(lum_sorted)                                                             # cumulative sum of sorted luminosities
         return np.max(r_sorted[lum_sum <= tot_lum/2])                                               # 2D/3D radius at half the luminosity
         
@@ -970,8 +983,8 @@ def MagnitudeLimited(age, Z, mag_lim=default_mag_lim, d=10, ext=0, filter='Ks'):
     distance, age, metallicity and extinction of the population of stars are needed.
     A filter must be specified in which the given limiting magnitude is measured.
     """
-    M_ini, mag_vals, mag_names = OpenIsochrone(age, Z, columns='mag')                               # get the isochrone values
-    mag_vals = mag_vals[mag_names == filter][0]                                                     # select the right filter ([0] needed to reduce to 1D array)
+    M_ini, mag_vals = OpenIsochrone(age, Z, columns='mag')                                          # get the isochrone values
+    mag_vals = mag_vals[self.mag_names == filter][0]                                                # select the right filter ([0] needed to reduce to 1D array)
 
     abs_mag_lim = form.AbsoluteMag(mag_lim, d, ext=ext)                                             # calculate the limiting absolute magnitude
     mask = (mag_vals < abs_mag_lim + 0.1)                                                           # take all mag_vals below the limit
@@ -1089,7 +1102,7 @@ def OpenIsochrone(age, Z, columns='all'):
         log_L = log_L[where_t]
         log_Te = log_Te[where_t]
         mag = np.array([m[0] for m in mag[:, where_t]])                                             # weird conversion needed because normal slicing would result in deeper array
-        return M_ini, M_act, log_L, log_Te, mag, mag_names
+        return M_ini, M_act, log_L, log_Te, mag
     elif (columns == 'mcur'):
         M_act = M_act[where_t]
         return M_ini, M_act
@@ -1101,7 +1114,7 @@ def OpenIsochrone(age, Z, columns='all'):
         return M_ini, log_Te
     elif (columns == 'mag'):
         mag = np.array([m[0] for m in mag[:, where_t]])                                             # weird conversion needed because normal slicing would result in deeper array
-        return M_ini, mag, mag_names
+        return M_ini, mag
     else:
         # (columns == 'mini') or wrong argument given
         return M_ini
