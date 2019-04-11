@@ -17,16 +17,22 @@ from astropy.visualization import astropy_mpl_style
 default_picture_file_name = 'picture_default_save'
 
 
-def ShowInfo(filename):
+def PrintInfo(filename):
     """Shows the info of the HDUlist"""
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+        
     # clean way to open file (closes it automagically)
     with fits.open(os.path.join('images', filename)) as hdul:
         hdul.info()
     return
 
     
-def ShowKeys(filename, index=0):
+def PrintKeys(filename, index=0):
     """Shows the keywords for the cards. Optional arg: HDUlist index."""
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+    
     with fits.open(os.path.join('images', filename)) as hdul:
         hdr = hdul[index].header
         print(list(hdr.keys()))
@@ -35,6 +41,9 @@ def ShowKeys(filename, index=0):
     
 def PrintHdr(filename, index=0, range=[0, -1]):
     """Prints the header. Optional args: HDUlist index, header range."""
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+    
     with fits.open(os.path.join('images', filename)) as hdul:
         hdr = hdul[index].header[range[0]:range[1]]
         print(repr(hdr), '\n')
@@ -43,6 +52,9 @@ def PrintHdr(filename, index=0, range=[0, -1]):
     
 def PrintCard(filename, keyword, index=0, card_index=None):
     """Prints card: keyword (str or int). Optional arg: HDUlist index, card index."""
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+    
     with fits.open(os.path.join('images', filename)) as hdul:
         if (card_index is None):
             crd = (str.upper(keyword) + ' = ' + str(hdul[index].header[keyword]) 
@@ -56,6 +68,9 @@ def PrintCard(filename, keyword, index=0, card_index=None):
 
 def PrintData(filename, index=0):
     """Prints the data. Optional arg: HDUlist index."""
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+        
     with fits.open(os.path.join('images', filename)) as hdul:
         print(hdul[index].data)
     return
@@ -66,6 +81,9 @@ def ChangeHdr(filename, keyword, value, comment='', index=0):
     Input: 'value' (str or number) and optionally 'comment' (str). 
     Optional arg: HDUlist index.
     """
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+    
     with fits.open(os.path.join('images', filename), mode='update') as hdul:
         hdul[index].header.set(keyword, value, comment)
     return
@@ -75,6 +93,9 @@ def ChangeData(filename, input_data, index=0):
     """Changes (and saves) the data in the current fits file. 
     Optional arg: HDUlist index.
     """
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+    
     open_mode = ['readonly', 'update']
     with fits.open(os.path.join('images', filename), mode='update') as hdul:
         hdul[index].data = input_data
@@ -85,6 +106,9 @@ def GetCardValue(filename, keyword, index=0):
     """Returns the value of card 'keyword' (str). Returns 0 if value is a string. 
     Optional arg: HDUlist index.
     """
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+    
     with fits.open(os.path.join('images', filename)) as hdul:
         value = hdul[index].header[keyword]
         if isinstance(value, str):
@@ -127,6 +151,9 @@ def NewFits(filename, input_data, input_header=None):
     """Saves the input_data to a new file 'filename'. 
     Optional arg: input_header (header object)
     """
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+    
     fits.writeto(os.path.join('images', filename), input_data, header=input_header)
     return
 
@@ -135,6 +162,9 @@ def AddToFits(filename, input_data, input_header=None):
     """Appends the header/data to fits file if 'filename' exists, creates one if not. 
     Optional arg: input_header (header object).
     """
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+    
     fits.append(os.path.join('images', filename), input_data, header=input_header)
     return
 

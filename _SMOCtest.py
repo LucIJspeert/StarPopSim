@@ -2865,9 +2865,9 @@ def imgsaver(pars, int=None, ret_int=False):
     astobj = obg.AstObject.LoadFrom(obj_name)
     src = img.MakeSource(astobj, filter=f)
     if ret_int:
-        image, internals = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=f, ao_mode='scao', filename=img_name, internals=int)
+        image, internals = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode='scao', filename=img_name, return_int=ret_int)
     else:
-        image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=f, ao_mode='scao', filename=img_name, internals=int)
+        image = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode='scao', filename=img_name, internals=int)
         
     fh.SaveFitsPlot(img_name, grid=False)
     
@@ -2883,7 +2883,7 @@ for pars in par_grid:
 ##
 # make images (edited)
 
-internals = imgsaver(pars[0], ret_int=True)
+internals = imgsaver(par_grid[0], ret_int=True)
 for pars in par_grid[1:]:
     imgsaver(pars, int=internals)
 
