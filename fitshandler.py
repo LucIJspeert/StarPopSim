@@ -8,6 +8,7 @@ positioned within the working directory.
 """
 import os
 
+import numpy as np
 import matplotlib.pyplot as plt
 import astropy.io.fits as fits
 from astropy.visualization import astropy_mpl_style
@@ -169,17 +170,41 @@ def AddToFits(filename, input_data, input_header=None):
     return
 
 
-def PlotFits(filename, index=0, colours='gray', grid=True):
+def PlotFits(filename, index=0, colours='gray', grid=True, chip='single'):
     """Displays the image in a fits file. Optional args: HDUlist index, colours.
     Can also take image objects directly.
+    chip='single': plots single data array at given index.
+        ='full': expects data in index 1-9 and combines it.
     """
     if isinstance(filename, str):
         if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
             filename += '.fits'
-    
-        image_data = GetData(filename, index)
+            
+        if (chip == 'single'):
+            image_data = GetData(filename, index)
+        elif (chip == 'full'):
+            image_data_single = [GetData(filename, i+1) for i in range(9)]
+        else:
+            raise ValueError('fitshandler//PlotFits: chip configuration not recognised.')
     else:
-        image_data = filename[index].data
+        if (chip == 'single'):
+            image_data = filename[index].data
+        elif (chip == 'full'):
+            image_data_single = [filename[i+1].data for i in range(9)]
+        else:
+            raise ValueError('fitshandler//PlotFits: chip configuration not recognised.')
+            
+    if (chip == 'full'):
+        image_data_r1 = np.append(image_data_single[6], image_data_single[7], axis=1)
+        image_data_r1 = np.append(image_data_r1, image_data_single[8], axis=1)
+        image_data_r2 = np.append(image_data_single[5], image_data_single[4], axis=1)
+        image_data_r2 = np.append(image_data_r2, image_data_single[3], axis=1)
+        image_data_r3 = np.append(image_data_single[0], image_data_single[1], axis=1)
+        image_data_r3 = np.append(image_data_r3, image_data_single[2], axis=1)
+        
+        image_data = np.append(image_data_r1, image_data_r2, axis=0)
+        image_data = np.append(image_data, image_data_r3, axis=0)
+            
         
     # use nice plot parameters
     plt.style.use(astropy_mpl_style)
@@ -192,17 +217,40 @@ def PlotFits(filename, index=0, colours='gray', grid=True):
     return
 
 
-def SaveFitsPlot(filename, index=0, colours='gray', grid=True):
+def SaveFitsPlot(filename, index=0, colours='gray', grid=True, chip='single'):
     """Saves the plotted image in a fits file. Optional args: HDUlist index, colours.
     Can also take image objects directly.
+    chip='single': plots single data array at given index.
+        ='full': expects data in index 1-9 and combines it.
     """
     if isinstance(filename, str):
         if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
             filename += '.fits'
-    
-        image_data = GetData(filename, index)
+            
+        if (chip == 'single'):
+            image_data = GetData(filename, index)
+        elif (chip == 'full'):
+            image_data_single = [GetData(filename, i+1) for i in range(9)]
+        else:
+            raise ValueError('fitshandler//SaveFitsPlot: chip configuration not recognised.')
     else:
-        image_data = filename[index].data
+        if (chip == 'single'):
+            image_data = filename[index].data
+        elif (chip == 'full'):
+            image_data_single = [filename[i+1].data for i in range(9)]
+        else:
+            raise ValueError('fitshandler//SaveFitsPlot: chip configuration not recognised.')
+            
+    if (chip == 'full'):
+        image_data_r1 = np.append(image_data_single[6], image_data_single[7], axis=1)
+        image_data_r1 = np.append(image_data_r1, image_data_single[8], axis=1)
+        image_data_r2 = np.append(image_data_single[5], image_data_single[4], axis=1)
+        image_data_r2 = np.append(image_data_r2, image_data_single[3], axis=1)
+        image_data_r3 = np.append(image_data_single[0], image_data_single[1], axis=1)
+        image_data_r3 = np.append(image_data_r3, image_data_single[2], axis=1)
+        
+        image_data = np.append(image_data_r1, image_data_r2, axis=0)
+        image_data = np.append(image_data, image_data_r3, axis=0)
         
     # use nice plot parameters
     plt.style.use(astropy_mpl_style)
