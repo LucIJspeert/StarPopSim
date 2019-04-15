@@ -84,7 +84,8 @@ def MakeImage(src, exposure=60, NDIT=1, view='wide', chip='centre', filter='V', 
                         cmds=cmd,
                         opt_train=opt, 
                         fpa=fpa,
-                        return_internals=return_int
+                        return_internals=return_int,
+                        FPA_LINEARITY_CURVE='FPA_linearity.dat'
                         )
     
     if return_int:

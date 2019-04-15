@@ -2965,7 +2965,7 @@ plt.tight_layout()
 plt.show()
 
 
-## grid (try #3, back to wide fov, one chip)
+## grid (try #3, back to wide fov (and zoom), one chip)
 """
 D   800 kpc - 15 Mpc
 M   10**5 - 10**7
@@ -2993,7 +2993,7 @@ def objsaver(pars):
 def imgsaver(pars, int=None, ret_int=False):
     M, D, r = pars              # M, D in 10log
     f = 'J'
-    view='wide'                 # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
+    view='zoom'                 # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
     chip='centre'               # read out, small middle bit, centre chip or full detector
     exp = 1800                  # exposure time in s
     
