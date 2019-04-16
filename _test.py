@@ -2992,8 +2992,8 @@ def objsaver(pars):
     
 def imgsaver(pars, int=None, ret_int=False):
     M, D, r = pars              # M, D in 10log
-    f = 'J'
-    view='zoom'                 # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
+    f = 'H'
+    view='wide'                 # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
     chip='centre'               # read out, small middle bit, centre chip or full detector
     exp = 1800                  # exposure time in s
     
@@ -3023,7 +3023,7 @@ for pars in par_grid:
 
 internals = imgsaver(par_grid[0], ret_int=True)
 for pars in par_grid[1:]:
-    imgsaver(pars, int=internals)
+    imgsaver(pars, int=internals) # continue from previous point
 
 
 
