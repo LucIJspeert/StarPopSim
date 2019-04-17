@@ -2992,7 +2992,7 @@ def objsaver(pars):
     
 def imgsaver(pars, int=None, ret_int=False):
     M, D, r = pars              # M, D in 10log
-    f = 'H'
+    f = 'Ks'
     view='wide'                 # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
     chip='centre'               # read out, small middle bit, centre chip or full detector
     exp = 1800                  # exposure time in s
@@ -3219,8 +3219,8 @@ import conversions as conv
 import imagegenerator as img
 
 
-# cd documents\documenten_radboud_university\masterstage\SMOC
-# cd Documents\GitHub\SMOC
+# cd documents\documenten_radboud_university\masterstage\StarPopSim
+# cd Documents\GitHub\StarPopSim
 
 
 
