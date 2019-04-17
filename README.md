@@ -2,9 +2,9 @@
 
 
 ## What is StarPopSim?
-StarPopSim is a simulation code written in pure Python that can generate a single or multiple stellar populations in various spatial distributions to mimic real astronomical objects as closely as possible. 
+StarPopSim is a simulation code written in pure Python that can generate one or more stellar populations in various spatial distributions to mimic real astronomical objects as closely as possible. 
 The aim is to provide the necessary quantities for other code packages that can simulate the workings of a telescope optical train and instruments. (This feature could also be crudely implemented natively at a later stage.)
-The basic input parameters are, among others, the number of stars (or mass in stars), the age of the population(s), the metallicity for each population and the distance to your object.
+The basic input parameters are, among others, the number of stars (or total mass in stars), the age of the population(s), the metallicity for each population and the distance to your object.
 
 Currently, with version 1.0 (April 2019), stellar (globular) clusters are the best implemented feature, with the possibility to scale to elliptical galaxies. Other galaxy types are hopefully implemented at a future stage.
 
