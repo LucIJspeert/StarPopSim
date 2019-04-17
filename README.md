@@ -1,4 +1,4 @@
-﻿# StarPopSim ##- simulating stellar populations for mock imagery
+﻿# StarPopSim - simulating stellar populations for mock images
 
 
 ## What is StarPopSim?
