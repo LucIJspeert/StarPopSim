@@ -59,7 +59,7 @@ def RotateXZ(positions, angle):
     return np.array([x_new, coords[1], z_new]).transpose()
 
 
-def MtotToNobj(M, imf=imf_defaults):
+def MtotToNstars(M, imf=imf_defaults):
     """Converts from mass in a cluster (one stellar population) 
     to number of objects using the implemented IMF.
     """
@@ -72,7 +72,7 @@ def MtotToNobj(M, imf=imf_defaults):
     return np.rint(M/M_mean).astype(np.int64)
 
 
-def NobjToMtot(N, imf=imf_defaults):
+def NstarsToMtot(N, imf=imf_defaults):
     """Converts from number of objects in a cluster (one stellar population) 
     to total mass using the implemented IMF.
     """
