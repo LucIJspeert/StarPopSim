@@ -27,11 +27,8 @@ MANIFEST
 
 # (user) data folders
 objects/*.pkl
-objects/grid-old/
-objects/grid-new/
 images/*.fits
 images/*.png
-images/grid-old/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

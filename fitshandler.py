@@ -8,6 +8,7 @@ positioned within the working directory.
 """
 import os
 
+import numpy as np
 import matplotlib.pyplot as plt
 import astropy.io.fits as fits
 from astropy.visualization import astropy_mpl_style
@@ -17,16 +18,22 @@ from astropy.visualization import astropy_mpl_style
 default_picture_file_name = 'picture_default_save'
 
 
-def ShowInfo(filename):
+def PrintInfo(filename):
     """Shows the info of the HDUlist"""
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+        
     # clean way to open file (closes it automagically)
     with fits.open(os.path.join('images', filename)) as hdul:
         hdul.info()
     return
 
     
-def ShowKeys(filename, index=0):
+def PrintKeys(filename, index=0):
     """Shows the keywords for the cards. Optional arg: HDUlist index."""
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+    
     with fits.open(os.path.join('images', filename)) as hdul:
         hdr = hdul[index].header
         print(list(hdr.keys()))
@@ -35,6 +42,9 @@ def ShowKeys(filename, index=0):
     
 def PrintHdr(filename, index=0, range=[0, -1]):
     """Prints the header. Optional args: HDUlist index, header range."""
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+    
     with fits.open(os.path.join('images', filename)) as hdul:
         hdr = hdul[index].header[range[0]:range[1]]
         print(repr(hdr), '\n')
@@ -43,6 +53,9 @@ def PrintHdr(filename, index=0, range=[0, -1]):
     
 def PrintCard(filename, keyword, index=0, card_index=None):
     """Prints card: keyword (str or int). Optional arg: HDUlist index, card index."""
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+    
     with fits.open(os.path.join('images', filename)) as hdul:
         if (card_index is None):
             crd = (str.upper(keyword) + ' = ' + str(hdul[index].header[keyword]) 
@@ -56,6 +69,9 @@ def PrintCard(filename, keyword, index=0, card_index=None):
 
 def PrintData(filename, index=0):
     """Prints the data. Optional arg: HDUlist index."""
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+        
     with fits.open(os.path.join('images', filename)) as hdul:
         print(hdul[index].data)
     return
@@ -66,6 +82,9 @@ def ChangeHdr(filename, keyword, value, comment='', index=0):
     Input: 'value' (str or number) and optionally 'comment' (str). 
     Optional arg: HDUlist index.
     """
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+    
     with fits.open(os.path.join('images', filename), mode='update') as hdul:
         hdul[index].header.set(keyword, value, comment)
     return
@@ -75,6 +94,9 @@ def ChangeData(filename, input_data, index=0):
     """Changes (and saves) the data in the current fits file. 
     Optional arg: HDUlist index.
     """
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+    
     open_mode = ['readonly', 'update']
     with fits.open(os.path.join('images', filename), mode='update') as hdul:
         hdul[index].data = input_data
@@ -85,6 +107,9 @@ def GetCardValue(filename, keyword, index=0):
     """Returns the value of card 'keyword' (str). Returns 0 if value is a string. 
     Optional arg: HDUlist index.
     """
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+    
     with fits.open(os.path.join('images', filename)) as hdul:
         value = hdul[index].header[keyword]
         if isinstance(value, str):
@@ -127,6 +152,9 @@ def NewFits(filename, input_data, input_header=None):
     """Saves the input_data to a new file 'filename'. 
     Optional arg: input_header (header object)
     """
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+    
     fits.writeto(os.path.join('images', filename), input_data, header=input_header)
     return
 
@@ -135,21 +163,48 @@ def AddToFits(filename, input_data, input_header=None):
     """Appends the header/data to fits file if 'filename' exists, creates one if not. 
     Optional arg: input_header (header object).
     """
+    if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
+        filename += '.fits'
+    
     fits.append(os.path.join('images', filename), input_data, header=input_header)
     return
 
 
-def PlotFits(filename, index=0, colours='gray', grid=True):
+def PlotFits(filename, index=0, colours='gray', grid=True, chip='single'):
     """Displays the image in a fits file. Optional args: HDUlist index, colours.
     Can also take image objects directly.
+    chip='single': plots single data array at given index.
+        ='full': expects data in index 1-9 and combines it.
     """
     if isinstance(filename, str):
         if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
             filename += '.fits'
-    
-        image_data = GetData(filename, index)
+            
+        if (chip == 'single'):
+            image_data = GetData(filename, index)
+        elif (chip == 'full'):
+            image_data_single = [GetData(filename, i+1) for i in range(9)]
+        else:
+            raise ValueError('fitshandler//PlotFits: chip configuration not recognised.')
     else:
-        image_data = filename[index].data
+        if (chip == 'single'):
+            image_data = filename[index].data
+        elif (chip == 'full'):
+            image_data_single = [filename[i+1].data for i in range(9)]
+        else:
+            raise ValueError('fitshandler//PlotFits: chip configuration not recognised.')
+            
+    if (chip == 'full'):
+        image_data_r1 = np.append(image_data_single[6], image_data_single[7], axis=1)
+        image_data_r1 = np.append(image_data_r1, image_data_single[8], axis=1)
+        image_data_r2 = np.append(image_data_single[5], image_data_single[4], axis=1)
+        image_data_r2 = np.append(image_data_r2, image_data_single[3], axis=1)
+        image_data_r3 = np.append(image_data_single[0], image_data_single[1], axis=1)
+        image_data_r3 = np.append(image_data_r3, image_data_single[2], axis=1)
+        
+        image_data = np.append(image_data_r1, image_data_r2, axis=0)
+        image_data = np.append(image_data, image_data_r3, axis=0)
+            
         
     # use nice plot parameters
     plt.style.use(astropy_mpl_style)
@@ -162,17 +217,40 @@ def PlotFits(filename, index=0, colours='gray', grid=True):
     return
 
 
-def SaveFitsPlot(filename, index=0, colours='gray', grid=True):
+def SaveFitsPlot(filename, index=0, colours='gray', grid=True, chip='single'):
     """Saves the plotted image in a fits file. Optional args: HDUlist index, colours.
     Can also take image objects directly.
+    chip='single': plots single data array at given index.
+        ='full': expects data in index 1-9 and combines it.
     """
     if isinstance(filename, str):
         if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
             filename += '.fits'
-    
-        image_data = GetData(filename, index)
+            
+        if (chip == 'single'):
+            image_data = GetData(filename, index)
+        elif (chip == 'full'):
+            image_data_single = [GetData(filename, i+1) for i in range(9)]
+        else:
+            raise ValueError('fitshandler//SaveFitsPlot: chip configuration not recognised.')
     else:
-        image_data = filename[index].data
+        if (chip == 'single'):
+            image_data = filename[index].data
+        elif (chip == 'full'):
+            image_data_single = [filename[i+1].data for i in range(9)]
+        else:
+            raise ValueError('fitshandler//SaveFitsPlot: chip configuration not recognised.')
+            
+    if (chip == 'full'):
+        image_data_r1 = np.append(image_data_single[6], image_data_single[7], axis=1)
+        image_data_r1 = np.append(image_data_r1, image_data_single[8], axis=1)
+        image_data_r2 = np.append(image_data_single[5], image_data_single[4], axis=1)
+        image_data_r2 = np.append(image_data_r2, image_data_single[3], axis=1)
+        image_data_r3 = np.append(image_data_single[0], image_data_single[1], axis=1)
+        image_data_r3 = np.append(image_data_r3, image_data_single[2], axis=1)
+        
+        image_data = np.append(image_data_r1, image_data_r2, axis=0)
+        image_data = np.append(image_data, image_data_r3, axis=0)
         
     # use nice plot parameters
     plt.style.use(astropy_mpl_style)

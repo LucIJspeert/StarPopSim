@@ -2865,11 +2865,11 @@ def imgsaver(pars, int=None, ret_int=False):
     astobj = obg.AstObject.LoadFrom(obj_name)
     src = img.MakeSource(astobj, filter=f)
     if ret_int:
-        image, internals = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=f, ao_mode='scao', filename=img_name, internals=int)
+        image, internals = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode='scao', filename=img_name, return_int=ret_int)
     else:
-        image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=f, ao_mode='scao', filename=img_name, internals=int)
+        image = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode='scao', filename=img_name, internals=int)
         
-    fh.SaveFitsPlot(img_name, grid=False)
+    # fh.SaveFitsPlot(img_name, grid=False)
     
     if ret_int:
         return internals
@@ -2883,7 +2883,7 @@ for pars in par_grid:
 ##
 # make images (edited)
 
-internals = imgsaver(pars[0], ret_int=True)
+internals = imgsaver(par_grid[0], ret_int=True)
 for pars in par_grid[1:]:
     imgsaver(pars, int=internals)
 
@@ -2891,6 +2891,13 @@ for pars in par_grid[1:]:
 ## command test
 # python3 constructor.py -struct ellipsoid -N 1000 -ages 9.65 10.0 9.0 -z 0.014 0.0014 0.014 -relN 1 1 1 -D 100.0
 
+
+## test of NGS (+ restructuring)
+import objectgenerator as obg
+astobj = obg.AstObject(N_stars=10**6, age=[7, 9], metal=[0.014], rel_num=[1, 2])
+astobj.GenerateNGS(mag=[13, 13, 12])
+print(astobj.natural_guide_stars)
+# all seems to work fine now.
 
 ## zoom in for grid-7.004-5.903-2.069
 M, D, r = 7.004,  5.903, 2.069
@@ -2956,6 +2963,69 @@ fig, ax = plt.subplots(figsize=[12.0, 12.0])
 ax.imshow(img, origin='upper')
 plt.tight_layout()
 plt.show()
+
+
+## grid (try #3, back to wide fov (and zoom), one chip)
+"""
+D   800 kpc - 15 Mpc
+M   10**5 - 10**7
+half light r 1-20 pc    (globular profile)
+age 10**10      (as well as much younger)
+
+out to what D can you resolve up to half light radius
+
+foreground stars (models for MW)
+"""
+M_range = np.arange(1, 102, 20)*10**5                                       # in solar mass
+D_range = np.arange(0.8, 15.3, 3.2)*10**6                                   # in pc
+r_range = np.round(np.arange(1, 22, 5)/2.9, decimals=3)                     # in pc
+
+par_grid = np.array([[M, D, r] for M in M_range for D in D_range for r in r_range])
+par_grid[:, 0:2] = np.log10(par_grid[:, 0:2])
+
+
+def objsaver(pars):
+    M, D, r = pars              # M, D in 10log
+    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r)
+    astobj.SaveTo('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+    return
+    
+def imgsaver(pars, int=None, ret_int=False):
+    M, D, r = pars              # M, D in 10log
+    f = 'Ks'
+    view='wide'                 # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
+    chip='centre'               # read out, small middle bit, centre chip or full detector
+    exp = 1800                  # exposure time in s
+    
+    obj_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r)
+    img_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, f)
+    
+    astobj = obg.AstObject.LoadFrom(obj_name)
+    src = img.MakeSource(astobj, filter=f)
+    if ret_int:
+        image, internals = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode='scao', filename=img_name, return_int=ret_int)
+    else:
+        image = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode='scao', filename=img_name, internals=int)
+        
+    fh.SaveFitsPlot(img_name, grid=False)
+    
+    if ret_int:
+        return internals
+    else:
+        return None
+    
+##
+# run the grid    
+for pars in par_grid:
+    objsaver(pars)
+##
+# make images (edited)
+
+internals = imgsaver(par_grid[0], ret_int=True)
+for pars in par_grid[1:]:
+    imgsaver(pars, int=internals) # continue from previous point
+
+
 
 
 ## photometry, first try
@@ -3149,8 +3219,8 @@ import conversions as conv
 import imagegenerator as img
 
 
-# cd documents\documenten_radboud_university\masterstage\SMOC
-# cd Documents\GitHub\SMOC
+# cd documents\documenten_radboud_university\masterstage\StarPopSim
+# cd Documents\GitHub\StarPopSim
 
 
 

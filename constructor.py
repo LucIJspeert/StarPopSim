@@ -1,7 +1,7 @@
 # Luc IJspeert
 # Part of smoc: program used for constructing an astronomical object
 ##
-"""This module provides a function (Construct) for user input for making an astronomical object 
+"""This module provides the argsparse for user input for making an astronomical object 
 as well as an interactive function (DynamicConstruct) that leads the user through all the options.
 """
 import argparse
@@ -16,36 +16,6 @@ import objectgenerator as obg
 # global defaults
 default_object_file_name = 'astobj_default_save'
 
-
-def Construct(struct, N, M, ages, Z, relN, D, D_type='l', IMF=None, SFH=None, A=0, i=0, rdist=None, 
-              rdistpar=None, axes=None, arms=0, bulge=0, bar=0, compact=False, limit=None):
-    """Construct the object."""
-    if ((N == 0) & (M == 0)):
-        raise ValueError('constructor//Construct: N and M cannot be simultaniously zero.')
-        
-    astobj = obg.AstObject( struct=struct, 
-                            N_obj=N, 
-                            M_tot_init=M, 
-                            age=ages, 
-                            metal=Z, 
-                            rel_num=relN, 
-                            distance=D,
-                            d_type=D_type,
-                            imf_par=IMF,
-                            sf_hist=SFH,
-                            extinct=A,
-                            incl=i,
-                            r_dist=rdist,
-                            r_dist_par=rdistpar,
-                            ellipse_axes=axes,
-                            spiral_arms=arms,
-                            spiral_bulge=bulge,
-                            spiral_bar=bar,
-                            compact=compact, 
-                            mag_lim=limit
-                            )
-                                
-    return astobj
     
 def DynamicConstruct():
     """Dynamically give parameters for construction via this interactive function."""
@@ -103,12 +73,32 @@ def DynamicConstruct():
                 Z.append(bar_props[1])
                 relN.append(bar_props[2])
                 
-    #TODO: add compact and mag lim to questions
+    #TODO: add compact, cp mode and mag lim to questions
     
     savename = SaveFileName()
     
-    astobj = Construct(struct, N, M, ages, Z, relN, D_z, D_type, IMF, SFH, A, i, 
-                       rdist, rdistpar, axes, arms, bulge, bar)
+    astobj = obg.AstObject(struct=struct, 
+                           N_stars=N, 
+                           M_tot_init=M, 
+                           age=ages, 
+                           metal=Z, 
+                           rel_num=relN, 
+                           distance=D_z,
+                           d_type=D_type,
+                           imf_par=IMF,
+                           sf_hist=SFH,
+                           extinct=A,
+                           incl=i,
+                           r_dist=rdist,
+                           r_dist_par=rdistpar,
+                           ellipse_axes=axes,
+                           spiral_arms=arms,
+                           spiral_bulge=bulge,
+                           spiral_bar=bar,
+                           compact=False,
+                           cp_mode='num',
+                           mag_lim=None,
+                           )
     
     astobj.SaveTo(savename + '.pkl')                                                                # save the object
     
@@ -928,26 +918,28 @@ if __name__ == '__main__':
     if args.inter:
         astobj = DynamicConstruct()
     else:
-        astobj = Construct( args.struct, 
-                            args.N, 
-                            args.M, 
-                            args.ages,
-                            args.z,
-                            args.relN,
-                            args.D,
-                            args.Dtype,
-                            args.IMF,
-                            args.SFH,
-                            args.A,
-                            args.i,
-                            args.rdist,
-                            args.rdistpar,
-                            args.axes,
-                            args.arms,
-                            args.bulge,
-                            args.bar,
-                            args.compact,
-                            args.limit)
+        astobj = obg.AstObject(struct=args.struct, 
+                               N_stars=args.N, 
+                               M_tot_init=args.M, 
+                               age=args.ages, 
+                               metal=args.z, 
+                               rel_num=args.relN, 
+                               distance=args.D,
+                               d_type=args.Dtype,
+                               imf_par=args.IMF,
+                               sf_hist=args.SFH,
+                               extinct=args.A,
+                               incl=args.i,
+                               r_dist=args.rdist,
+                               r_dist_par=args.rdistpar,
+                               ellipse_axes=args.axes,
+                               spiral_arms=args.arms,
+                               spiral_bulge=args.bulge,
+                               spiral_bar=args.bar,
+                               compact=args.compact,
+                               cp_mode=args.cp_mode,
+                               mag_lim=args.limit,
+                               )
         
         astobj.SaveTo(args.save)
     
