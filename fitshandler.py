@@ -170,9 +170,10 @@ def AddToFits(filename, input_data, input_header=None):
     return
 
 
-def PlotFits(filename, index=0, colours='gray', grid=True, chip='single'):
+def PlotFits(filename, index=0, colours='gray', scale='lin', grid=True, chip='single'):
     """Displays the image in a fits file. Optional args: HDUlist index, colours.
     Can also take image objects directly.
+    scale can be set to 'lin', 'sqrt', and 'log'
     chip='single': plots single data array at given index.
         ='full': expects data in index 1-9 and combines it.
     """
@@ -205,7 +206,11 @@ def PlotFits(filename, index=0, colours='gray', grid=True, chip='single'):
         image_data = np.append(image_data_r1, image_data_r2, axis=0)
         image_data = np.append(image_data, image_data_r3, axis=0)
             
-        
+    if (scale == 'log'):
+        image_data = np.log10(image_data - np.min(image_data))
+    elif (scale == 'sqrt'):
+        image_data = (image_data - np.min(image_data))**(1/2)
+    
     # use nice plot parameters
     plt.style.use(astropy_mpl_style)
     
@@ -217,9 +222,10 @@ def PlotFits(filename, index=0, colours='gray', grid=True, chip='single'):
     return
 
 
-def SaveFitsPlot(filename, index=0, colours='gray', grid=True, chip='single'):
+def SaveFitsPlot(filename, index=0, colours='gray', scale='lin', grid=True, chip='single'):
     """Saves the plotted image in a fits file. Optional args: HDUlist index, colours.
     Can also take image objects directly.
+    scale can be set to 'lin', 'sqrt', and 'log'
     chip='single': plots single data array at given index.
         ='full': expects data in index 1-9 and combines it.
     """
@@ -251,7 +257,12 @@ def SaveFitsPlot(filename, index=0, colours='gray', grid=True, chip='single'):
         
         image_data = np.append(image_data_r1, image_data_r2, axis=0)
         image_data = np.append(image_data, image_data_r3, axis=0)
-        
+    
+    if (scale == 'log'):
+        image_data = np.log10(image_data - np.min(image_data))
+    elif (scale == 'sqrt'):
+        image_data = (image_data - np.min(image_data))**(1/2)
+    
     # use nice plot parameters
     plt.style.use(astropy_mpl_style)
     
