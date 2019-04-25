@@ -1,5 +1,5 @@
 # Luc IJspeert
-# smoc test file
+# SimPopPy test file
 ##
 import PyQt5
 import matplotlib.pyplot as plt
