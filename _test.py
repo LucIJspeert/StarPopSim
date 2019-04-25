@@ -2559,9 +2559,9 @@ src = sim.source.stars(mags=magnitudes, x=xs, y=ys, filter_name=filter, spec_typ
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='scao', filename='img_test_save')
 fh.PlotFits('img_test_save')
 
-## AO tests
+## AO tests (comparison)
 import numpy as np
-import ImageGen as img
+import imagegenerator as img
 import simcado as sim
 import fitshandler as fh
 
@@ -2578,8 +2578,8 @@ magnitudes = np.linspace(12, 18, n)
 
 src = sim.source.stars(mags=magnitudes, x=xs, y=ys, filter_name=filter, spec_types=['M0V'])
 
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='PSF_MCAO.fits', filename='img_test_save')
-fh.PlotFits('img_test_save', grid=False)
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits', filename='img_test_save')
+fh.PlotFits('img_test_save', scale='lin', grid=False)
 
 
 ##
@@ -3116,48 +3116,63 @@ import photutils as phu
 import astropy as apy
 import astropy.table as apta
 
-n = 5
 filter = 'J'
 
-xs = np.array([0, -0.9, -0.9, 0.9, 0.9])                                                            # coords in as
-ys = np.array([0, -0.9, 0.9, -0.9, 0.9])                                                            # coords in as
+src = sim.source.star_grid(n=16, mag_min=18, mag_max=20, filter_name=filter, separation=0.9, spec_type='M0V')
 
-magnitudes = np.linspace(18, 20, n)
-
-src = sim.source.stars(mags=magnitudes, x=xs, y=ys, filter_name=filter, spec_types=['M0V'])
-
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='scao', filename='img_test_save')
-fh.PlotFits('img_test_save', grid=False)
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits', filename='img_test_save')
+fh.PlotFits('img_test_save', scale='lin', grid=False)
 ##
+# identify the stars and their initial positions
 img_data = fh.GetData('img_test_save')
 
-peaks_tbl = phu.find_peaks(img_data, threshold=20000., box_size=50)
+peaks_tbl = phu.find_peaks(img_data, threshold=135000., box_size=11)
+                           
 peaks_tbl['peak_value'].info.format = '%.8g'  # for consistent table output
 print(peaks_tbl)
+# [alter peak values to exact ones]
+peaks_tbl['x_peak'] = src.x_pix
+peaks_tbl['y_peak'] = src.y_pix
+# plot detected stars
+positions = (peaks_tbl['x_peak'], peaks_tbl['y_peak'])
+apertures = phu.CircularAperture(positions, r=5.)
 
+norm = apy.visualization.simple_norm(img_data, 'sqrt', percent=99.9)
+plt.imshow(img_data, cmap='Greys_r', origin='upper', norm=norm)
+apertures.plot(color='#0547f9', lw=1.5)
+plt.show()
+# extract cutouts of the stars using the extract_stars() function
 stars_tbl = apta.Table()
 stars_tbl['x'] = peaks_tbl['x_peak']
 stars_tbl['y'] = peaks_tbl['y_peak']
 
 mean_val, median_val, std_val = apy.stats.sigma_clipped_stats(img_data, sigma=2.)
-img_data -= median_val
+img_data -= median_val                                                                              # subtract background
+
+# norm = apy.visualization.simple_norm(img_data, 'sqrt', percent=99.9)
+# plt.imshow(img_data, cmap='Greys_r', origin='upper', norm=norm)
+# apertures.plot(color='#0547f9', lw=1.5)
+# plt.show()
+#
 
 nddata = apy.nddata.NDData(data=img_data)
 
 stars = phu.psf.extract_stars(nddata, stars_tbl, size=180)
-
-fig, ax = plt.subplots(nrows=1, ncols=5, figsize=(15, 5), squeeze=True)
+# show some of the cutouts
+nrows = 1
+ncols = 5
+fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=(15, 5), squeeze=True)
 ax = ax.ravel()
 for i in range(nrows*ncols):
     norm = apy.visualization.simple_norm(stars[i], 'log', percent=99.)
     ax[i].imshow(stars[i], norm=norm, origin='lower', cmap='viridis')
     
 plt.show()
-
+# initialize an EPSFBuilder instance with desired parameters and input the cutouts
 epsf_builder = phu.EPSFBuilder(oversampling=4, maxiters=5, progress_bar=False)
 epsf, fitted_stars = epsf_builder(stars)
-
-norm = apy.visualization.simple_norm(epsf.data, 'log', percent=99.)
+# show the constructed ePSF
+norm = apy.visualization.simple_norm(epsf.data, 'log', percent=99.) # min_percent=20, max_percent=100)#,
 plt.imshow(epsf.data, norm=norm, origin='lower', cmap='viridis')
 plt.colorbar()
 plt.show()
