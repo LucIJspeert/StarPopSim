@@ -1,5 +1,5 @@
 # Luc IJspeert
-# Part of smoc: program used for constructing an astronomical object
+# Part of starpopsim: program used for constructing an astronomical object
 ##
 """This module provides the argsparse for user input for making an astronomical object 
 as well as an interactive function (DynamicConstruct) that leads the user through all the options.

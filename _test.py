@@ -2976,6 +2976,11 @@ out to what D can you resolve up to half light radius
 
 foreground stars (models for MW)
 """
+import numpy as np
+import objectgenerator as obg
+import imagegenerator as img
+import fitshandler as fh
+
 M_range = np.arange(1, 102, 20)*10**5                                       # in solar mass
 D_range = np.arange(0.8, 15.3, 3.2)*10**6                                   # in pc
 r_range = np.round(np.arange(1, 22, 5)/2.9, decimals=3)                     # in pc
@@ -2996,16 +3001,17 @@ def imgsaver(pars, int=None, ret_int=False):
     view='wide'                 # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
     chip='centre'               # read out, small middle bit, centre chip or full detector
     exp = 1800                  # exposure time in s
+    ao = 'PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits' # ao mode
     
     obj_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r)
-    img_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, f)
+    img_name = 'grid-fv-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, f)
     
     astobj = obg.AstObject.LoadFrom(obj_name)
     src = img.MakeSource(astobj, filter=f)
     if ret_int:
-        image, internals = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode='scao', filename=img_name, return_int=ret_int)
+        image, internals = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, return_int=ret_int)
     else:
-        image = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode='scao', filename=img_name, internals=int)
+        image = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, internals=int)
         
     fh.SaveFitsPlot(img_name, grid=False)
     
@@ -3484,7 +3490,7 @@ import simcado as sim
 import imagegenerator as img
 import fitshandler as fh
 
-# first make a test image
+## first make a test image
 filter = 'J'
 src = sim.source.star_grid(n=25, mag_min=18, mag_max=22, filter_name=filter, separation=1.3, spec_type='M0V')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename='img_test_save') # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
@@ -3493,20 +3499,25 @@ image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', fi
 image_name = 'img_test_save' # 'grid-5.000-5.903-2.069'
 fh.PlotFits(image_name, scale='sqrt', grid=False)
 img_data = fh.GetData(image_name)
-##
-# open the epsf
+
+## open the epsf
 with open(os.path.join('objects', 'epsf-scao.pkl'), 'rb') as input:
     epsf = pickle.load(input)
+    
+# get the test image
+image_name = 'img_test_save' # 'grid-5.000-5.903-2.069'
+fh.PlotFits(image_name, scale='sqrt', grid=False)
+img_data = fh.GetData(image_name)
 
-# do photometry
+## do photometry
 sigma_psf = 4.0
 sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
 bkgrms = phu.background.MADStdBackgroundRMS()
 std = bkgrms.calc_background_rms(data=img_data)
 psf = epsf                                                                                          # phu.psf.IntegratedGaussianPRF(sigma=sigma_psf)
-#TODO try increasing threshold
-photometry = phu.psf.DAOPhotPSFPhotometry(threshold=10*std, 
-                                          fwhm=sigma_psf*sigma_to_fwhm, 
+#TODO play with threshold and fwhm
+photometry = phu.psf.DAOPhotPSFPhotometry(threshold=20*std, 
+                                          fwhm=1.3*sigma_psf*sigma_to_fwhm, 
                                           sharplo=0.0, sharphi=2.0, roundlo=-5.0, roundhi=5.0, 
                                           crit_separation=2.0*sigma_psf*sigma_to_fwhm, 
                                           psf_model=psf, 
@@ -3527,6 +3538,8 @@ plt.imshow(residual_image, cmap='viridis', aspect=1, interpolation='nearest', or
 plt.title('Residual Image')
 plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
 plt.show()
+
+
 
 
 ##

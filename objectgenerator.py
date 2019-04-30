@@ -1,5 +1,5 @@
 # Luc IJspeert
-# Part of smoc: (astronomical) object generator and class
+# Part of starpopsim: (astronomical) object generator and class
 ##
 """This module defines the Astronomical Object class that holds all the information for 
 the simulated astronomical object. 
@@ -537,7 +537,7 @@ class AstObject:
         self.natural_guide_stars = [pos_x, pos_y, mag, filt, spec_types]
         return
     
-    def CurrentMasses(self):
+    def CurrentMasses(self, realistic_remnants=True):
         """Gives the current masses of the stars in Msun.
         Uses isochrone files and the given initial masses of the stars.
         Stars should not have a lower initial mass than the lowest mass in the isochrone file.
@@ -553,10 +553,11 @@ class AstObject:
             
             # Isochrones assign wildly wrong properties to remnants (i.e. M_cur=0).
             # The following functions give estimates for remnant masses
-            remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
-            r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])                       # approx. remnant masses (depend on Z)
-            
-            M_cur_i[remnants_i] = r_M_cur_i
+            if realistic_remnants:
+                remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
+                r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])                       # approx. remnant masses (depend on Z)
+                
+                M_cur_i[remnants_i] = r_M_cur_i
             M_cur = np.append(M_cur, M_cur_i)  
         
         return M_cur
@@ -698,15 +699,15 @@ class AstObject:
         
         return abs_mag + 5*np.log10((true_dist)/10) + self.extinction                               # true_dist in pc!
         
-    def SpectralTypes(self):
+    def SpectralTypes(self, realistic_remnants=True):
         """Gives the spectral types (as indices, to conserve memory) for the stars and
         the corresponding spectral type names.
         Uses isochrone files and the given initial masses of the stars.
         Stars should not have a lower initial mass than the lowest mass in the isochrone file.
         """
-        log_T_eff = self.LogTemperatures()
-        log_L = self.LogLuminosities()
-        log_M_cur = np.log10(self.CurrentMasses())
+        log_T_eff = self.LogTemperatures(realistic_remnants=realistic_remnants)
+        log_L = self.LogLuminosities(realistic_remnants=realistic_remnants)
+        log_M_cur = np.log10(self.CurrentMasses(realistic_remnants=realistic_remnants))
         
         spec_indices, spec_names = FindSpectralType(log_T_eff, log_L, log_M_cur)                    # assign spectra to the stars
         

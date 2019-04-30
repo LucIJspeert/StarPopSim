@@ -1,5 +1,5 @@
 # Luc IJspeert
-# Part of smoc: (coordinate) conversions
+# Part of starpopsim: (coordinate) conversions
 ##
 """Conversion between i.e. coordinates. 
 Optimized for converting many numbers at once (ndarray).

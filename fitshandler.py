@@ -1,5 +1,5 @@
 # Luc IJspeert
-# Part of smoc: fits file handler
+# Part of starpopsim: fits file handler
 ##
 """This module contains the interactions with fits files. 
 It is likely biased towards the purpose of the main program.
