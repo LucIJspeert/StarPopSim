@@ -13,6 +13,7 @@ import simcado as sim
 
 
 # global constants
+default_image_file_name = 'image_default_save'
 rad_as = 648000/np.pi               # rad to arcsec
 
 
@@ -55,7 +56,7 @@ def MakeSource(astobj, filter='V'):
     return src
     
 def MakeImage(src, exposure=60, NDIT=1, view='wide', chip='centre', filter='V', ao_mode='scao', 
-              filename='image_default_save', internals=None, return_int=False):
+              filename=default_image_file_name, internals=None, return_int=False):
     """Make the image with SimCADO.
     exposure = time in seconds, NDIT = number of exposures taken.
     view = mode = ['wide', 'zoom']: fov 53 arcsec (4 mas/pixel) or 16 (1.5 mas/pixel)

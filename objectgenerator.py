@@ -537,6 +537,10 @@ class AstObject:
         self.natural_guide_stars = [pos_x, pos_y, mag, filt, spec_types]
         return
     
+    def PerformanceMode():
+        """Sacrifices memory usage for performance during the simulation of images."""
+        #todo: build this
+    
     def CurrentMasses(self, realistic_remnants=True):
         """Gives the current masses of the stars in Msun.
         Uses isochrone files and the given initial masses of the stars.
