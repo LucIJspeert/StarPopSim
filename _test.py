@@ -3571,37 +3571,62 @@ apertures.plot(color='#0547f9', lw=1.5)
 plt.show()
 
 ## New test image
+import fitshandler as fh
+import matplotlib.pyplot as plt
+import photutils as phu
+import astropy as apy
+import astropy.modeling as asm
 import simcado as sim
 import imagegenerator as img
-filter = 'J'
-src = sim.source.star_grid(n=25, mag_min=18, mag_max=24, filter_name=filter, separation=1.3, spec_type='M0V')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename='img_test_save_3') # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
+
+filter = 'I'
+image_name = 'img_test_save_' + filter
+
+# src = sim.source.star_grid(n=25, mag_min=17, mag_max=25, filter_name=filter, separation=1.3, spec_type='M0V')
+# image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits', filename=image_name) # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
 
 # show the image
-image_name = 'img_test_save_3' # 'grid-5.000-5.903-2.069'
-fh.PlotFits(image_name, scale='sqrt', grid=False)
+fh.PlotFits(image_name, scale='lin', grid=False)
 img_data = fh.GetData(image_name)
 
 ## find stars (same as above)
-sigma_psf = 4.0
+sigma_psf = 8.2
 sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
 bkgrms = phu.background.MADStdBackgroundRMS()
 std = bkgrms.calc_background_rms(data=img_data)
 
-daofind = phu.detection.DAOStarFinder(threshold=40*std,
+daofind = phu.detection.DAOStarFinder(threshold=20*std,
                                       fwhm=sigma_psf*sigma_to_fwhm,
-                                      roundhi=1.5, roundlo=-1.5,
-                                      sharplo=0.5, sharphi=2.0)
+                                      roundhi=10.0, roundlo=-10.0,
+                                      sharplo=0.31, sharphi=20.0)
+                                      
+"""intervals are made as wide as possible without false detections
+old-psf,    I,      J,      H,      Ks
+threshold:  20      30      30      20
+sigma_psf:  4.8,    7.2,    6.1,    8.2
+sharplo:    0.35,   0.33,   0.34,   0.31
+nr. at 40:  19      21      24      22
+
+fv-psf,     I,      J,      H,      Ks
+threshold:  10      20      30      20
+sigma_psf:  3.3,    3.5,    7.8,    8.0
+sharplo:    0.3,    0.36,   0.35,   0.35
+nr. at 40:  20      24      23      22
+
+Alt. J: 40, 7.5, 0.38, 18
+Alt. I: 40, 7.0, 0.41, 22
+"""
 
 found = daofind(img_data)
 
 positions = (found['xcentroid'], found['ycentroid'])
 apertures = phu.CircularAperture(positions, r=5.)
 
-norm = apy.visualization.simple_norm(img_data, 'linear', percent=99.99)
+norm = apy.visualization.simple_norm(img_data, 'sqrt', percent=99.99)
 plt.imshow(img_data, cmap='Greys_r', origin='upper', norm=norm)
 apertures.plot(color='#0547f9', lw=1.5)
 plt.show()
+
 
 
 
@@ -3622,7 +3647,7 @@ import astropy.table as apta
 
 def EPSFMaker(mag):
     # first build ePSF from an image
-    filter = 'J'
+    filter = 'Ks'
     # src = sim.source.star_grid(n=16, mag_min=18, mag_max=20, filter_name=filter, separation=0.9, spec_type='M0V')
     src = sim.source.star(mag=mag, filter_name=filter, spec_type='M0V')
     
@@ -3643,7 +3668,7 @@ def EPSFMaker(mag):
     img_data -= median_val                                                                              # subtract background
     
     nddata = apy.nddata.NDData(data=img_data)
-    stars = phu.psf.extract_stars(nddata, stars_tbl, size=170)
+    stars = phu.psf.extract_stars(nddata, stars_tbl, size=190)
     # initialize an EPSFBuilder instance with desired parameters and input the cutouts
     epsf_builder = phu.EPSFBuilder(oversampling=4, maxiters=5, progress_bar=False)
     epsf, fitted_stars = epsf_builder(stars)
@@ -3654,58 +3679,173 @@ def EPSFMaker(mag):
     plt.show()
     
     # save the epsf
-    with open(os.path.join('objects', 'epsf-scao-m{0}.pkl'.format(mag)), 'wb') as output:
+    with open(os.path.join('objects', 'epsf-scao-{1}-m{0}.pkl'.format(mag, filter)), 'wb') as output:
         pickle.dump(epsf, output, -1)
         
     return
-  
+
 for m in np.arange(16, 26, 2):
     EPSFMaker(m)
 
 
 ## (again) open the epsf
-with open(os.path.join('objects', 'epsf-scao-m24.pkl'), 'rb') as input:
-    epsf = pickle.load(input)
+import os
+import pickle
+import numpy as np
+import matplotlib.pyplot as plt
+
+import fitshandler as fh
+
+import photutils as phu
+import astropy as apy
+import astropy.modeling as asm
     
-""" image with m 18-22
-    detection, subtractions, residuals
-m16: bad!
-m18: good, ok, 25000 to -10000
-m19: good, ok, 15000 to -20000                  <<<< use for mag 18-22 and sigma_psf = 4.0
-m20: good, ok, 10000 to -30000
-m22: good, ok, 25000 to -30000
-m24: good, moderate, 30000 to -5000
-image with m 22-24 (with lower sigma_psf)
-m16: bad!
-m18: good, ok-good, 14000 to 0
-m20: good, good, 8000 to -2000
-m22: good, good, 6000 to -2000                  <<<< use for mag 22-24 and sigma_psf = 2.0
-m24: good, ok-good, 12000 to -2000
+""" J image, residuals
+m16: 34000 to -10000
+m18: 26000 to -31000                  <<<< use
+m19: 17000 to -51000
+m20: 14000 to -71000
+m22: 33000 to -56000
+m24: 34000 to -17000
+H image, residuals
+m16: 40000 to -14000
+m18: 27000 to -23000                  <<<< use
+m19: 40000 to -49000
+m20: 43000 to -61000
+m22: 39000 to -55000
+m24: 43000 to -24000
+Ks image, residuals
+m16: 61000 to -10000
+m18: 43000 to -19000                  <<<< use
+m19: 36000 to -45000
+m20: 48000 to -63000
+m22: 60000 to -73000
+m24: 70000 to -7000
 """
-    
 # get the test image
-image_name = 'img_test_save_2' # 'grid-5.000-5.903-2.069'
-fh.PlotFits(image_name, scale='sqrt', grid=False)
+filter = 'Ks'
+image_name = 'img_test_save_' + filter
 img_data = fh.GetData(image_name)
 
+with open(os.path.join('objects', 'epsf-scao-{0}-m18.pkl'.format(filter)), 'rb') as input:
+    epsf = pickle.load(input)
+
 ## (again) do photometry
-sigma_psf = 2.0
 sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
 bkgrms = phu.background.MADStdBackgroundRMS()
 std = bkgrms.calc_background_rms(data=img_data)
-psf = epsf                                                                                          # phu.psf.IntegratedGaussianPRF(sigma=sigma_psf)
+sigma_psf = 8.2
 
-photometry = phu.psf.DAOPhotPSFPhotometry(threshold=40*std, 
+photometry = phu.psf.DAOPhotPSFPhotometry(threshold=20*std, 
                                           fwhm=sigma_psf*sigma_to_fwhm, 
-                                          sharplo=0.0, sharphi=2.0, roundlo=-1.5, roundhi=1.5, 
+                                          sharplo=0.31, sharphi=20.0, 
+                                          roundlo=-10.0, roundhi=10.0, 
                                           crit_separation=2.0*sigma_psf*sigma_to_fwhm, 
-                                          psf_model=psf, 
+                                          psf_model=epsf, 
                                           fitter=asm.fitting.LevMarLSQFitter(), 
-                                          fitshape=(161,161), niters=1, 
+                                          fitshape=(191,191), niters=5, 
                                           aperture_radius=sigma_psf*sigma_to_fwhm
                                           )
 result_tab = photometry(image=img_data)
 residual_image = photometry.get_residual_image()
+
+## throw away negative fluxes and uncertainties of zero
+result_tab_redux = result_tab[(result_tab['flux_fit'] > 0) & (result_tab['flux_0'] > 0)]
+result_tab_redux = result_tab_redux[np.invert((result_tab_redux['flux_unc'] == 0) & (result_tab_redux['iter_detected'] != 1))]
+
+positions = (result_tab_redux['x_fit'], result_tab_redux['y_fit'])
+apertures = phu.CircularAperture(positions, r=5.)
+## show photometry results
+plt.subplot(1, 2, 1)
+plt.imshow(img_data, cmap='viridis', aspect=1, interpolation='nearest', origin='upper')
+plt.title('Simulated data')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+
+plt.subplot(1, 2, 2)
+plt.imshow(residual_image, cmap='viridis', aspect=1, interpolation='nearest', origin='upper')
+apertures.plot(color='blue', lw=1.5)
+plt.title('Residual Image')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+plt.show()
+
+
+## test on clusters
+import fitshandler as fh
+import fitsanalyser as fa
+
+filter = 'Ks'
+image_name = 'grid-5.000-5.903-0.345-' + filter
+img_data = fh.GetData(image_name)
+result_tab, result_tab_redux = fa.DoPhotometry(img_data, filter=filter, show=True)
+
+## build my own itterative photometry
+show = True
+
+sigma_psf = 8.2
+sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
+bkgrms = phu.background.MADStdBackgroundRMS()
+std = bkgrms.calc_background_rms(data=img_data)
+
+daofind = phu.detection.DAOStarFinder(threshold=20*std,
+                                      fwhm=sigma_psf*sigma_to_fwhm,
+                                      # sigma_radius=1.4,
+                                      roundhi=10.0, roundlo=-10.0,
+                                      sharplo=0.31, sharphi=20.0)
+                                      
+"""intervals are made as wide as possible without false detections
+old-psf,    I,      J,      H,      Ks
+threshold:  20      30      30      20
+sigma_psf:  4.8,    7.2,    6.1,    8.2
+sharplo:    0.35,   0.33,   0.34,   0.31
+nr. at 40:  19      21      24      22
+"""
+found = daofind(img_data)
+
+if show:
+    positions = (found['xcentroid'], found['ycentroid'])
+    apertures = phu.CircularAperture(positions, r=5.)
+    
+    norm = apy.visualization.simple_norm(img_data, 'sqrt', percent=99.99)
+    plt.imshow(img_data, cmap='Greys_r', origin='upper', norm=norm)
+    apertures.plot(color='#0547f9', lw=1.5)
+    plt.show()
+
+##
+filter = 'Ks'
+image_name = 'grid-5.000-5.903-0.345-' + filter
+img_data = fh.GetData(image_name)
+
+with open(os.path.join('objects', 'epsf-scao-{0}-m18.pkl'.format(filter)), 'rb') as input:
+    epsf = pickle.load(input)
+
+sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
+bkgrms = phu.background.MADStdBackgroundRMS()
+std = bkgrms.calc_background_rms(data=img_data)
+sigma_psf = 8.2
+
+mmmbkg = phu.background.MMMBackground()
+
+daofind = phu.detection.DAOStarFinder(threshold=20*std,
+                                      fwhm=sigma_psf*sigma_to_fwhm,
+                                      # sigma_radius=1.4,
+                                      roundhi=10.0, roundlo=-10.0,
+                                      sharplo=0.31, sharphi=20.0)
+
+daogroup = phu.psf.DAOGroup(crit_separation=2.0*sigma_psf*sigma_to_fwhm)
+
+lmfitter = asm.fitting.LevMarLSQFitter()
+
+photometry = phu.psf.IterativelySubtractedPSFPhotometry(finder=daofind, group_maker=daogroup,
+                                                bkg_estimator=mmmbkg, psf_model=epsf,
+                                                fitter=lmfitter, niters=3, fitshape=(191,191),
+                                                aperture_radius=2*sigma_psf*sigma_to_fwhm)
+
+result_tab = photometry(image=img_data)
+residual_image = photometry.get_residual_image()
+
+## throw away negative fluxes and uncertainties of zero
+result_tab_redux = result_tab[(result_tab['flux_fit'] > 0) & (result_tab['flux_0'] > 0)]
+result_tab_redux = result_tab_redux[np.invert((result_tab_redux['flux_unc'] == 0) & (result_tab_redux['iter_detected'] != 1))]
 
 positions = (result_tab['x_fit'], result_tab['y_fit'])
 apertures = phu.CircularAperture(positions, r=5.)
@@ -3723,85 +3863,7 @@ plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
 plt.show()
 
 
-## do photometry twice (different psf)
-# get the test image
-image_name = 'img_test_save_2' # 'grid-5.000-5.903-2.069'
-fh.PlotFits(image_name, scale='sqrt', grid=False)
-img_data = fh.GetData(image_name)
 
-## 
-with open(os.path.join('objects', 'epsf-scao-m19.pkl'), 'rb') as input:
-    epsf = pickle.load(input)
-
-sigma_psf = 4.0
-sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
-bkgrms = phu.background.MADStdBackgroundRMS()
-std = bkgrms.calc_background_rms(data=img_data)
-psf = epsf                                                                                          # phu.psf.IntegratedGaussianPRF(sigma=sigma_psf)
-
-photometry = phu.psf.DAOPhotPSFPhotometry(threshold=40*std, 
-                                          fwhm=sigma_psf*sigma_to_fwhm, 
-                                          sharplo=0.0, sharphi=2.0, roundlo=-1.5, roundhi=1.5, 
-                                          crit_separation=2.0*sigma_psf*sigma_to_fwhm, 
-                                          psf_model=psf, 
-                                          fitter=asm.fitting.LevMarLSQFitter(), 
-                                          fitshape=(161,161), niters=1, 
-                                          aperture_radius=sigma_psf*sigma_to_fwhm
-                                          )
-result_tab = photometry(image=img_data)
-residual_image = photometry.get_residual_image()
-
-positions = (result_tab['x_fit'], result_tab['y_fit'])
-apertures = phu.CircularAperture(positions, r=5.)
-## 
-plt.subplot(1, 2, 1)
-plt.imshow(img_data, cmap='viridis', aspect=1, interpolation='nearest', origin='upper')
-plt.title('Simulated data')
-plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
-
-plt.subplot(1, 2, 2)
-plt.imshow(residual_image, cmap='viridis', aspect=1, interpolation='nearest', origin='upper')
-apertures.plot(color='blue', lw=1.5)
-plt.title('Residual Image')
-plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
-plt.show()
-
-## 
-with open(os.path.join('objects', 'epsf-scao-m22.pkl'), 'rb') as input:
-    epsf = pickle.load(input)
-
-sigma_psf = 2.0
-sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
-bkgrms = phu.background.MADStdBackgroundRMS()
-std = bkgrms.calc_background_rms(data=img_data)
-psf = epsf                                                                                          # phu.psf.IntegratedGaussianPRF(sigma=sigma_psf)
-
-photometry = phu.psf.DAOPhotPSFPhotometry(threshold=40*std, 
-                                          fwhm=sigma_psf*sigma_to_fwhm, 
-                                          sharplo=0.0, sharphi=2.0, roundlo=-1.5, roundhi=1.5, 
-                                          crit_separation=2.0*sigma_psf*sigma_to_fwhm, 
-                                          psf_model=psf, 
-                                          fitter=asm.fitting.LevMarLSQFitter(), 
-                                          fitshape=(161,161), niters=1, 
-                                          aperture_radius=sigma_psf*sigma_to_fwhm
-                                          )
-result_tab = photometry(image=img_data)
-residual_image = photometry.get_residual_image()
-
-positions = (result_tab['x_fit'], result_tab['y_fit'])
-apertures = phu.CircularAperture(positions, r=5.)
-##
-plt.subplot(1, 2, 1)
-plt.imshow(img_data, cmap='viridis', aspect=1, interpolation='nearest', origin='upper')
-plt.title('Simulated data')
-plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
-
-plt.subplot(1, 2, 2)
-plt.imshow(residual_image, cmap='viridis', aspect=1, interpolation='nearest', origin='upper')
-apertures.plot(color='blue', lw=1.5)
-plt.title('Residual Image')
-plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
-plt.show()
 
 
 
