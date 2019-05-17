@@ -3613,8 +3613,8 @@ sigma_psf:  3.3,    3.5,    7.8,    8.0
 sharplo:    0.3,    0.36,   0.35,   0.35
 nr. at 40:  20      24      23      22
 
-Alt. J: 40, 7.5, 0.38, 18
-Alt. I: 40, 7.0, 0.41, 22
+[edit] this is bad and I should feel bad
+ds9 shows approximate fwhm's of 3, 4, and 5 resp. for J, H and Ks
 """
 
 found = daofind(img_data)
@@ -3734,17 +3734,18 @@ with open(os.path.join('objects', 'epsf-scao-{0}-m18.pkl'.format(filter)), 'rb')
 sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
 bkgrms = phu.background.MADStdBackgroundRMS()
 std = bkgrms.calc_background_rms(data=img_data)
-sigma_psf = 8.2
+fwhm = 5.0
 
-photometry = phu.psf.DAOPhotPSFPhotometry(threshold=20*std, 
-                                          fwhm=sigma_psf*sigma_to_fwhm, 
-                                          sharplo=0.31, sharphi=20.0, 
+photometry = phu.psf.DAOPhotPSFPhotometry(threshold=40*std, 
+                                          fwhm=fwhm, 
+                                          sigma_radius=0.8*fwhm*apy.stats.gaussian_fwhm_to_sigma,
+                                          sharplo=0.0, sharphi=20.0, 
                                           roundlo=-10.0, roundhi=10.0, 
-                                          crit_separation=2.0*sigma_psf*sigma_to_fwhm, 
+                                          crit_separation=2.0*fwhm, 
                                           psf_model=epsf, 
                                           fitter=asm.fitting.LevMarLSQFitter(), 
-                                          fitshape=(191,191), niters=5, 
-                                          aperture_radius=sigma_psf*sigma_to_fwhm
+                                          fitshape=191, niters=1, 
+                                          aperture_radius=fwhm
                                           )
 result_tab = photometry(image=img_data)
 residual_image = photometry.get_residual_image()
@@ -3779,36 +3780,86 @@ img_data = fh.GetData(image_name)
 result_tab, result_tab_redux = fa.DoPhotometry(img_data, filter=filter, show=True)
 
 ## build my own itterative photometry
+import os
+import time
+import pickle
+import numpy as np
+import matplotlib.pyplot as plt
+
+import fitshandler as fh
+
+import photutils as phu
+import astropy as apy
+import astropy.modeling as asm
+
 show = True
 
-sigma_psf = 8.2
+t1 = time.time()
+print('start the clock')
+
+filter = 'Ks'
+image_name = 'grid-5.000-5.903-0.345-' + filter
+img_data = fh.GetData(image_name)
+
+with open(os.path.join('objects', 'epsf-scao-{0}-m18.pkl'.format(filter)), 'rb') as input:
+    epsf = pickle.load(input)
+
 sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
 bkgrms = phu.background.MADStdBackgroundRMS()
 std = bkgrms.calc_background_rms(data=img_data)
+fwhm = 5.0
 
-daofind = phu.detection.DAOStarFinder(threshold=20*std,
-                                      fwhm=sigma_psf*sigma_to_fwhm,
-                                      # sigma_radius=1.4,
+t2 = time.time()
+print('End part one. Elapsed time = {0}'.format(t2 - t1))
+
+daofind = phu.detection.DAOStarFinder(threshold=5*std,
+                                      fwhm=fwhm,
+                                      sigma_radius=0.8*fwhm*apy.stats.gaussian_fwhm_to_sigma,
                                       roundhi=10.0, roundlo=-10.0,
-                                      sharplo=0.31, sharphi=20.0)
+                                      sharplo=0.0, sharphi=20.0)
                                       
-"""intervals are made as wide as possible without false detections
-old-psf,    I,      J,      H,      Ks
-threshold:  20      30      30      20
-sigma_psf:  4.8,    7.2,    6.1,    8.2
-sharplo:    0.35,   0.33,   0.34,   0.31
-nr. at 40:  19      21      24      22
-"""
 found = daofind(img_data)
+
+t3 = time.time()
 
 if show:
     positions = (found['xcentroid'], found['ycentroid'])
-    apertures = phu.CircularAperture(positions, r=5.)
+    apertures = phu.CircularAperture(positions, r=2.)
     
     norm = apy.visualization.simple_norm(img_data, 'sqrt', percent=99.99)
     plt.imshow(img_data, cmap='Greys_r', origin='upper', norm=norm)
     apertures.plot(color='#0547f9', lw=1.5)
     plt.show()
+    
+print('End daofind. Elapsed time = {0}'.format(t3 - t2))
+t3 = time.time()
+
+found.rename_column('xcentroid', 'x_0')
+found.rename_column('ycentroid', 'y_0')
+
+mmmbkg = phu.background.MMMBackground()
+# todo: crit sep and fitshape??
+daogroup = phu.psf.DAOGroup(crit_separation=5.0*fwhm)
+
+lmfitter = asm.fitting.LevMarLSQFitter()
+
+photometry = phu.psf.BasicPSFPhotometry(group_maker=daogroup, bkg_estimator=mmmbkg, 
+                                        psf_model=epsf, fitshape=191, finder=None, 
+                                        fitter=lmfitter, aperture_radius=fwhm)
+
+t4 = time.time()
+print('End initialisation. Elapsed time = {0}'.format(t4 - t3))
+
+result_tab = photometry(image=img_data, init_guesses=found)
+
+t5 = time.time()
+print('End photometry. Elapsed time = {0}'.format(t5 - t4))
+
+residual_image = photometry.get_residual_image()
+
+t6 = time.time()
+print('End residual image. Elapsed time = {0}'.format(t6 - t5))
+
 
 ##
 filter = 'Ks'
@@ -3821,24 +3872,24 @@ with open(os.path.join('objects', 'epsf-scao-{0}-m18.pkl'.format(filter)), 'rb')
 sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
 bkgrms = phu.background.MADStdBackgroundRMS()
 std = bkgrms.calc_background_rms(data=img_data)
-sigma_psf = 8.2
+fwhm = 5.0
 
 mmmbkg = phu.background.MMMBackground()
 
-daofind = phu.detection.DAOStarFinder(threshold=20*std,
-                                      fwhm=sigma_psf*sigma_to_fwhm,
-                                      # sigma_radius=1.4,
+daofind = phu.detection.DAOStarFinder(threshold=5*std,
+                                      fwhm=fwhm,
+                                      sigma_radius=0.8*fwhm*apy.stats.gaussian_fwhm_to_sigma,
                                       roundhi=10.0, roundlo=-10.0,
-                                      sharplo=0.31, sharphi=20.0)
+                                      sharplo=0.0, sharphi=20.0)
 
-daogroup = phu.psf.DAOGroup(crit_separation=2.0*sigma_psf*sigma_to_fwhm)
+daogroup = phu.psf.DAOGroup(crit_separation=2.0*fwhm)
 
 lmfitter = asm.fitting.LevMarLSQFitter()
 
 photometry = phu.psf.IterativelySubtractedPSFPhotometry(finder=daofind, group_maker=daogroup,
                                                 bkg_estimator=mmmbkg, psf_model=epsf,
-                                                fitter=lmfitter, niters=3, fitshape=(191,191),
-                                                aperture_radius=2*sigma_psf*sigma_to_fwhm)
+                                                fitter=lmfitter, niters=1, fitshape=11,
+                                                aperture_radius=fwhm)
 
 result_tab = photometry(image=img_data)
 residual_image = photometry.get_residual_image()
@@ -3852,6 +3903,7 @@ apertures = phu.CircularAperture(positions, r=5.)
 ## show photometry results
 plt.subplot(1, 2, 1)
 plt.imshow(img_data, cmap='viridis', aspect=1, interpolation='nearest', origin='upper')
+apertures.plot(color='blue', lw=1.5)
 plt.title('Simulated data')
 plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
 

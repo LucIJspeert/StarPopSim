@@ -140,6 +140,7 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
         ax.title.set_color(c_light)
         ax.xaxis.label.set_color(c_light)
         ax.yaxis.label.set_color(c_light)
+    # todo: dark theme does not save to file correctly, so need some changes
     
     ax.set_xlim(40000, 500) 
     ax.set_ylim(-5, 7)
