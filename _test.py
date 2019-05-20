@@ -529,13 +529,11 @@ print('Mass of objects is {0:1.2e}% off of given input mass'.format((M_est - M_t
 ## ObjGen and HRD, CMD
 import numpy as np
 import matplotlib.pyplot as plt
-import ObjectGen as obg
 import visualizer as vis
 import formulas as form
 import distributions as dist
 import conversions as conv
-import ObjectGen as obg
-import AstObjectClass as aoc
+import objectgenerator as obg
 
 def BVmagToTemp(BV):
     """[Experimental, use at own risk (onlky works (somewhat) up to ~10kK)]"""
@@ -3839,7 +3837,7 @@ found.rename_column('ycentroid', 'y_0')
 
 mmmbkg = phu.background.MMMBackground()
 # todo: crit sep and fitshape??
-daogroup = phu.psf.DAOGroup(crit_separation=5.0*fwhm)
+daogroup = phu.psf.DAOGroup(crit_separation=1)#5.0*fwhm)
 
 lmfitter = asm.fitting.LevMarLSQFitter()
 

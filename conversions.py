@@ -128,7 +128,7 @@ def TemperatureToRGB(c_temp):
     
     # temperatures must be within: 1000 - 40000 K. algorithm uses temp/100
     c_temp = np.clip(c_temp, 1000, 40000)
-    c_temp = c_temp/10
+    c_temp = c_temp/100
     
     # calculate red:
     red = (c_temp < 66)*255 

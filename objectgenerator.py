@@ -784,6 +784,10 @@ class AstObject:
         lum_sum = np.cumsum(lum_sorted)                                                             # cumulative sum of sorted luminosities
         return np.max(r_sorted[lum_sum <= tot_lum/2])                                               # 2D/3D radius at half the luminosity
         
+    def Visualise3D():
+        #todo: implement visualisations as class functions
+        pass
+        
     def SaveTo(self, filename):
         """Saves the class to a file."""
         if (filename[-4:] != '.pkl'):
