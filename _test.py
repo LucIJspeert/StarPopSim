@@ -3250,7 +3250,7 @@ plt.show()
 ## try with DAO algorithms   
 import photutils as phu
 import astropy as apy
-import astropy.modeling as asm
+import astropy.modeling as apm
                                                                 
 bkgrms = MADStdBackgroundRMS()                                                                      # Class to calculate the background RMS in an array as using the median absolute deviation (MAD).
 std = bkgrms.calc_background_rms(data=image)
@@ -3261,7 +3261,7 @@ daofind = phu.detection.DAOStarFinder(threshold=10*std,
                                       sharplo=0.0, sharphi=2.0)
 daogroup = DAOGroup(2.0*sigma_psf*gaussian_sigma_to_fwhm)                                           # This class implements the DAOGROUP algorithm presented by Stetson (1987).
 mmm_bkg = MMMBackground()                                                                           # Class to calculate the background in an array using the DAOPHOT MMM algorithm.
-fitter = asm.fitting.LevMarLSQFitter()                                                              # Levenberg-Marquardt algorithm and least squares statistic.
+fitter = apm.fitting.LevMarLSQFitter()                                                              # Levenberg-Marquardt algorithm and least squares statistic.
 psf_model = IntegratedGaussianPRF(sigma=sigma_psf)                                                  # Circular Gaussian model integrated over pixels. Because it is integrated, this model is considered a PRF, not a PSF 
 
 photometry = IterativelySubtractedPSFPhotometry(finder=daofind,
@@ -3296,7 +3296,7 @@ photometry = phu.psf.DAOPhotPSFPhotometry(threshold=10*std,
                                           sharplo=0.0, sharphi=2.0, roundlo=-5.0, roundhi=5.0, 
                                           crit_separation=2.0*sigma_psf*sigma_to_fwhm, 
                                           psf_model=psf, 
-                                          fitter=asm.fitting.LevMarLSQFitter(), 
+                                          fitter=apm.fitting.LevMarLSQFitter(), 
                                           fitshape=(11,11), niters=1, 
                                           aperture_radius=sigma_psf*sigma_to_fwhm
                                           )
@@ -3481,7 +3481,7 @@ import pickle
 import matplotlib.pyplot as plt
 import photutils as phu
 import astropy as apy
-import astropy.modeling as asm
+import astropy.modeling as apm
 
 import simcado as sim
 import imagegenerator as img
@@ -3518,7 +3518,7 @@ photometry = phu.psf.DAOPhotPSFPhotometry(threshold=40*std,
                                           sharplo=0.0, sharphi=2.0, roundlo=-1.5, roundhi=1.5, 
                                           crit_separation=2.0*sigma_psf*sigma_to_fwhm, 
                                           psf_model=psf, 
-                                          fitter=asm.fitting.LevMarLSQFitter(), 
+                                          fitter=apm.fitting.LevMarLSQFitter(), 
                                           fitshape=(161,161), niters=1, 
                                           aperture_radius=sigma_psf*sigma_to_fwhm
                                           )
@@ -3543,7 +3543,7 @@ import fitshandler as fh
 import matplotlib.pyplot as plt
 import photutils as phu
 import astropy as apy
-import astropy.modeling as asm
+import astropy.modeling as apm
 
 image_name = 'img_test_save' # 'grid-5.000-5.903-2.069'
 fh.PlotFits(image_name, scale='sqrt', grid=False)
@@ -3575,7 +3575,7 @@ import fitshandler as fh
 import matplotlib.pyplot as plt
 import photutils as phu
 import astropy as apy
-import astropy.modeling as asm
+import astropy.modeling as apm
 import simcado as sim
 import imagegenerator as img
 
@@ -3642,7 +3642,7 @@ import fitshandler as fh
 
 import photutils as phu
 import astropy as apy
-import astropy.modeling as asm
+import astropy.modeling as apm
 import astropy.table as apta
 
 def EPSFMaker(mag):
@@ -3698,7 +3698,7 @@ import fitshandler as fh
 
 import photutils as phu
 import astropy as apy
-import astropy.modeling as asm
+import astropy.modeling as apm
     
 """ J image, residuals
 m16: 34000 to -10000
@@ -3743,7 +3743,7 @@ photometry = phu.psf.DAOPhotPSFPhotometry(threshold=40*std,
                                           roundlo=-10.0, roundhi=10.0, 
                                           crit_separation=2.0*fwhm, 
                                           psf_model=epsf, 
-                                          fitter=asm.fitting.LevMarLSQFitter(), 
+                                          fitter=apm.fitting.LevMarLSQFitter(), 
                                           fitshape=191, niters=1, 
                                           aperture_radius=fwhm
                                           )
@@ -3790,7 +3790,7 @@ import fitshandler as fh
 
 import photutils as phu
 import astropy as apy
-import astropy.modeling as asm
+import astropy.modeling as apm
 
 show = True
 
@@ -3841,7 +3841,7 @@ mmmbkg = phu.background.MMMBackground()
 # todo: crit sep and fitshape??
 daogroup = phu.psf.DAOGroup(crit_separation=5.0*fwhm)
 
-lmfitter = asm.fitting.LevMarLSQFitter()
+lmfitter = apm.fitting.LevMarLSQFitter()
 
 photometry = phu.psf.BasicPSFPhotometry(group_maker=daogroup, bkg_estimator=mmmbkg, 
                                         psf_model=epsf, fitshape=191, finder=None, 
@@ -3884,7 +3884,7 @@ daofind = phu.detection.DAOStarFinder(threshold=5*std,
 
 daogroup = phu.psf.DAOGroup(crit_separation=2.0*fwhm)
 
-lmfitter = asm.fitting.LevMarLSQFitter()
+lmfitter = apm.fitting.LevMarLSQFitter()
 
 photometry = phu.psf.IterativelySubtractedPSFPhotometry(finder=daofind, group_maker=daogroup,
                                                 bkg_estimator=mmmbkg, psf_model=epsf,
