@@ -3783,6 +3783,7 @@ import time
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import colors as mcol
 
 import fitshandler as fh
 
@@ -3826,7 +3827,7 @@ if show:
     
     norm = apy.visualization.simple_norm(img_data, 'sqrt', percent=99.99)
     plt.imshow(img_data, cmap='Greys_r', origin='upper', norm=norm)
-    apertures.plot(color='#0547f9', lw=1.5)
+    apertures.plot(color=mcol.TABLEAU_COLORS.keys()[grp], lw=1.5)
     plt.show()
     
 print('End daofind. Elapsed time = {0}'.format(t3 - t2))
@@ -3839,8 +3840,20 @@ mmmbkg = phu.background.MMMBackground()
 # todo: crit sep and fitshape??
 daogroup = phu.psf.DAOGroup(crit_separation=1)#5.0*fwhm)
 
-lmfitter = apm.fitting.LevMarLSQFitter()
+if show:
+    groups = daogroup(found)
+    groups.sort('group_id')
+    
+    norm = apy.visualization.simple_norm(img_data, 'sqrt', percent=99.99)
+    plt.imshow(img_data, cmap='Greys_r', origin='upper', norm=norm)
+    for grp in range(groups['group_id'][-1]):
+        positions = (groups['x_0'][groups['group_id'] == grp], groups['y_0'][groups['group_id'] == grp])
+        apertures = phu.CircularAperture(positions, r=2.)
+        apertures.plot(lw=2.5)
+    plt.show()
 
+lmfitter = apm.fitting.LevMarLSQFitter()
+##
 photometry = phu.psf.BasicPSFPhotometry(group_maker=daogroup, bkg_estimator=mmmbkg, 
                                         psf_model=epsf, fitshape=191, finder=None, 
                                         fitter=lmfitter, aperture_radius=fwhm)
