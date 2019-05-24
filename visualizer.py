@@ -109,9 +109,11 @@ def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
 
 
 def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)', 
-        ylabel=r'Luminosity log($L/L_\odot$)', colour='temperature', dark_theme=True, mask=None):
+        ylabel=r'Luminosity log($L/L_\odot$)', colour='temperature', dark_theme=0, mask=None):
     """Plot the Herzsprung Russell Diagram. Use mask to select certain stars.
     colours can be made to match the temperature (default behaviour)
+    set dark_theme to 1 for a fancy dark plot, 2 for a less fancy dark saveable plot 
+        and 0 for normal light colours.
     """
     if (colour == 'temperature'):
         colour = conv.TemperatureToRGB(T_eff).transpose()
@@ -124,7 +126,7 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
     fig, ax = plt.subplots()
     ax.scatter(T_eff[mask], log_Lum[mask], marker='.', linewidths=0.0, c=colour)
 
-    if (dark_theme == True):
+    if (dark_theme == 1):
         c_light = '0.9'
         c_grey = '0.7'
         c_dark1 = '0.22'
@@ -140,6 +142,22 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
         ax.title.set_color(c_light)
         ax.xaxis.label.set_color(c_light)
         ax.yaxis.label.set_color(c_light)
+    elif (dark_theme == 2):
+        c_light = '0.9'
+        c_grey = '0.7'
+        c_dark1 = '0.22'
+        c_dark2 = '0.15'
+        # fig.patch.set_color(c_dark1)
+        ax.set_facecolor(c_dark2)
+        ax.spines['bottom'].set_color(c_dark1)
+        ax.spines['top'].set_color(c_dark1) 
+        ax.spines['right'].set_color(c_dark1)
+        ax.spines['left'].set_color(c_dark1)
+        ax.tick_params(axis='x', colors=c_dark1)
+        ax.tick_params(axis='y', colors=c_dark1)
+        ax.title.set_color(c_dark1)
+        ax.xaxis.label.set_color(c_dark1)
+        ax.yaxis.label.set_color(c_dark1)
     # todo: dark theme does not save to file correctly, so need some changes
     
     ax.set_xlim(40000, 500) 
