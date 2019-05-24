@@ -3577,10 +3577,11 @@ import astropy.modeling as apm
 import simcado as sim
 import imagegenerator as img
 
-filter = 'J'
-image_name = 'img_test_save_' + filter
+filter = 'Ks'
+image_name = 'psf_image_' + filter
 
-src = sim.source.star_grid(n=16, mag_min=21, mag_max=23.5, filter_name=filter, separation=1.3, spec_type='M0V')
+src = sim.source.star_grid(n=36, mag_min=22.6, mag_max=23.2, filter_name=filter, separation=1.3, spec_type='M0V')
+# src += sim.source.star(mag=21, filter_name=filter, spec_type='M0V')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename=image_name) # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
 
 # show the image
