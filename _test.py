@@ -3783,6 +3783,7 @@ import time
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import colors as mcol
 
 import fitshandler as fh
 
@@ -3819,7 +3820,7 @@ daofind = phu.detection.DAOStarFinder(threshold=5*std,
 found = daofind(img_data)
 
 t3 = time.time()
-
+##
 if show:
     positions = (found['xcentroid'], found['ycentroid'])
     apertures = phu.CircularAperture(positions, r=2.)
@@ -3834,13 +3835,27 @@ t3 = time.time()
 
 found.rename_column('xcentroid', 'x_0')
 found.rename_column('ycentroid', 'y_0')
-
+##
 mmmbkg = phu.background.MMMBackground()
 # todo: crit sep and fitshape??
-daogroup = phu.psf.DAOGroup(crit_separation=1)#5.0*fwhm)
+daogroup = phu.psf.DAOGroup(crit_separation=2.0*fwhm)
+
+if show:
+    groups = daogroup(found)
+    groups.sort('group_id')
+    
+    colour_list = list(mcol.TABLEAU_COLORS.values())
+    norm = apy.visualization.simple_norm(img_data, 'sqrt', percent=99.99)
+    plt.imshow(img_data, cmap='Greys_r', origin='upper', norm=norm)
+    for item in groups:
+        positions = (item['x_0'], item['y_0'])
+        apertures = phu.CircularAperture(positions, r=2.)
+        apertures.plot(color=colour_list[item['group_id']%len(colour_list)], lw=2.5)
+    print(np.sort([np.sum(groups['group_id'] == i) for i in range(np.max(groups['group_id']))]))
+    plt.show()
 
 lmfitter = apm.fitting.LevMarLSQFitter()
-
+##
 photometry = phu.psf.BasicPSFPhotometry(group_maker=daogroup, bkg_estimator=mmmbkg, 
                                         psf_model=epsf, fitshape=191, finder=None, 
                                         fitter=lmfitter, aperture_radius=fwhm)
