@@ -3577,14 +3577,14 @@ import astropy.modeling as apm
 import simcado as sim
 import imagegenerator as img
 
-filter = 'I'
+filter = 'J'
 image_name = 'img_test_save_' + filter
 
-# src = sim.source.star_grid(n=25, mag_min=17, mag_max=25, filter_name=filter, separation=1.3, spec_type='M0V')
-# image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits', filename=image_name) # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
+src = sim.source.star_grid(n=16, mag_min=21, mag_max=23.5, filter_name=filter, separation=1.3, spec_type='M0V')
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename=image_name) # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
 
 # show the image
-fh.PlotFits(image_name, scale='lin', grid=False)
+fh.PlotFits(image_name, scale='log', grid=False)
 img_data = fh.GetData(image_name)
 
 ## find stars (same as above)
