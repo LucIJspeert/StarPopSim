@@ -3684,6 +3684,51 @@ def EPSFMaker(mag):
 
 for m in np.arange(16, 26, 2):
     EPSFMaker(m)
+    
+## other more different epsf maker
+import numpy as np
+import matplotlib.pyplot as plt
+import pickle
+import os
+
+import imagegenerator as img
+import simcado as sim
+import fitshandler as fh
+
+import photutils as phu
+import astropy as apy
+import astropy.modeling as apm
+import astropy.table as apta
+
+def EPSFMaker(filter):
+    # identify the stars and their initial positions
+    img_data = fh.GetData('psf_image_{0}'.format(filter))
+    peaks_tbl = phu.find_peaks(img_data, threshold=120000., box_size=11)
+    peaks_tbl['peak_value'].info.format = '%.8g'  # for consistent table output
+    # extract cutouts of the stars using the extract_stars() function
+    stars_tbl = apta.Table()
+    stars_tbl['x'] = peaks_tbl['x_peak']
+    stars_tbl['y'] = peaks_tbl['y_peak']
+    
+    mean_val, median_val, std_val = apy.stats.sigma_clipped_stats(img_data, sigma=2.)
+    img_data -= median_val                                                                              # subtract background
+    
+    nddata = apy.nddata.NDData(data=img_data)
+    stars = phu.psf.extract_stars(nddata, stars_tbl, size=190)
+    # initialize an EPSFBuilder instance with desired parameters and input the cutouts
+    epsf_builder = phu.EPSFBuilder(oversampling=4, maxiters=5, progress_bar=False)
+    epsf, fitted_stars = epsf_builder(stars)
+    # show the constructed ePSF
+    norm = apy.visualization.simple_norm(epsf.data, 'log', percent=99.) # min_percent=20, max_percent=100)#,
+    plt.imshow(epsf.data, norm=norm, origin='lower', cmap='viridis')
+    plt.colorbar()
+    plt.show()
+    
+    # save the epsf
+    with open(os.path.join('objects', 'epsf-scao-{0}.pkl'.format(filter)), 'wb') as output:
+        pickle.dump(epsf, output, -1)
+        
+    return
 
 
 ## (again) open the epsf
@@ -3800,7 +3845,7 @@ filter = 'Ks'
 image_name = 'grid-5.000-5.903-0.345-' + filter
 img_data = fh.GetData(image_name)
 
-with open(os.path.join('objects', 'epsf-scao-{0}-m18.pkl'.format(filter)), 'rb') as input:
+with open(os.path.join('objects', 'epsf-scao-{0}.pkl'.format(filter)), 'rb') as input:
     epsf = pickle.load(input)
 
 sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
@@ -3838,7 +3883,7 @@ found.rename_column('ycentroid', 'y_0')
 ##
 mmmbkg = phu.background.MMMBackground()
 # todo: crit sep and fitshape??
-daogroup = phu.psf.DAOGroup(crit_separation=2.0*fwhm)
+daogroup = phu.psf.DAOGroup(crit_separation=1.5*fwhm)
 
 if show:
     groups = daogroup(found)
@@ -3857,7 +3902,7 @@ if show:
 lmfitter = apm.fitting.LevMarLSQFitter()
 ##
 photometry = phu.psf.BasicPSFPhotometry(group_maker=daogroup, bkg_estimator=mmmbkg, 
-                                        psf_model=epsf, fitshape=191, finder=None, 
+                                        psf_model=epsf, fitshape=33, finder=None, 
                                         fitter=lmfitter, aperture_radius=fwhm)
 
 t4 = time.time()
