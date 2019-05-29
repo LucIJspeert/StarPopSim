@@ -56,7 +56,6 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
     ax.set_xlim(-axis_size, axis_size) 
     ax.set_ylim(-axis_size, axis_size)
     ax.set(aspect='equal', adjustable='datalim')
-    ax.invert_yaxis()
     
     # The further setup (custom dark theme)
     if (theme == 1):

@@ -505,6 +505,7 @@ class AstObject:
     def GenerateFieldStars(self):
         """Adds (Milky Way) field stars to the object."""
         # self.field_stars = np.array([pos_x, pos_y, mag, filt, spec_types])
+        # todo: WIP
         return
         
     def GenerateBackGround(self):
@@ -512,6 +513,7 @@ class AstObject:
         like more clusters or galaxies. These will be unresolved.
         """
         # self.back_ground = 
+        # todo: WIP
         return
         
     def GenerateNGS(self, mag=[13], filter='V'):
