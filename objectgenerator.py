@@ -674,6 +674,9 @@ class AstObject:
             
             mag_i[:, remnants_i] = r_mag_i
             abs_mag = np.append(abs_mag, mag_i, axis=1)
+            
+        if (filter != 'all'):
+            abs_mag = abs_mag[0]                                                                    # correct for 2D array
         
         return abs_mag
     
@@ -700,6 +703,8 @@ class AstObject:
         true_dist = np.tile(true_dist, num_mags).reshape(num_mags, dimension_2)
         
         abs_mag = self.AbsoluteMagnitudes(filter=filter)
+        if (filter != 'all'):
+            true_dist = true_dist[0]                                                                    # correct for 2D array
         
         return abs_mag + 5*np.log10((true_dist)/10) + self.extinction                               # true_dist in pc!
         

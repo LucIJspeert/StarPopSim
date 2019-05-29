@@ -12,8 +12,13 @@ import conversions as conv
 
 
 def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
-              axes='xy', colour='blue', T_eff=None, dark_theme=True):
-    """Plots a 2D scatter of a 3D object (array) along given axes [xy, yz, zx]."""
+              axes='xy', colour='blue', T_eff=None, mag=None, dark_theme=1):
+    """Plots a 2D scatter of a 3D object (array) along given axes [xy, yz, zx].
+    colour can be set to 'temperature' to represent the effective temperatures.
+    magnitudes can be given to mag to make the marker sizes represent magnitudes.
+    set dark_theme to 1 for a fancy dark plot, 2 for a less fancy dark saveable plot 
+        and 0 for normal light colours.
+    """
     # determine which axes to put on the horizontal and vertical axis of the plot
     axes_list = np.array([[0, 1], [1, 2], [2, 0]])
     hor_axis, vert_axis = axes_list[np.array(['xy', 'yz', 'zx']) == axes][0]
@@ -25,9 +30,21 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
     elif (colour == 'blue'):
         colour = 'tab:blue'
     
+    if mag is not None:
+        m_max = np.max(mag)
+        sizes = 30*(0.0 + (m_max - mag)/5.0)**2                                                     # formula for representation of magnitude
+        s_max = np.max(sizes)
+        print(sizes)
+        colour = np.array([[0,0,1] for i in range(len(sizes))])
+        print(colour)
+        colour = np.append(colour, sizes/s_max, axis=0)
+        print(colour)
+    else:
+        sizes = [20 for i in range(len(objects[:,hor_axis]))]                                       # default size
+    
     fig, ax = plt.subplots()
     ax.scatter(objects[:,hor_axis], objects[:,vert_axis], 
-               marker='.', linewidths=0.0, alpha=0.5, c=colour)
+               marker='.', linewidths=0.0, c=colour, s=sizes)
     
     # take the maximum distance from the origin as axis scale
     if (np.shape(objects[0]) == (2,)):
@@ -39,7 +56,7 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
     ax.set(aspect='equal', adjustable='datalim')
     
     # The further setup (custom dark theme)
-    if (dark_theme == True):
+    if (dark_theme == 1):
         c_grey = '0.6'
         c_grey2 = '0.4'
         fig.patch.set_color('black')
@@ -53,6 +70,21 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
         ax.title.set_color(c_grey)
         ax.xaxis.label.set_color(c_grey)
         ax.yaxis.label.set_color(c_grey)
+    elif (dark_theme == 2):
+        c_grey = '0.6'
+        c_grey2 = '0.4'
+        fig.patch.set_color('black')
+        ax.set_facecolor('black')
+        ax.spines['bottom'].set_color(c_grey2)
+        ax.spines['top'].set_color(c_grey2) 
+        ax.spines['right'].set_color(c_grey2)
+        ax.spines['left'].set_color(c_grey2)
+        ax.tick_params(axis='x', colors=c_grey2)
+        ax.tick_params(axis='y', colors=c_grey2)
+        ax.title.set_color(c_grey)
+        ax.xaxis.label.set_color(c_grey)
+        ax.yaxis.label.set_color(c_grey)
+    # todo: dark theme 2 needs some work (no difference yet)
     
     ax.set_title(title)
     ax.set_xlabel(xlabel)
@@ -62,14 +94,24 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
 
 
 def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z', 
-              colour='blue', T_eff=None, dark_theme=True):
-    """Plots a 3D scatter of a 3D object (array)."""
+              colour='blue', T_eff=None, mag=None, dark_theme=1):
+    """Plots a 3D scatter of a 3D object (array).
+    colour can be set to 'temperature' to represent the effective temperatures.
+    magnitudes can be given to mag to make the marker sizes represent magnitudes.
+    set dark_theme to 1 for a fancy dark plot, 2 for a less fancy dark saveable plot 
+        and 0 for normal light colours.
+    """
     # colours can be made to match the temperature (uses T_eff)
     if (colour == 'temperature'):
         colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
         colour[T_eff == 10] = [0.2, 0.2, 0.2]                                                       # dead stars
     elif (colour == 'blue'):
         colour = 'tab:blue'
+    
+    if mag is not None:
+        sizes = 30*(0.5 + (7.0-mag)/3.0)**2                                                         # formula for representation of magnitude
+    else:
+        sizes = [20 for i in range(len(objects[:,hor_axis]))]                                       # default size
     
     fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
     ax.scatter(objects[:,0], objects[:,1], objects[:,2], marker='.', linewidths=0.0, c=colour) 
@@ -82,7 +124,7 @@ def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
     ax.set(aspect='equal', adjustable='box')
     
     # The further setup (custom dark theme)
-    if (dark_theme == True):
+    if (dark_theme == 1):
         c_grey = (0.6, 0.6, 0.6)
         c_grey2 = (0.4, 0.4, 0.4)
         c_black = (0, 0, 0, 0)                                                                      # (R,G,B,A)
@@ -99,6 +141,24 @@ def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
         ax.xaxis.label.set_color(c_grey)
         ax.yaxis.label.set_color(c_grey)
         ax.zaxis.label.set_color(c_grey)
+    elif (dark_theme == 2):
+        c_grey = (0.6, 0.6, 0.6)
+        c_grey2 = (0.4, 0.4, 0.4)
+        c_black = (0, 0, 0, 0)
+        fig.patch.set_color('black')
+        ax.set_facecolor(c_black)
+        ax.w_xaxis.set_pane_color(c_black)     
+        ax.w_yaxis.set_pane_color(c_black)
+        ax.w_zaxis.set_pane_color(c_black)
+        # find way to darken grid [not doable I think]
+        ax.tick_params(axis='x', colors=c_grey2)
+        ax.tick_params(axis='y', colors=c_grey2)
+        ax.tick_params(axis='z', colors=c_grey2)
+        ax.title.set_color(c_grey)
+        ax.xaxis.label.set_color(c_grey)
+        ax.yaxis.label.set_color(c_grey)
+        ax.zaxis.label.set_color(c_grey)
+    # todo: dark theme 2 needs some work (no difference yet)
     
     ax.set_title(title)
     ax.set_xlabel(xlabel)
@@ -147,7 +207,6 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
         c_grey = '0.7'
         c_dark1 = '0.22'
         c_dark2 = '0.15'
-        # fig.patch.set_color(c_dark1)
         ax.set_facecolor(c_dark2)
         ax.spines['bottom'].set_color(c_dark1)
         ax.spines['top'].set_color(c_dark1) 
@@ -158,7 +217,7 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
         ax.title.set_color(c_dark1)
         ax.xaxis.label.set_color(c_dark1)
         ax.yaxis.label.set_color(c_dark1)
-    # todo: dark theme does not save to file correctly, so need some changes
+    # todo: dark theme 2 needs some work
     
     ax.set_xlim(40000, 500) 
     ax.set_ylim(-5, 7)
@@ -170,9 +229,11 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
 
 
 def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude', 
-        colour='blue', T_eff=None, dark_theme=False, adapt_axes=True, mask=None):
+        colour='blue', T_eff=None, dark_theme=0, adapt_axes=True, mask=None):
     """Plot the Colour Magnitude Diagram. Use mask to select certain stars.
     colours can be made to match the temperature (default behaviour)
+    set dark_theme to 1 for a fancy dark plot, 2 for a less fancy dark saveable plot 
+        and 0 for normal light colours.
     """
     if (colour == 'temperature'):
         colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
@@ -196,7 +257,7 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
         ax.set_xlim(-0.5, 2.0)                                                                      # good for seeing vertical differences
         ax.set_ylim(17.25, -12.75)
     
-    if (dark_theme == True):
+    if (dark_theme == 1):
         c_light = '0.9'
         c_grey = '0.7'
         c_dark1 = '0.22'
@@ -212,6 +273,21 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
         ax.title.set_color(c_light)
         ax.xaxis.label.set_color(c_light)
         ax.yaxis.label.set_color(c_light)
+    elif (dark_theme == 2):
+        c_light = '0.9'
+        c_grey = '0.7'
+        c_dark1 = '0.22'
+        c_dark2 = '0.15'
+        ax.set_facecolor(c_dark2)
+        ax.spines['bottom'].set_color(c_dark1)
+        ax.spines['top'].set_color(c_dark1) 
+        ax.spines['right'].set_color(c_dark1)
+        ax.spines['left'].set_color(c_dark1)
+        ax.tick_params(axis='x', colors=c_dark1)
+        ax.tick_params(axis='y', colors=c_dark1)
+        ax.title.set_color(c_dark1)
+        ax.xaxis.label.set_color(c_dark1)
+        ax.yaxis.label.set_color(c_dark1)
         
     ax.set_title(title)
     ax.set_xlabel(xlabel)
