@@ -23,6 +23,7 @@ from inspect import signature
 import distributions as dist
 import conversions as conv
 import formulas as form
+import visualizer as vis
 
 
 # global defaults
@@ -633,12 +634,14 @@ class AstObject:
                 
                 lifetime = form.MSLifetime(M_init_i[remnants_i])                                    # estimated MS time of the stars
                 remnant_time = lin_age - lifetime                                                   # approx. time that the remnant had to cool
+                mask = (remnant_time < 0)                                                           # overestimated
+                remnant_time[mask] = -remnant_time[mask]/10                                         # hotfix
+                #TODO remnant time is bad estimator (becomes negative)
                 
                 r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])                   # approx. remnant masses
                 r_radii = form.RemnantRadius(r_M_cur_i)                                             # approx. remnant radii
                 r_log_Te_i = np.log10(form.RemnantTeff(r_M_cur_i, r_radii, remnant_time))           # approx. remnant temperatures
                 
-                #TODO remnants get nan temperatures
                 log_Te_i[remnants_i] = r_log_Te_i
             log_Te = np.append(log_Te, log_Te_i)  
         
@@ -791,7 +794,22 @@ class AstObject:
         lum_sum = np.cumsum(lum_sorted)                                                             # cumulative sum of sorted luminosities
         return np.max(r_sorted[lum_sum <= tot_lum/2])                                               # 2D/3D radius at half the luminosity
         
-    def Visualise3D():
+    def Plot2D(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', 
+               filter='Ks', mag='app', theme='dark1'):
+        """"Make a plot of the object positions in two dimensions
+        
+        """
+        # if app
+        magnitudes = self.ApparentMagnitudes()
+        
+        temps = 10**self.LogTemperatures()
+        
+        Objects2D(objects, title=title, xlabel=xlabel, ylabel=ylabel,
+              axes=axes, colour=colour, T_eff=temps, mag=magnitudes, theme=theme)
+        
+        return
+        
+    def Plot3D():
         #todo: implement visualisations as class functions
         pass
         

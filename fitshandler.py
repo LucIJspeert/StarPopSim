@@ -196,15 +196,14 @@ def PlotFits(filename, index=0, colours='gray', scale='lin', grid=True, chip='si
             raise ValueError('fitshandler//PlotFits: chip configuration not recognised.')
             
     if (chip == 'full'):
-        image_data_r1 = np.append(image_data_single[6], image_data_single[7], axis=1)
-        image_data_r1 = np.append(image_data_r1, image_data_single[8], axis=1)
-        image_data_r2 = np.append(image_data_single[5], image_data_single[4], axis=1)
-        image_data_r2 = np.append(image_data_r2, image_data_single[3], axis=1)
-        image_data_r3 = np.append(image_data_single[0], image_data_single[1], axis=1)
-        image_data_r3 = np.append(image_data_r3, image_data_single[2], axis=1)
+        image_data_r1 = np.concatenate(image_data_single[6], image_data_single[7], 
+                                       image_data_single[8], axis=1)
+        image_data_r2 = np.concatenate(image_data_single[5], image_data_single[4], 
+                                       image_data_single[3], axis=1)
+        image_data_r3 = np.concatenate(image_data_single[0], image_data_single[1], 
+                                       image_data_single[2], axis=1)
         
-        image_data = np.append(image_data_r1, image_data_r2, axis=0)
-        image_data = np.append(image_data, image_data_r3, axis=0)
+        image_data = np.concatenate(image_data_r1, image_data_r2, image_data_r3, axis=0)
             
     if (scale == 'log'):
         image_data = np.log10(image_data - np.min(image_data))
@@ -248,15 +247,14 @@ def SaveFitsPlot(filename, index=0, colours='gray', scale='lin', grid=True, chip
             raise ValueError('fitshandler//SaveFitsPlot: chip configuration not recognised.')
             
     if (chip == 'full'):
-        image_data_r1 = np.append(image_data_single[6], image_data_single[7], axis=1)
-        image_data_r1 = np.append(image_data_r1, image_data_single[8], axis=1)
-        image_data_r2 = np.append(image_data_single[5], image_data_single[4], axis=1)
-        image_data_r2 = np.append(image_data_r2, image_data_single[3], axis=1)
-        image_data_r3 = np.append(image_data_single[0], image_data_single[1], axis=1)
-        image_data_r3 = np.append(image_data_r3, image_data_single[2], axis=1)
+        image_data_r1 = np.concatenate(image_data_single[6], image_data_single[7], 
+                                       image_data_single[8], axis=1)
+        image_data_r2 = np.concatenate(image_data_single[5], image_data_single[4], 
+                                       image_data_single[3], axis=1)
+        image_data_r3 = np.concatenate(image_data_single[0], image_data_single[1], 
+                                       image_data_single[2], axis=1)
         
-        image_data = np.append(image_data_r1, image_data_r2, axis=0)
-        image_data = np.append(image_data, image_data_r3, axis=0)
+        image_data = np.concatenate(image_data_r1, image_data_r2, image_data_r3, axis=0)
     
     if (scale == 'log'):
         image_data = np.log10(image_data - np.min(image_data))

@@ -6,47 +6,49 @@ Just for convenience really. And nice plots.
 """
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcol
 from mpl_toolkits.mplot3d import Axes3D
 
 import conversions as conv
 
 
 def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
-              axes='xy', colour='blue', T_eff=None, mag=None, theme=1):
-    """Plots a 2D scatter of a 3D object (array) along given axes [xy, yz, zx].
-    colour can be set to 'temperature' to represent the effective temperatures.
-    magnitudes can be given to mag to make the marker sizes represent magnitudes.
-    set theme to 1 for a fancy dark plot, 2 for a less fancy dark saveable plot 
-        and 0 for normal light colours.
+              axes='xy', colour='blue', T_eff=None, mag=None, theme=None):
+    """Plots a 2D scatter of a 3D object (array) along given axes [xy, yz, zx]. 
+    Giving effective temperatures makes the marker colour represent temperature.
+    Giving magnitudes makes the marker size and alpha scale with brightness.
+    Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
+        saveable dark plot,  and None for normal light colours.
     """
     # determine which axes to put on the horizontal and vertical axis of the plot
     axes_list = np.array([[0, 1], [1, 2], [2, 0]])
     hor_axis, vert_axis = axes_list[np.array(['xy', 'yz', 'zx']) == axes][0]
     n_obj = len(objects[:,hor_axis])
     
-    # colours can be made to match the temperature (uses T_eff)
-    if (colour == 'temperature'):
+    # colours can be made to match the temperature (using T_eff)
+    if (T_eff is not None):
         colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
-        colour[T_eff == 10] = [0.2, 0.2, 0.2]                                                       # dead stars
-        colour = np.append(colour, np.full([n_obj], 0.5), axis=1)                                   # add alpha
+        colour[T_eff <= 10] = [0.2, 0.2, 0.2]                                                       # dead stars
+        colour = mcol.to_rgba_array(colour, 0.5)                                                    # add alpha
     elif (colour == 'blue'):
-        colour = np.full([n_obj, 4], (31, 119, 180, 0.5))                                           # rgb for 'tab:blue', and alpha=0.5
-    
-    if ((mag is not None) & (theme == 3)):
-        m_max = np.max(mag)
-        sizes = 10*(0.0 + (m_max - mag)/8.0)**2                                                     # formula for representation of magnitude
-        s_max = np.max(sizes)
-        colour = [[1,1,1,s/s_max] for s in sizes]                                                   # set colours to white and alpha scales with mag
-    #todo: size scaling needs tweaking
-    elif mag is not None:
-        m_max = np.max(mag)
-        sizes = 10*(0.0 + (m_max - mag)/8.0)**2                                                     # formula for representation of magnitude
+        colour = mcol.to_rgba('tab:blue', 0.5)
     else:
-        sizes = np.full([n_obj], 20)                                                                # default size
+        colour = mcol.to_rgba(colour, 0.5)
+    
+    # marker sizes and transparancy scaling with mag
+    if (mag is not None):
+        m_max = np.max(mag)
+        sizes = 10*(0.0 + (m_max - mag)/8.0)**2                                                     # formula for representation of magnitude
+        alpha = sizes/np.max(sizes)                                                                 # alpha also scales with mag
+        if (theme == 'fits'):
+            colour == (1,1,1)                                                                       # set colours to white
+        colour = mcol.to_rgba_array(colour, alpha)
+    else:
+        sizes = 20                                                                                  # default size
     
     fig, ax = plt.subplots()
-    ax.scatter(objects[:,hor_axis], objects[:,vert_axis], 
-               marker='.', linewidths=0.0, c=colour, s=sizes)
+    ax.scatter(objects[:,hor_axis], objects[:,vert_axis], marker='.', 
+               linewidths=0.0, c=colour, s=sizes)
     
     # take the maximum distance from the origin as axis scale
     if (np.shape(objects[0]) == (2,)):
@@ -58,7 +60,7 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
     ax.set(aspect='equal', adjustable='datalim')
     
     # The further setup (custom dark theme)
-    if (theme == 1):
+    if (theme == 'dark1'):
         # fancy dark theme
         c_grey = '0.6'
         c_grey2 = '0.4'
@@ -73,7 +75,7 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
         ax.title.set_color(c_grey)
         ax.xaxis.label.set_color(c_grey)
         ax.yaxis.label.set_color(c_grey)
-    elif (theme == 2):
+    elif (theme == 'dark2'):
         # dark theme for good saving
         c_grey = '0.6'
         c_grey2 = '0.4'
@@ -88,7 +90,7 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
         ax.title.set_color(c_grey)
         ax.xaxis.label.set_color(c_grey)
         ax.yaxis.label.set_color(c_grey)
-    elif (theme == 3):
+    elif (theme == 'fits'):
         # theme for imitating .fits images
         c_grey = '0.6'
         c_grey2 = '0.4'
@@ -114,7 +116,7 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
 
 
 def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z', 
-              colour='blue', T_eff=None, mag=None, theme=1):
+              colour='blue', T_eff=None, mag=None, theme=None):
     """Plots a 3D scatter of a 3D object (array).
     colour can be set to 'temperature' to represent the effective temperatures.
     magnitudes can be given to mag to make the marker sizes represent magnitudes.
@@ -123,13 +125,15 @@ def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
     """
     n_obj = len(objects[:, 0])
     
-    # colours can be made to match the temperature (uses T_eff)
-    if (colour == 'temperature'):
+    # colours can be made to match the temperature (using T_eff)
+    if (T_eff is not None):
         colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
-        colour[T_eff == 10] = [0.2, 0.2, 0.2]                                                       # dead stars
-        colour = np.append(colour, np.full([n_obj], 0.5), axis=1)                                   # add alpha
+        colour[T_eff <= 10] = [0.2, 0.2, 0.2]                                                       # dead stars
+        colour = mcol.to_rgba_array(colour, 0.5)                                                    # add alpha
     elif (colour == 'blue'):
-        colour = np.full([n_obj, 4], (31, 119, 180, 0.5))                                           # rgb for 'tab:blue', and alpha=0.5
+        colour = mcol.to_rgba('tab:blue', 0.5)
+    else:
+        colour = mcol.to_rgba(colour, 0.5)
     
     if ((mag is not None) & (theme == 3)):
         m_max = np.max(mag)
@@ -155,7 +159,7 @@ def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
     ax.set(aspect='equal', adjustable='box')
     
     # The further setup (custom dark theme)
-    if (theme == 1):
+    if (theme == 'dark1'):
         # fancy dark theme
         c_grey = (0.6, 0.6, 0.6)
         c_grey2 = (0.4, 0.4, 0.4)
@@ -173,7 +177,7 @@ def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
         ax.xaxis.label.set_color(c_grey)
         ax.yaxis.label.set_color(c_grey)
         ax.zaxis.label.set_color(c_grey)
-    elif (theme == 2):
+    elif (theme == 'dark2'):
         # dark theme for good saving
         c_grey = (0.6, 0.6, 0.6)
         c_grey2 = (0.4, 0.4, 0.4)
@@ -202,16 +206,21 @@ def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
 
 
 def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)', 
-        ylabel=r'Luminosity log($L/L_\odot$)', colour='temperature', theme=0, mask=None):
+        ylabel=r'Luminosity log($L/L_\odot$)', colour='temperature', theme=None, mask=None):
     """Plot the Herzsprung Russell Diagram. Use mask to select certain stars.
     colours can be made to match the temperature (default behaviour)
     set theme to 1 for a fancy dark plot, 2 for a less fancy dark saveable plot 
         and 0 for normal light colours.
     """
-    if (colour == 'temperature'):
-        colour = conv.TemperatureToRGB(T_eff).transpose()
+    # colours can be made to match the temperature (using T_eff)
+    if (T_eff is not None):
+        colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
+        colour[T_eff <= 10] = [0.2, 0.2, 0.2]                                                       # dead stars
+        colour = mcol.to_rgba_array(colour, 0.5)                                                    # add alpha
     elif (colour == 'blue'):
-        colour = 'tab:blue'
+        colour = mcol.to_rgba('tab:blue', 0.5)
+    else:
+        colour = mcol.to_rgba(colour, 0.5)
         
     if mask is None:
         mask = [True for i in range(len(T_eff))]
@@ -219,7 +228,7 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
     fig, ax = plt.subplots()
     ax.scatter(T_eff[mask], log_Lum[mask], marker='.', linewidths=0.0, c=colour)
 
-    if (theme == 1):
+    if (theme == 'dark1'):
         # fancy dark theme
         c_light = '0.9'
         c_grey = '0.7'
@@ -236,7 +245,7 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
         ax.title.set_color(c_light)
         ax.xaxis.label.set_color(c_light)
         ax.yaxis.label.set_color(c_light)
-    elif (theme == 2):
+    elif (theme == 'dark2'):
         # dark theme for good saving
         c_light = '0.9'
         c_grey = '0.7'
@@ -264,16 +273,21 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
 
 
 def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude', 
-        colour='blue', T_eff=None, theme=0, adapt_axes=True, mask=None):
+        colour='blue', T_eff=None, theme=None, adapt_axes=True, mask=None):
     """Plot the Colour Magnitude Diagram. Use mask to select certain stars.
     colours can be made to match the temperature (default behaviour)
     set theme to 1 for a fancy dark plot, 2 for a less fancy dark saveable plot 
         and 0 for normal light colours.
     """
-    if (colour == 'temperature'):
+    # colours can be made to match the temperature (using T_eff)
+    if (T_eff is not None):
         colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
+        colour[T_eff <= 10] = [0.2, 0.2, 0.2]                                                       # dead stars
+        colour = mcol.to_rgba_array(colour, 0.5)                                                    # add alpha
     elif (colour == 'blue'):
-        colour = 'tab:blue'
+        colour = mcol.to_rgba('tab:blue', 0.5)
+    else:
+        colour = mcol.to_rgba(colour, 0.5)
         
     if mask is None:
         mask = [True for i in range(len(c_mag))]
@@ -292,7 +306,7 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
         ax.set_xlim(-0.5, 2.0)                                                                      # good for seeing vertical differences
         ax.set_ylim(17.25, -12.75)
     
-    if (theme == 1):
+    if (theme == 'dark1'):
         # fancy dark theme
         c_light = '0.9'
         c_grey = '0.7'
@@ -309,7 +323,7 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
         ax.title.set_color(c_light)
         ax.xaxis.label.set_color(c_light)
         ax.yaxis.label.set_color(c_light)
-    elif (theme == 2):
+    elif (theme == 'dark2'):
         # dark theme for good saving
         c_light = '0.9'
         c_grey = '0.7'

@@ -132,12 +132,12 @@ def TemperatureToRGB(c_temp):
     
     # calculate red:
     red = (c_temp < 66)*255 
-    red[c_temp >= 66] = 329.698727446*((c_temp - 60)[c_temp >= 66]**-0.1332047592)
+    red[c_temp >= 66] = 329.698727446*((c_temp - 60)[c_temp >= 66]**(-0.1332047592))
     
     # calculate green:
     green = (c_temp <= 66)*c_temp
     green[c_temp <= 66] = 99.4708025861*np.log(green[c_temp <= 66]) - 161.1195681661
-    green[c_temp > 66] = 288.1221695283*((c_temp - 60)[c_temp > 66]**-0.0755148492)
+    green[c_temp > 66] = 288.1221695283*((c_temp - 60)[c_temp > 66]**(-0.0755148492))
         
     # calculate blue:
     blue = (c_temp >= 66)*255
