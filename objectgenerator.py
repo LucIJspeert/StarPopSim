@@ -795,7 +795,7 @@ class AstObject:
         return np.max(r_sorted[lum_sum <= tot_lum/2])                                               # 2D/3D radius at half the luminosity
         
     def Plot2D(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', 
-               filter='Ks', theme='dark1'):
+               filter='V', theme='dark1'):
         """Make a plot of the object positions in two dimensions
         Set colour to 'temperature' for a temperature representation.
         Set filter to None to avoid markers scaling in size with magnitude.
@@ -813,12 +813,12 @@ class AstObject:
         else:
             temps = None
         
-        vis.Objects2D(objects, title=title, xlabel=xlabel, ylabel=ylabel,
+        vis.Objects2D(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
                       axes=axes, colour=colour, T_eff=temps, mag=mags, theme=theme)
         return
         
     def Plot3D(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', 
-               filter='Ks', theme='dark1'):
+               filter='V', theme='dark1'):
         """Make a plot of the object positions in three dimensions.
         Set colour to 'temperature' for a temperature representation.
         Set filter to None to avoid markers scaling in size with magnitude.
@@ -835,11 +835,11 @@ class AstObject:
         else:
             temps = None
         
-        vis.Objects3D(objects, title=title, xlabel=xlabel, ylabel=ylabel,
+        vis.Objects3D(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
                       axes=axes, colour=colour, T_eff=temps, mag=mags, theme=theme)
         return
         
-    def PlotHRD(title='HRD', colour='temperature', theme='dark1'):
+    def PlotHRD(self, title='HRD', colour='temperature', theme='dark1'):
         """Make a plot of stars in an HR diagram.
         Set colour to 'temperature' for a temperature representation.
         Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
@@ -853,12 +853,24 @@ class AstObject:
                 ylabel=r'Luminosity log($L/L_\odot$)', colour=colour, theme=theme, mask=r_mask)
         return
         
-    def PlotCMD():
+    def PlotCMD(self, x='B-V', y='V', title='CMD', colour='blue', theme='dark1'):
         """Make a plot of the stars in a CMD
-        
+        Set x and y to the colour and magnitude to be used (x needs format 'A-B')
+        Set colour to 'temperature' for a temperature representation.
         """
+        x_filters = x.split('-')
+        mag_A = self.ApparentMagnitudes(filter=x_filters[0])
+        mag_B = self.ApparentMagnitudes(filter=x_filters[1])
+        c_mag = mag_A - mag_B
         
-        vis.CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude', 
+        if (y == x_filters[0]):
+            mag = mag_A
+        elif (y == x_filters[1]):
+            mag = mag_B
+        else:
+            mag = self.ApparentMagnitudes(filter=y)
+        
+        vis.CMD(c_mag, mag, title='CMD', xlabel=x, ylabel=y, 
                 colour='blue', T_eff=None, theme=None, adapt_axes=True, mask=None)
         return
         

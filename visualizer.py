@@ -32,18 +32,19 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
         colour[T_eff <= 10] = [0.2, 0.2, 0.2]                                                       # dead stars
         colour = mcol.to_rgba_array(colour, 0.5)                                                    # add alpha
     elif (colour == 'blue'):
-        colour = mcol.to_rgba('tab:blue', 0.5)
+        colour = np.array([mcol.to_rgba('tab:blue', 0.5)])
     else:
-        colour = mcol.to_rgba(colour, 0.5)
+        colour = np.array([mcol.to_rgba(colour, 0.5)])
     
     # marker sizes and transparancy scaling with mag
     if (mag is not None):
         m_max = np.max(mag)
-        sizes = 10*(0.0 + (m_max - mag)/8.0)**2                                                     # formula for representation of magnitude
-        alpha = sizes/np.max(sizes)                                                                 # alpha also scales with mag
+        sizes = (0.3 + (m_max - mag)/1.5)**2                                                        # formula for representation of magnitude
         if (theme == 'fits'):
-            colour == (1,1,1)                                                                       # set colours to white
-        colour = mcol.to_rgba_array(colour, alpha)
+            alpha = (m_max - mag)**3
+            alpha = alpha/np.max(alpha)                                                             # scale alpha with mag
+            colour = np.tile((1,1,1), (len(alpha), 1))                                              # set colours to white
+            colour = mcol.to_rgba_array(colour, alpha)
     else:
         sizes = 20                                                                                  # default size
     
@@ -80,7 +81,7 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
         # dark theme for good saving
         c_grey = '0.6'
         c_grey2 = '0.4'
-        fig.patch.set_color('black')
+        # fig.patch.set_color('black')
         ax.set_facecolor('black')
         ax.spines['bottom'].set_color(c_grey2)
         ax.spines['top'].set_color(c_grey2) 
@@ -136,17 +137,17 @@ def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
     else:
         colour = mcol.to_rgba(colour, 0.5)
     
-    if ((mag is not None) & (theme == 3)):
+    # marker sizes and transparancy scaling with mag
+    if (mag is not None):
         m_max = np.max(mag)
-        sizes = 10*(0.0 + (m_max - mag)/8.0)**2                                                     # formula for representation of magnitude
-        s_max = np.max(sizes)
-        colour = [[1,1,1,s/s_max] for s in sizes]                                                   # set colours to white and alpha scales with mag
-    #todo: size scaling needs tweaking
-    elif mag is not None:
-        m_max = np.max(mag)
-        sizes = 10*(0.0 + (m_max - mag)/8.0)**2                                                     # formula for representation of magnitude
+        sizes = (0.3 + (m_max - mag)/1.5)**2                                                        # formula for representation of magnitude
+        if (theme == 'fits'):
+            alpha = (m_max - mag)**3
+            alpha = alpha/np.max(alpha)                                                             # scale alpha with mag
+            colour = np.tile((1,1,1), (len(alpha), 1))                                              # set colours to white
+            colour = mcol.to_rgba_array(colour, alpha)
     else:
-        sizes = np.full([n_obj], 20)                                                                # default size
+        sizes = 20                                                                                  # default size
     
     fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
     ax.scatter(objects[:,0], objects[:,1], objects[:,2], 
@@ -183,7 +184,7 @@ def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
         c_grey = (0.6, 0.6, 0.6)
         c_grey2 = (0.4, 0.4, 0.4)
         c_black = (0, 0, 0, 0)
-        fig.patch.set_color('black')
+        # fig.patch.set_color('black')
         ax.set_facecolor(c_black)
         ax.w_xaxis.set_pane_color(c_black)     
         ax.w_yaxis.set_pane_color(c_black)
@@ -210,8 +211,8 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
         ylabel=r'Luminosity log($L/L_\odot$)', colour='temperature', theme=None, mask=None):
     """Plot the Herzsprung Russell Diagram. Use mask to select certain stars.
     colours can be made to match the temperature (default behaviour)
-    set theme to 1 for a fancy dark plot, 2 for a less fancy dark saveable plot 
-        and 0 for normal light colours.
+    Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
+        saveable dark plot, and None for normal light colours.
     """
     # colours can be made to match the temperature (using T_eff)
     if (T_eff is not None):
@@ -222,47 +223,46 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
         colour = mcol.to_rgba('tab:blue', 0.5)
     else:
         colour = mcol.to_rgba(colour, 0.5)
-        
+     
+    # the mask can be used to hide remnants as the screw with the plot area   
     if mask is None:
-        mask = [True for i in range(len(T_eff))]
+        mask = np.ones_like(T_eff, dtype=bool)
     
     fig, ax = plt.subplots()
     ax.scatter(T_eff[mask], log_Lum[mask], marker='.', linewidths=0.0, c=colour)
-
+    
     if (theme == 'dark1'):
         # fancy dark theme
-        c_light = '0.9'
-        c_grey = '0.7'
-        c_dark1 = '0.22'
-        c_dark2 = '0.15'
-        fig.patch.set_color(c_dark1)
-        ax.set_facecolor(c_dark2)
-        ax.spines['bottom'].set_color(c_grey)
-        ax.spines['top'].set_color(c_grey) 
-        ax.spines['right'].set_color(c_grey)
-        ax.spines['left'].set_color(c_grey)
-        ax.tick_params(axis='x', colors=c_grey)
-        ax.tick_params(axis='y', colors=c_grey)
-        ax.title.set_color(c_light)
-        ax.xaxis.label.set_color(c_light)
-        ax.yaxis.label.set_color(c_light)
+        c_1 = '0.9'
+        c_2 = '0.7'
+        c_3 = '0.22'
+        c_4 = '0.15'
     elif (theme == 'dark2'):
         # dark theme for good saving
-        c_light = '0.9'
-        c_grey = '0.7'
-        c_dark1 = '0.22'
-        c_dark2 = '0.15'
-        ax.set_facecolor(c_dark2)
-        ax.spines['bottom'].set_color(c_dark1)
-        ax.spines['top'].set_color(c_dark1) 
-        ax.spines['right'].set_color(c_dark1)
-        ax.spines['left'].set_color(c_dark1)
-        ax.tick_params(axis='x', colors=c_dark1)
-        ax.tick_params(axis='y', colors=c_dark1)
-        ax.title.set_color(c_dark1)
-        ax.xaxis.label.set_color(c_dark1)
-        ax.yaxis.label.set_color(c_dark1)
+        c_1 = '0.22'
+        c_2 = '0.22'
+        c_3 = '1.0'
+        c_4 = '0.15'
+    else:
+        # defaults (not actually used)
+        c_1 = '0.0'                                                                                 # words
+        c_2 = '0.0'                                                                                 # lines
+        c_3 = '1.0'                                                                                 # outer rim
+        c_4 = '1.0'                                                                                 # inner area
     # todo: dark theme 2 needs some work
+    
+    if (theme is not None):
+        fig.patch.set_color(c_3)
+        ax.set_facecolor(c_4)
+        ax.spines['bottom'].set_color(c_2)
+        ax.spines['top'].set_color(c_2) 
+        ax.spines['right'].set_color(c_2)
+        ax.spines['left'].set_color(c_2)
+        ax.tick_params(axis='x', colors=c_2)
+        ax.tick_params(axis='y', colors=c_2)
+        ax.title.set_color(c_1)
+        ax.xaxis.label.set_color(c_1)
+        ax.yaxis.label.set_color(c_1)
     
     ax.set_xlim(40000, 500) 
     ax.set_ylim(-5, 7)
@@ -277,8 +277,8 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
         colour='blue', T_eff=None, theme=None, adapt_axes=True, mask=None):
     """Plot the Colour Magnitude Diagram. Use mask to select certain stars.
     colours can be made to match the temperature (default behaviour)
-    set theme to 1 for a fancy dark plot, 2 for a less fancy dark saveable plot 
-        and 0 for normal light colours.
+    Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
+        saveable dark plot, and None for normal light colours.
     """
     # colours can be made to match the temperature (using T_eff)
     if (T_eff is not None):
@@ -290,8 +290,9 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
     else:
         colour = mcol.to_rgba(colour, 0.5)
         
+    # the mask can be used to hide remnants as the screw with the plot area
     if mask is None:
-        mask = [True for i in range(len(c_mag))]
+        mask = np.ones_like(c_mag, dtype=bool)
     
     fig, ax = plt.subplots()
     ax.scatter(c_mag[mask], mag[mask], c=colour, marker='.', linewidths=0.0)
@@ -309,37 +310,36 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
     
     if (theme == 'dark1'):
         # fancy dark theme
-        c_light = '0.9'
-        c_grey = '0.7'
-        c_dark1 = '0.22'
-        c_dark2 = '0.15'
-        fig.patch.set_color(c_dark1)
-        ax.set_facecolor(c_dark2)
-        ax.spines['bottom'].set_color(c_grey)
-        ax.spines['top'].set_color(c_grey) 
-        ax.spines['right'].set_color(c_grey)
-        ax.spines['left'].set_color(c_grey)
-        ax.tick_params(axis='x', colors=c_grey)
-        ax.tick_params(axis='y', colors=c_grey)
-        ax.title.set_color(c_light)
-        ax.xaxis.label.set_color(c_light)
-        ax.yaxis.label.set_color(c_light)
+        c_1 = '0.9'
+        c_2 = '0.7'
+        c_3 = '0.22'
+        c_4 = '0.15'
     elif (theme == 'dark2'):
         # dark theme for good saving
-        c_light = '0.9'
-        c_grey = '0.7'
-        c_dark1 = '0.22'
-        c_dark2 = '0.15'
-        ax.set_facecolor(c_dark2)
-        ax.spines['bottom'].set_color(c_dark1)
-        ax.spines['top'].set_color(c_dark1) 
-        ax.spines['right'].set_color(c_dark1)
-        ax.spines['left'].set_color(c_dark1)
-        ax.tick_params(axis='x', colors=c_dark1)
-        ax.tick_params(axis='y', colors=c_dark1)
-        ax.title.set_color(c_dark1)
-        ax.xaxis.label.set_color(c_dark1)
-        ax.yaxis.label.set_color(c_dark1)
+        c_1 = '0.22'
+        c_2 = '0.22'
+        c_3 = '1.0'
+        c_4 = '0.15'
+    else:
+        # defaults (not actually used)
+        c_1 = '0.0'                                                                                 # words
+        c_2 = '0.0'                                                                                 # lines
+        c_3 = '1.0'                                                                                 # outer rim
+        c_4 = '1.0'                                                                                 # inner area
+    # todo: dark theme 2 needs some work
+    
+    if (theme is not None):
+        fig.patch.set_color(c_3)
+        ax.set_facecolor(c_4)
+        ax.spines['bottom'].set_color(c_2)
+        ax.spines['top'].set_color(c_2) 
+        ax.spines['right'].set_color(c_2)
+        ax.spines['left'].set_color(c_2)
+        ax.tick_params(axis='x', colors=c_2)
+        ax.tick_params(axis='y', colors=c_2)
+        ax.title.set_color(c_1)
+        ax.xaxis.label.set_color(c_1)
+        ax.yaxis.label.set_color(c_1)
         
     ax.set_title(title)
     ax.set_xlabel(xlabel)
