@@ -795,23 +795,72 @@ class AstObject:
         return np.max(r_sorted[lum_sum <= tot_lum/2])                                               # 2D/3D radius at half the luminosity
         
     def Plot2D(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', 
-               filter='Ks', mag='app', theme='dark1'):
-        """"Make a plot of the object positions in two dimensions
-        
+               filter='Ks', theme='dark1'):
+        """Make a plot of the object positions in two dimensions
+        Set colour to 'temperature' for a temperature representation.
+        Set filter to None to avoid markers scaling in size with magnitude.
+        Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
+            saveable dark plot, 'fits' for a plot that resembles a .fits image,
+            and None for normal light colours.
         """
-        # if app
-        magnitudes = self.ApparentMagnitudes()
+        if (filter is not None):
+            mags = self.ApparentMagnitudes(filter=filter)
+        else:
+            mags = None
         
-        temps = 10**self.LogTemperatures()
+        if (colour == 'temperature'):
+            temps = 10**self.LogTemperatures()
+        else:
+            temps = None
         
-        Objects2D(objects, title=title, xlabel=xlabel, ylabel=ylabel,
-              axes=axes, colour=colour, T_eff=temps, mag=magnitudes, theme=theme)
-        
+        vis.Objects2D(objects, title=title, xlabel=xlabel, ylabel=ylabel,
+                      axes=axes, colour=colour, T_eff=temps, mag=mags, theme=theme)
         return
         
-    def Plot3D():
-        #todo: implement visualisations as class functions
-        pass
+    def Plot3D(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', 
+               filter='Ks', theme='dark1'):
+        """Make a plot of the object positions in three dimensions.
+        Set colour to 'temperature' for a temperature representation.
+        Set filter to None to avoid markers scaling in size with magnitude.
+        Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
+            saveable dark plot, and None for normal light colours.
+        """
+        if (filter is not None):
+            mags = self.ApparentMagnitudes(filter=filter)
+        else:
+            mags = None
+        
+        if (colour == 'temperature'):
+            temps = 10**self.LogTemperatures()
+        else:
+            temps = None
+        
+        vis.Objects3D(objects, title=title, xlabel=xlabel, ylabel=ylabel,
+                      axes=axes, colour=colour, T_eff=temps, mag=mags, theme=theme)
+        return
+        
+    def PlotHRD(title='HRD', colour='temperature', theme='dark1'):
+        """Make a plot of stars in an HR diagram.
+        Set colour to 'temperature' for a temperature representation.
+        Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
+            saveable dark plot, and None for normal light colours.
+        """
+        r_mask = self.Remnants()
+        temps = 10**self.LogTemperatures()
+        lums = self.LogLuminosities()
+        
+        vis.HRD(T_eff=temps, log_Lum=lums, title=title, xlabel='Temperature (K)', 
+                ylabel=r'Luminosity log($L/L_\odot$)', colour=colour, theme=theme, mask=r_mask)
+        return
+        
+    def PlotCMD():
+        """Make a plot of the stars in a CMD
+        
+        """
+        
+        vis.CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude', 
+                colour='blue', T_eff=None, theme=None, adapt_axes=True, mask=None)
+        return
         
     def SaveTo(self, filename):
         """Saves the class to a file."""

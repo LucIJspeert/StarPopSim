@@ -18,7 +18,8 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
     Giving effective temperatures makes the marker colour represent temperature.
     Giving magnitudes makes the marker size and alpha scale with brightness.
     Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
-        saveable dark plot,  and None for normal light colours.
+        saveable dark plot, 'fits' for a plot that resembles a .fits image,
+        and None for normal light colours.
     """
     # determine which axes to put on the horizontal and vertical axis of the plot
     axes_list = np.array([[0, 1], [1, 2], [2, 0]])
@@ -120,8 +121,8 @@ def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
     """Plots a 3D scatter of a 3D object (array).
     colour can be set to 'temperature' to represent the effective temperatures.
     magnitudes can be given to mag to make the marker sizes represent magnitudes.
-    set theme to 1 for a fancy dark plot, 2 for a less fancy dark saveable plot 
-        and 0 for normal light colours.
+    Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
+        saveable dark plot, and None for normal light colours.
     """
     n_obj = len(objects[:, 0])
     
