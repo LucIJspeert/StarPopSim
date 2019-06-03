@@ -170,7 +170,7 @@ def AddToFits(filename, input_data, input_header=None):
     return
 
 
-def PlotFits(filename, index=0, colours='gray', scale='lin', grid=True, chip='single'):
+def PlotFits(filename, index=0, colours='gray', scale='lin', grid=False, chip='single'):
     """Displays the image in a fits file. Optional args: HDUlist index, colours.
     Can also take image objects directly.
     scale can be set to 'lin', 'sqrt', and 'log'
@@ -222,7 +222,7 @@ def PlotFits(filename, index=0, colours='gray', scale='lin', grid=True, chip='si
     return
 
 
-def SaveFitsPlot(filename, index=0, colours='gray', scale='lin', grid=True, chip='single'):
+def SaveFitsPlot(filename, index=0, colours='gray', scale='lin', grid=False, chip='single'):
     """Saves the plotted image in a fits file. Optional args: HDUlist index, colours.
     Can also take image objects directly.
     scale can be set to 'lin', 'sqrt', and 'log'
