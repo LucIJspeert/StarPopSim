@@ -21,8 +21,9 @@ def MakeSource(astobj, filter='V'):
     """Makes a SimCADO Source object from an AstObj.
     filter determines what magnitudes are used (corresponding to that filter).
     """
-    x_as = np.arctan(astobj.coords[:, 0]/astobj.d_ang)*rad_as                                       # original coordinates assumed to be in pc
-    y_as = np.arctan(astobj.coords[:, 1]/astobj.d_ang)*rad_as
+    coords_as = astobj.CoordsArcsec()
+    x_as = coords_as[:, 0]
+    y_as = coords_as[:, 1]
     
     magnitudes = astobj.ApparentMagnitudes(filter=filter)
     spec_i, spec_names = astobj.SpectralTypes()

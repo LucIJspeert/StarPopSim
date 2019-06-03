@@ -754,6 +754,11 @@ class AstObject:
         """Returns log of the total luminosity in Lsun."""
         return np.log10(np.sum(10**self.LogLuminosities(realistic_remnants=False)))                 # remnants don't add much, so leave them as is
         
+    def CoordsArcsec(self):
+        """Returns coordinates converted to arcseconds (from pc)."""
+        rad_as = 648000/np.pi
+        return np.arctan(self.coords/self.d_ang)*rad_as
+        
     def StarRadii(self, spher=True):
         """Returns the radial coordinate of the stars (spherical or cylindrical) in pc."""
         if spher:
