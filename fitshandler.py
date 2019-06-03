@@ -217,6 +217,7 @@ def PlotFits(filename, index=0, colours='gray', scale='lin', grid=True, chip='si
     cax = ax.imshow(image_data, cmap=colours)
     ax.grid(grid)
     cbar = fig.colorbar(cax)
+    plt.tight_layout()
     plt.show()
     return
 
