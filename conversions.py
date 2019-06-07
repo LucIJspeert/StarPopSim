@@ -12,6 +12,7 @@ L_0 = 78.70                     # Lsun Luminosity for absolute bolometric magnit
 L_sun = 3.828*10**26            # W
 R_sun = 6.957*10**8             # m
 sigma_SB = 5.670367*10**-8      # W K^-4 m^-2
+rad_as = 648000/np.pi           # radians to arcseconds
 
 # global defaults
 imf_defaults = [0.08, 150]      # lower bound, upper bound on mass
@@ -57,6 +58,13 @@ def RotateXZ(positions, angle):
     x_new = coords[0]*cos - coords[2]*sin
     z_new = coords[2]*cos + coords[0]*sin
     return np.array([x_new, coords[1], z_new]).transpose()
+    
+    
+def ParsecToArcsec(x, d):
+    """Convert from distances (x) perpendicular to the distance (d) 
+    both in parsec to arcseconds.
+    """
+    return np.arctan2(x, d)*rad_as
 
 
 def MtotToNstars(M, imf=imf_defaults):
