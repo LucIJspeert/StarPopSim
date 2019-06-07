@@ -26,7 +26,7 @@ As of version 1.0 (April 2019), the way to get this code is to either download i
 **StarPopSim has only been tested in Python 3.6**. 
 Using older versions could result in unexpected errors, although any Python 3 version is expected to work.
 
-**Package dependencies:** Numpy, Scipy, matplotlib, astropy (for .fits functionality), SimCADO (for imaging functionality)
+**Package dependencies:** Numpy, Scipy, matplotlib, SimCADO (for imaging functionality; also requires synphot), astropy (for .fits functionality), photutils (for photometry functionality) 
 
 **Note:** making the astronomical objects in StarPopSim is in principle fully independent from SimCADO. So if different instrument simulation software is going to be used instead, a SimCADO install is not necessary.
 

@@ -1,5 +1,5 @@
 # Luc IJspeert
-# smoc test file
+# SimPopPy test file
 ##
 import PyQt5
 import matplotlib.pyplot as plt
@@ -529,13 +529,11 @@ print('Mass of objects is {0:1.2e}% off of given input mass'.format((M_est - M_t
 ## ObjGen and HRD, CMD
 import numpy as np
 import matplotlib.pyplot as plt
-import ObjectGen as obg
 import visualizer as vis
 import formulas as form
 import distributions as dist
 import conversions as conv
-import ObjectGen as obg
-import AstObjectClass as aoc
+import objectgenerator as obg
 
 def BVmagToTemp(BV):
     """[Experimental, use at own risk (onlky works (somewhat) up to ~10kK)]"""
@@ -2559,9 +2557,9 @@ src = sim.source.stars(mags=magnitudes, x=xs, y=ys, filter_name=filter, spec_typ
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='scao', filename='img_test_save')
 fh.PlotFits('img_test_save')
 
-## AO tests
+## AO tests (comparison)
 import numpy as np
-import ImageGen as img
+import imagegenerator as img
 import simcado as sim
 import fitshandler as fh
 
@@ -2578,8 +2576,8 @@ magnitudes = np.linspace(12, 18, n)
 
 src = sim.source.stars(mags=magnitudes, x=xs, y=ys, filter_name=filter, spec_types=['M0V'])
 
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='PSF_MCAO.fits', filename='img_test_save')
-fh.PlotFits('img_test_save', grid=False)
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits', filename='img_test_save')
+fh.PlotFits('img_test_save', scale='lin', grid=False)
 
 
 ##
@@ -2976,6 +2974,11 @@ out to what D can you resolve up to half light radius
 
 foreground stars (models for MW)
 """
+import numpy as np
+import objectgenerator as obg
+import imagegenerator as img
+import fitshandler as fh
+
 M_range = np.arange(1, 102, 20)*10**5                                       # in solar mass
 D_range = np.arange(0.8, 15.3, 3.2)*10**6                                   # in pc
 r_range = np.round(np.arange(1, 22, 5)/2.9, decimals=3)                     # in pc
@@ -2996,16 +2999,17 @@ def imgsaver(pars, int=None, ret_int=False):
     view='wide'                 # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
     chip='centre'               # read out, small middle bit, centre chip or full detector
     exp = 1800                  # exposure time in s
+    ao = 'PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits' # ao mode
     
     obj_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r)
-    img_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, f)
+    img_name = 'grid-fv-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, f)
     
     astobj = obg.AstObject.LoadFrom(obj_name)
     src = img.MakeSource(astobj, filter=f)
     if ret_int:
-        image, internals = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode='scao', filename=img_name, return_int=ret_int)
+        image, internals = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, return_int=ret_int)
     else:
-        image = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode='scao', filename=img_name, internals=int)
+        image = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, internals=int)
         
     fh.SaveFitsPlot(img_name, grid=False)
     
@@ -3023,7 +3027,7 @@ for pars in par_grid:
 
 internals = imgsaver(par_grid[0], ret_int=True)
 for pars in par_grid[1:]:
-    imgsaver(pars, int=internals) # continue from previous point
+    imgsaver(pars, int=internals)
 
 
 
@@ -3053,8 +3057,7 @@ image = (make_gaussian_sources_image(tshape, sources) +
 from matplotlib import rcParams
 rcParams['font.size'] = 13
 import matplotlib.pyplot as plt
-plt.imshow(image, cmap='viridis', aspect=1, interpolation='nearest',
-           origin='lower') 
+plt.imshow(image, cmap='viridis', aspect=1, interpolation='nearest', origin='lower') 
 plt.title('Simulated data')
 plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
 plt.show()
@@ -3093,8 +3096,7 @@ plt.title('Simulated data')
 plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
 
 plt.subplot(1, 2, 2)
-plt.imshow(residual_image, cmap='viridis', aspect=1,
-           interpolation='nearest', origin='lower')
+plt.imshow(residual_image, cmap='viridis', aspect=1, interpolation='nearest', origin='lower')
 plt.title('Residual Image')
 plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
 plt.show()
@@ -3102,9 +3104,290 @@ plt.show()
 # https://photutils.readthedocs.io/en/stable/psf.html
 
 # https://astwro.readthedocs.io/en/latest/pydaophot.html                needs DAOphot installation
+## upscale pixels
+import numpy as np
+from astropy.table import Table
+from photutils.datasets import (make_random_gaussians_table,
+                                make_noise_image,
+                                make_gaussian_sources_image)
+sigma_psf = 2.0
+sources = Table()
+sources['flux'] = [7000, 8000, 7000, 8000]
+sources['x_mean'] = [1012, 1017, 1012, 1017]
+sources['y_mean'] = [1015, 1015, 1020, 1020]
+sources['x_stddev'] = sigma_psf*np.ones(4)
+sources['y_stddev'] = sources['x_stddev']
+sources['theta'] = [0, 0, 0, 0]
+sources['id'] = [1, 2, 3, 4]
+tshape = (4096, 4096)
+image = (make_gaussian_sources_image(tshape, sources) +
+         make_noise_image(tshape, type='poisson', mean=6.,
+                          random_state=1) +
+         make_noise_image(tshape, type='gaussian', mean=0.,
+                          stddev=2., random_state=1))
+#
+from matplotlib import rcParams
+rcParams['font.size'] = 13
+import matplotlib.pyplot as plt
+plt.imshow(image, cmap='viridis', aspect=1, interpolation='nearest',
+           origin='lower') 
+plt.title('Simulated data')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+plt.show()
+##
+from photutils.detection import IRAFStarFinder
+from photutils.psf import IntegratedGaussianPRF, DAOGroup, IterativelySubtractedPSFPhotometry
+from photutils.background import MMMBackground, MADStdBackgroundRMS
+from astropy.modeling.fitting import LevMarLSQFitter
+from astropy.stats import gaussian_sigma_to_fwhm
+                                                                   
+bkgrms = MADStdBackgroundRMS()                                                                      # Class to calculate the background RMS in an array as using the median absolute deviation (MAD).
+std = bkgrms.calc_background_rms(data=image)
+# DAOStarFinder()                                                                                     # Detect stars in an image using the DAOFIND (Stetson 1987) algorithm. (uses DAOGroup, DAOStarFinder and MMMBackground)
+iraffind = IRAFStarFinder(threshold=10*std,
+                          fwhm=sigma_psf*gaussian_sigma_to_fwhm,
+                          minsep_fwhm=0.01, roundhi=5.0, roundlo=-5.0,
+                          sharplo=0.0, sharphi=2.0)
+daogroup = DAOGroup(2.0*sigma_psf*gaussian_sigma_to_fwhm)                                           # This class implements the DAOGROUP algorithm presented by Stetson (1987).
+mmm_bkg = MMMBackground()                                                                           # Class to calculate the background in an array using the DAOPHOT MMM algorithm.
+fitter = LevMarLSQFitter()                                                                          # Levenberg-Marquardt algorithm and least squares statistic.
+psf_model = IntegratedGaussianPRF(sigma=sigma_psf)                                                  # Circular Gaussian model integrated over pixels. Because it is integrated, this model is considered a PRF, not a PSF 
+
+photometry = IterativelySubtractedPSFPhotometry(finder=iraffind,
+                                                group_maker=daogroup,
+                                                bkg_estimator=mmm_bkg,
+                                                psf_model=psf_model,
+                                                fitter=fitter,
+                                                niters=1, fitshape=(11,11))
+result_tab = photometry(image=image)
+residual_image = photometry.get_residual_image()
+
+plt.subplot(1, 2, 1)
+plt.imshow(image, cmap='viridis', aspect=1, interpolation='nearest', origin='lower')
+plt.title('Simulated data')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+
+plt.subplot(1, 2, 2)
+plt.imshow(residual_image, cmap='viridis', aspect=1,
+           interpolation='nearest', origin='lower')
+plt.title('Residual Image')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+plt.show()
+
+## upscale N stars
+import numpy as np
+from astropy.table import Table
+from photutils.datasets import (make_random_gaussians_table,
+                                make_noise_image,
+                                make_gaussian_sources_image)
+sigma_psf = 2.0
+n = 40
+sources = Table()
+sources['flux'] = [7000 if (i%2 == 0) else 8000 for i in range(n)]
+sources['x_mean'] = [1012*(i%2 == 0) + 1017*(i%2 == 1) + 100*int(i/4) for i in range(n)]
+sources['y_mean'] = [1015*(i%4 < 2) + 1020*(i%4 >= 2) + 100*int(i/4) for i in range(n)]
+sources['x_stddev'] = sigma_psf*np.ones(n)
+sources['y_stddev'] = sources['x_stddev']
+sources['theta'] = np.zeros(n)
+sources['id'] = [i+1 for i in range(n)]
+tshape = (4096, 4096)
+image = (make_gaussian_sources_image(tshape, sources) +
+         make_noise_image(tshape, type='poisson', mean=6.,
+                          random_state=1) +
+         make_noise_image(tshape, type='gaussian', mean=0.,
+                          stddev=2., random_state=1))
+#
+from matplotlib import rcParams
+rcParams['font.size'] = 13
+import matplotlib.pyplot as plt
+plt.imshow(image, cmap='viridis', aspect=1, interpolation='nearest',
+           origin='lower') 
+plt.title('Simulated data')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+plt.show()
+##
+from photutils.detection import IRAFStarFinder
+from photutils.psf import IntegratedGaussianPRF, DAOGroup, IterativelySubtractedPSFPhotometry
+from photutils.background import MMMBackground, MADStdBackgroundRMS
+from astropy.modeling.fitting import LevMarLSQFitter
+from astropy.stats import gaussian_sigma_to_fwhm
+                                                                   
+bkgrms = MADStdBackgroundRMS()                                                                      # Class to calculate the background RMS in an array as using the median absolute deviation (MAD).
+std = bkgrms.calc_background_rms(data=image)
+# DAOStarFinder()                                                                                     # Detect stars in an image using the DAOFIND (Stetson 1987) algorithm. (uses DAOGroup, DAOStarFinder and MMMBackground)
+iraffind = IRAFStarFinder(threshold=10*std,
+                          fwhm=sigma_psf*gaussian_sigma_to_fwhm,
+                          minsep_fwhm=0.01, roundhi=5.0, roundlo=-5.0,
+                          sharplo=0.0, sharphi=2.0)
+daogroup = DAOGroup(2.0*sigma_psf*gaussian_sigma_to_fwhm)                                           # This class implements the DAOGROUP algorithm presented by Stetson (1987).
+mmm_bkg = MMMBackground()                                                                           # Class to calculate the background in an array using the DAOPHOT MMM algorithm.
+fitter = LevMarLSQFitter()                                                                          # Levenberg-Marquardt algorithm and least squares statistic.
+psf_model = IntegratedGaussianPRF(sigma=sigma_psf)                                                  # Circular Gaussian model integrated over pixels. Because it is integrated, this model is considered a PRF, not a PSF 
+
+photometry = IterativelySubtractedPSFPhotometry(finder=iraffind,
+                                                group_maker=daogroup,
+                                                bkg_estimator=mmm_bkg,
+                                                psf_model=psf_model,
+                                                fitter=fitter,
+                                                niters=1, fitshape=(11,11))
+result_tab = photometry(image=image)
+residual_image = photometry.get_residual_image()
+
+plt.subplot(1, 2, 1)
+plt.imshow(image, cmap='viridis', aspect=1, interpolation='nearest', origin='lower')
+plt.title('Simulated data')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+
+plt.subplot(1, 2, 2)
+plt.imshow(residual_image, cmap='viridis', aspect=1,
+           interpolation='nearest', origin='lower')
+plt.title('Residual Image')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+plt.show()
+
+## try with DAO algorithms   
+import photutils as phu
+import astropy as apy
+import astropy.modeling as apm
+                                                                
+bkgrms = MADStdBackgroundRMS()                                                                      # Class to calculate the background RMS in an array as using the median absolute deviation (MAD).
+std = bkgrms.calc_background_rms(data=image)
+
+daofind = phu.detection.DAOStarFinder(threshold=10*std,
+                                      fwhm=sigma_psf*gaussian_sigma_to_fwhm,
+                                      roundhi=5.0, roundlo=-5.0,
+                                      sharplo=0.0, sharphi=2.0)
+daogroup = DAOGroup(2.0*sigma_psf*gaussian_sigma_to_fwhm)                                           # This class implements the DAOGROUP algorithm presented by Stetson (1987).
+mmm_bkg = MMMBackground()                                                                           # Class to calculate the background in an array using the DAOPHOT MMM algorithm.
+fitter = apm.fitting.LevMarLSQFitter()                                                              # Levenberg-Marquardt algorithm and least squares statistic.
+psf_model = IntegratedGaussianPRF(sigma=sigma_psf)                                                  # Circular Gaussian model integrated over pixels. Because it is integrated, this model is considered a PRF, not a PSF 
+
+photometry = IterativelySubtractedPSFPhotometry(finder=daofind,
+                                                group_maker=daogroup,
+                                                bkg_estimator=mmm_bkg,
+                                                psf_model=psf_model,
+                                                fitter=fitter,
+                                                niters=1, fitshape=(11,11))
+result_tab = photometry(image=image)
+residual_image = photometry.get_residual_image()
+
+plt.subplot(1, 2, 1)
+plt.imshow(image, cmap='viridis', aspect=1, interpolation='nearest', origin='lower')
+plt.title('Simulated data')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+
+plt.subplot(1, 2, 2)
+plt.imshow(residual_image, cmap='viridis', aspect=1,
+           interpolation='nearest', origin='lower')
+plt.title('Residual Image')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+plt.show()
+
+##
+bkgrms = MADStdBackgroundRMS()                                                                      # Class to calculate the background RMS in an array as using the median absolute deviation (MAD).
+std = bkgrms.calc_background_rms(data=image)
+
+psf_model = IntegratedGaussianPRF(sigma=sigma_psf)                                                  # Circular Gaussian model integrated over pixels. Because it is integrated, this model is considered a PRF, not a PSF 
+# Detect stars in an image using the DAOFIND (Stetson 1987) algorithm. (uses DAOGroup, DAOStarFinder and MMMBackground)
+photometry = phu.psf.DAOPhotPSFPhotometry(threshold=10*std, 
+                                          fwhm=sigma_psf*sigma_to_fwhm, 
+                                          sharplo=0.0, sharphi=2.0, roundlo=-5.0, roundhi=5.0, 
+                                          crit_separation=2.0*sigma_psf*sigma_to_fwhm, 
+                                          psf_model=psf, 
+                                          fitter=apm.fitting.LevMarLSQFitter(), 
+                                          fitshape=(11,11), niters=1, 
+                                          aperture_radius=sigma_psf*sigma_to_fwhm
+                                          )
+result_tab = photometry(image=image)
+residual_image = photometry.get_residual_image()
+
+plt.subplot(1, 2, 1)
+plt.imshow(image, cmap='viridis', aspect=1, interpolation='nearest', origin='lower')
+plt.title('Simulated data')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+
+plt.subplot(1, 2, 2)
+plt.imshow(residual_image, cmap='viridis', aspect=1,
+           interpolation='nearest', origin='lower')
+plt.title('Residual Image')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+plt.show()
+
+## upscale gaussian
+import numpy as np
+from astropy.table import Table
+from photutils.datasets import (make_random_gaussians_table,
+                                make_noise_image,
+                                make_gaussian_sources_image)
+sigma_psf = 10.0
+sources = Table()
+sources['flux'] = [70000, 80000, 70000, 80000]
+sources['x_mean'] = [1012, 1057, 1012, 1057]
+sources['y_mean'] = [1015, 1015, 1050, 1050]
+sources['x_stddev'] = sigma_psf*np.ones(4)
+sources['y_stddev'] = sources['x_stddev']
+sources['theta'] = [0, 0, 0, 0]
+sources['id'] = [1, 2, 3, 4]
+tshape = (4096, 4096)
+image = (make_gaussian_sources_image(tshape, sources) +
+         make_noise_image(tshape, type='poisson', mean=6.,
+                          random_state=1) +
+         make_noise_image(tshape, type='gaussian', mean=0.,
+                          stddev=2., random_state=1))
+#
+from matplotlib import rcParams
+rcParams['font.size'] = 13
+import matplotlib.pyplot as plt
+plt.imshow(image, cmap='viridis', aspect=1, interpolation='nearest', origin='lower') 
+plt.title('Simulated data')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+plt.show()
+##
+from photutils.detection import IRAFStarFinder
+from photutils.psf import IntegratedGaussianPRF, DAOGroup, IterativelySubtractedPSFPhotometry
+from photutils.background import MMMBackground, MADStdBackgroundRMS
+from astropy.modeling.fitting import LevMarLSQFitter
+from astropy.stats import gaussian_sigma_to_fwhm
+                                                                   
+bkgrms = MADStdBackgroundRMS()                                                                      # Class to calculate the background RMS in an array as using the median absolute deviation (MAD).
+std = bkgrms.calc_background_rms(data=image)
+# DAOStarFinder()                                                                                     # Detect stars in an image using the DAOFIND (Stetson 1987) algorithm. (uses DAOGroup, DAOStarFinder and MMMBackground)
+iraffind = IRAFStarFinder(threshold=10*std,
+                          fwhm=sigma_psf*gaussian_sigma_to_fwhm,
+                          minsep_fwhm=0.01, roundhi=5.0, roundlo=-5.0,
+                          sharplo=0.0, sharphi=2.0)
+daogroup = DAOGroup(2.0*sigma_psf*gaussian_sigma_to_fwhm)                                           # This class implements the DAOGROUP algorithm presented by Stetson (1987).
+mmm_bkg = MMMBackground()                                                                           # Class to calculate the background in an array using the DAOPHOT MMM algorithm.
+fitter = LevMarLSQFitter()                                                                          # Levenberg-Marquardt algorithm and least squares statistic.
+psf_model = IntegratedGaussianPRF(sigma=sigma_psf)                                                  # Circular Gaussian model integrated over pixels. Because it is integrated, this model is considered a PRF, not a PSF 
+
+photometry = IterativelySubtractedPSFPhotometry(finder=iraffind,
+                                                group_maker=daogroup,
+                                                bkg_estimator=mmm_bkg,
+                                                psf_model=psf_model,
+                                                fitter=fitter,
+                                                niters=1, 
+                                                fitshape=np.shape(psf_model.render()))
+result_tab = photometry(image=image)
+residual_image = photometry.get_residual_image()
+
+plt.subplot(1, 2, 1)
+plt.imshow(image, cmap='viridis', aspect=1, interpolation='nearest', origin='lower')
+plt.title('Simulated data')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+
+plt.subplot(1, 2, 2)
+plt.imshow(residual_image, cmap='viridis', aspect=1,
+           interpolation='nearest', origin='lower')
+plt.title('Residual Image')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+plt.show()
+
+
+
+
 
 ## try it myself
-# first build ePSF
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -3116,94 +3399,589 @@ import photutils as phu
 import astropy as apy
 import astropy.table as apta
 
-n = 5
+# first build ePSF from an image
 filter = 'J'
+# src = sim.source.star_grid(n=16, mag_min=18, mag_max=20, filter_name=filter, separation=0.9, spec_type='M0V')
+src = sim.source.star(mag=16, filter_name=filter, spec_type='M0V')
 
-xs = np.array([0, -0.9, -0.9, 0.9, 0.9])                                                            # coords in as
-ys = np.array([0, -0.9, 0.9, -0.9, 0.9])                                                            # coords in as
-
-magnitudes = np.linspace(18, 20, n)
-
-src = sim.source.stars(mags=magnitudes, x=xs, y=ys, filter_name=filter, spec_types=['M0V'])
-
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='scao', filename='img_test_save')
-fh.PlotFits('img_test_save', grid=False)
-##
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename='img_test_save') # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
+fh.PlotFits('img_test_save', scale='lin', grid=False)
+## make the epsf
+# identify the stars and their initial positions
 img_data = fh.GetData('img_test_save')
 
-peaks_tbl = phu.find_peaks(img_data, threshold=20000., box_size=50)
+peaks_tbl = phu.find_peaks(img_data, threshold=135000., box_size=11)
+                           
 peaks_tbl['peak_value'].info.format = '%.8g'  # for consistent table output
 print(peaks_tbl)
+# [alter peak values to exact ones]
+peaks_tbl['x_peak'] = src.x_pix
+peaks_tbl['y_peak'] = src.y_pix
+# plot detected stars
+positions = (peaks_tbl['x_peak'], peaks_tbl['y_peak'])
+apertures = phu.CircularAperture(positions, r=5.)
 
+norm = apy.visualization.simple_norm(img_data, 'sqrt', percent=99.9)
+plt.imshow(img_data, cmap='Greys_r', origin='upper', norm=norm)
+apertures.plot(color='#0547f9', lw=1.5)
+plt.show()
+# extract cutouts of the stars using the extract_stars() function
 stars_tbl = apta.Table()
 stars_tbl['x'] = peaks_tbl['x_peak']
 stars_tbl['y'] = peaks_tbl['y_peak']
 
 mean_val, median_val, std_val = apy.stats.sigma_clipped_stats(img_data, sigma=2.)
-img_data -= median_val
+img_data -= median_val                                                                              # subtract background
+
+# norm = apy.visualization.simple_norm(img_data, 'sqrt', percent=99.9)
+# plt.imshow(img_data, cmap='Greys_r', origin='upper', norm=norm)
+# apertures.plot(color='#0547f9', lw=1.5)
+# plt.show()
+#
 
 nddata = apy.nddata.NDData(data=img_data)
 
-stars = phu.psf.extract_stars(nddata, stars_tbl, size=180)
+stars = phu.psf.extract_stars(nddata, stars_tbl, size=170)
+# show some of the cutouts
+# nrows = 1
+# ncols = 5
+# fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=(15, 5), squeeze=True)
+# ax = ax.ravel()
+# for i in range(nrows*ncols):
+#     norm = apy.visualization.simple_norm(stars[i], 'log', percent=99.)
+#     ax[i].imshow(stars[i], norm=norm, origin='lower', cmap='viridis')
 
-fig, ax = plt.subplots(nrows=1, ncols=5, figsize=(15, 5), squeeze=True)
-ax = ax.ravel()
-for i in range(nrows*ncols):
-    norm = apy.visualization.simple_norm(stars[i], 'log', percent=99.)
-    ax[i].imshow(stars[i], norm=norm, origin='lower', cmap='viridis')
+fig, ax = plt.subplots(figsize=(5, 5), squeeze=True)
+norm = apy.visualization.simple_norm(stars[0], 'log', percent=99.)
+ax.imshow(stars[0], norm=norm, origin='lower', cmap='viridis')
     
 plt.show()
-
+# initialize an EPSFBuilder instance with desired parameters and input the cutouts
 epsf_builder = phu.EPSFBuilder(oversampling=4, maxiters=5, progress_bar=False)
 epsf, fitted_stars = epsf_builder(stars)
-
-norm = apy.visualization.simple_norm(epsf.data, 'log', percent=99.)
+# show the constructed ePSF
+norm = apy.visualization.simple_norm(epsf.data, 'log', percent=99.) # min_percent=20, max_percent=100)#,
 plt.imshow(epsf.data, norm=norm, origin='lower', cmap='viridis')
 plt.colorbar()
 plt.show()
 
+# save the epsf
+import pickle
+import os
+
+with open(os.path.join('objects', 'epsf-scao-fv.pkl'), 'wb') as output:
+    pickle.dump(epsf, output, -1)
+
 
 ## to the photometry
+import os
+import pickle
+import matplotlib.pyplot as plt
 import photutils as phu
 import astropy as apy
-import astropy.modeling as asm
+import astropy.modeling as apm
 
+import simcado as sim
+import imagegenerator as img
 import fitshandler as fh
 
+## first make a test image
+filter = 'J'
+src = sim.source.star_grid(n=25, mag_min=18, mag_max=22, filter_name=filter, separation=1.3, spec_type='M0V')
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename='img_test_save') # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
+
 # show the image
-image_name = 'grid-5.000-5.903-2.069'
-fh.PlotFits(image_name, grid=False)
+image_name = 'img_test_save' # 'grid-5.000-5.903-2.069'
+fh.PlotFits(image_name, scale='sqrt', grid=False)
 img_data = fh.GetData(image_name)
-##
-sigma_psf = 2.0
+
+## open the epsf
+with open(os.path.join('objects', 'epsf-scao.pkl'), 'rb') as input:
+    epsf = pickle.load(input)
+    
+# get the test image
+image_name = 'img_test_save' # 'grid-5.000-5.903-2.069'
+fh.PlotFits(image_name, scale='sqrt', grid=False)
+img_data = fh.GetData(image_name)
+
+## do photometry
+sigma_psf = 4.0
 sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
 bkgrms = phu.background.MADStdBackgroundRMS()
 std = bkgrms.calc_background_rms(data=img_data)
 psf = epsf                                                                                          # phu.psf.IntegratedGaussianPRF(sigma=sigma_psf)
 
-photometry = phu.psf.DAOPhotPSFPhotometry(crit_separation=2.0*sigma_psf*sigma_to_fwhm, 
-                                          threshold=3.5*std, 
+photometry = phu.psf.DAOPhotPSFPhotometry(threshold=40*std, 
                                           fwhm=sigma_psf*sigma_to_fwhm, 
+                                          sharplo=0.0, sharphi=2.0, roundlo=-1.5, roundhi=1.5, 
+                                          crit_separation=2.0*sigma_psf*sigma_to_fwhm, 
                                           psf_model=psf, 
-                                          fitshape=(11,11), 
-                                          fitter=asm.fitting.LevMarLSQFitter(), 
-                                          niters=1, aperture_radius=20, 
-                                          sharplo=0.0, sharphi=2.0, roundlo=-5.0, roundhi=5.0
+                                          fitter=apm.fitting.LevMarLSQFitter(), 
+                                          fitshape=(161,161), niters=1, 
+                                          aperture_radius=sigma_psf*sigma_to_fwhm
                                           )
 result_tab = photometry(image=img_data)
 residual_image = photometry.get_residual_image()
-##
+## show photometry results
 plt.subplot(1, 2, 1)
-plt.imshow(img_data, cmap='viridis', aspect=1, interpolation='nearest', origin='lower')
+plt.imshow(img_data, cmap='viridis', aspect=1, interpolation='nearest', origin='upper')
 plt.title('Simulated data')
 plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
 
 plt.subplot(1, 2, 2)
-plt.imshow(residual_image, cmap='viridis', aspect=1,
-           interpolation='nearest', origin='lower')
+plt.imshow(residual_image, cmap='viridis', aspect=1, interpolation='nearest', origin='upper')
 plt.title('Residual Image')
 plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
 plt.show()
+
+
+## find the stars separately
+# get the test image
+import fitshandler as fh
+import matplotlib.pyplot as plt
+import photutils as phu
+import astropy as apy
+import astropy.modeling as apm
+
+image_name = 'img_test_save' # 'grid-5.000-5.903-2.069'
+fh.PlotFits(image_name, scale='sqrt', grid=False)
+img_data = fh.GetData(image_name)
+
+## 
+sigma_psf = 2.0
+sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
+bkgrms = phu.background.MADStdBackgroundRMS()
+std = bkgrms.calc_background_rms(data=img_data)
+
+daofind = phu.detection.DAOStarFinder(threshold=40*std,
+                                      fwhm=sigma_psf*sigma_to_fwhm,
+                                      roundhi=1.5, roundlo=-1.5,
+                                      sharplo=0.5, sharphi=2.0)
+
+found = daofind(img_data)
+
+positions = (found['xcentroid'], found['ycentroid'])
+apertures = phu.CircularAperture(positions, r=5.)
+
+norm = apy.visualization.simple_norm(img_data, 'linear', percent=99.95)
+plt.imshow(img_data, cmap='Greys_r', origin='upper', norm=norm)
+apertures.plot(color='#0547f9', lw=1.5)
+plt.show()
+
+## New test image
+import fitshandler as fh
+import matplotlib.pyplot as plt
+import photutils as phu
+import astropy as apy
+import astropy.modeling as apm
+import simcado as sim
+import imagegenerator as img
+
+filter = 'Ks'
+image_name = 'psf_image_' + filter
+
+src = sim.source.star_grid(n=36, mag_min=22.6, mag_max=23.2, filter_name=filter, separation=1.3, spec_type='M0V')
+# src += sim.source.star(mag=21, filter_name=filter, spec_type='M0V')
+image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename=image_name) # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
+
+# show the image
+fh.PlotFits(image_name, scale='log', grid=False)
+img_data = fh.GetData(image_name)
+
+## find stars (same as above)
+sigma_psf = 8.2
+sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
+bkgrms = phu.background.MADStdBackgroundRMS()
+std = bkgrms.calc_background_rms(data=img_data)
+
+daofind = phu.detection.DAOStarFinder(threshold=20*std,
+                                      fwhm=sigma_psf*sigma_to_fwhm,
+                                      roundhi=10.0, roundlo=-10.0,
+                                      sharplo=0.31, sharphi=20.0)
+                                      
+"""intervals are made as wide as possible without false detections
+old-psf,    I,      J,      H,      Ks
+threshold:  20      30      30      20
+sigma_psf:  4.8,    7.2,    6.1,    8.2
+sharplo:    0.35,   0.33,   0.34,   0.31
+nr. at 40:  19      21      24      22
+
+fv-psf,     I,      J,      H,      Ks
+threshold:  10      20      30      20
+sigma_psf:  3.3,    3.5,    7.8,    8.0
+sharplo:    0.3,    0.36,   0.35,   0.35
+nr. at 40:  20      24      23      22
+
+[edit] this is bad and I should feel bad
+ds9 shows approximate fwhm's of 3, 4, and 5 resp. for J, H and Ks
+"""
+
+found = daofind(img_data)
+
+positions = (found['xcentroid'], found['ycentroid'])
+apertures = phu.CircularAperture(positions, r=5.)
+
+norm = apy.visualization.simple_norm(img_data, 'sqrt', percent=99.99)
+plt.imshow(img_data, cmap='Greys_r', origin='upper', norm=norm)
+apertures.plot(color='#0547f9', lw=1.5)
+plt.show()
+
+
+
+
+## Make more epsf's
+import numpy as np
+import matplotlib.pyplot as plt
+import pickle
+import os
+
+import imagegenerator as img
+import simcado as sim
+import fitshandler as fh
+
+import photutils as phu
+import astropy as apy
+import astropy.modeling as apm
+import astropy.table as apta
+
+def EPSFMaker(mag):
+    # first build ePSF from an image
+    filter = 'Ks'
+    # src = sim.source.star_grid(n=16, mag_min=18, mag_max=20, filter_name=filter, separation=0.9, spec_type='M0V')
+    src = sim.source.star(mag=mag, filter_name=filter, spec_type='M0V')
+    
+    image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename='img_test_save_m{0}'.format(mag)) # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
+    # identify the stars and their initial positions
+    img_data = fh.GetData('img_test_save_m{0}'.format(mag))
+    peaks_tbl = phu.find_peaks(img_data, threshold=120000., box_size=11)
+    peaks_tbl['peak_value'].info.format = '%.8g'  # for consistent table output
+    # [alter peak values to exact ones]
+    peaks_tbl['x_peak'] = src.x_pix
+    peaks_tbl['y_peak'] = src.y_pix
+    # extract cutouts of the stars using the extract_stars() function
+    stars_tbl = apta.Table()
+    stars_tbl['x'] = peaks_tbl['x_peak']
+    stars_tbl['y'] = peaks_tbl['y_peak']
+    
+    mean_val, median_val, std_val = apy.stats.sigma_clipped_stats(img_data, sigma=2.)
+    img_data -= median_val                                                                              # subtract background
+    
+    nddata = apy.nddata.NDData(data=img_data)
+    stars = phu.psf.extract_stars(nddata, stars_tbl, size=190)
+    # initialize an EPSFBuilder instance with desired parameters and input the cutouts
+    epsf_builder = phu.EPSFBuilder(oversampling=4, maxiters=5, progress_bar=False)
+    epsf, fitted_stars = epsf_builder(stars)
+    # show the constructed ePSF
+    norm = apy.visualization.simple_norm(epsf.data, 'log', percent=99.) # min_percent=20, max_percent=100)#,
+    plt.imshow(epsf.data, norm=norm, origin='lower', cmap='viridis')
+    plt.colorbar()
+    plt.show()
+    
+    # save the epsf
+    with open(os.path.join('objects', 'epsf-scao-{1}-m{0}.pkl'.format(mag, filter)), 'wb') as output:
+        pickle.dump(epsf, output, -1)
+        
+    return
+
+for m in np.arange(16, 26, 2):
+    EPSFMaker(m)
+    
+## other more different epsf maker
+import numpy as np
+import matplotlib.pyplot as plt
+import pickle
+import os
+
+import imagegenerator as img
+import simcado as sim
+import fitshandler as fh
+
+import photutils as phu
+import astropy as apy
+import astropy.modeling as apm
+import astropy.table as apta
+
+def EPSFMaker(filter):
+    # identify the stars and their initial positions
+    img_data = fh.GetData('psf_image_{0}'.format(filter))
+    peaks_tbl = phu.find_peaks(img_data, threshold=120000., box_size=11)
+    peaks_tbl['peak_value'].info.format = '%.8g'  # for consistent table output
+    # extract cutouts of the stars using the extract_stars() function
+    stars_tbl = apta.Table()
+    stars_tbl['x'] = peaks_tbl['x_peak']
+    stars_tbl['y'] = peaks_tbl['y_peak']
+    
+    mean_val, median_val, std_val = apy.stats.sigma_clipped_stats(img_data, sigma=2.)
+    img_data -= median_val                                                                              # subtract background
+    
+    nddata = apy.nddata.NDData(data=img_data)
+    stars = phu.psf.extract_stars(nddata, stars_tbl, size=190)
+    # initialize an EPSFBuilder instance with desired parameters and input the cutouts
+    epsf_builder = phu.EPSFBuilder(oversampling=4, maxiters=5, progress_bar=False)
+    epsf, fitted_stars = epsf_builder(stars)
+    # show the constructed ePSF
+    norm = apy.visualization.simple_norm(epsf.data, 'log', percent=99.) # min_percent=20, max_percent=100)#,
+    plt.imshow(epsf.data, norm=norm, origin='lower', cmap='viridis')
+    plt.colorbar()
+    plt.show()
+    
+    # save the epsf
+    with open(os.path.join('objects', 'epsf-scao-{0}.pkl'.format(filter)), 'wb') as output:
+        pickle.dump(epsf, output, -1)
+        
+    return
+
+
+## (again) open the epsf
+import os
+import pickle
+import numpy as np
+import matplotlib.pyplot as plt
+
+import fitshandler as fh
+
+import photutils as phu
+import astropy as apy
+import astropy.modeling as apm
+    
+""" J image, residuals
+m16: 34000 to -10000
+m18: 26000 to -31000                  <<<< use
+m19: 17000 to -51000
+m20: 14000 to -71000
+m22: 33000 to -56000
+m24: 34000 to -17000
+H image, residuals
+m16: 40000 to -14000
+m18: 27000 to -23000                  <<<< use
+m19: 40000 to -49000
+m20: 43000 to -61000
+m22: 39000 to -55000
+m24: 43000 to -24000
+Ks image, residuals
+m16: 61000 to -10000
+m18: 43000 to -19000                  <<<< use
+m19: 36000 to -45000
+m20: 48000 to -63000
+m22: 60000 to -73000
+m24: 70000 to -7000
+"""
+# get the test image
+filter = 'Ks'
+image_name = 'img_test_save_' + filter
+img_data = fh.GetData(image_name)
+
+with open(os.path.join('objects', 'epsf-scao-{0}-m18.pkl'.format(filter)), 'rb') as input:
+    epsf = pickle.load(input)
+
+## (again) do photometry
+sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
+bkgrms = phu.background.MADStdBackgroundRMS()
+std = bkgrms.calc_background_rms(data=img_data)
+fwhm = 5.0
+
+photometry = phu.psf.DAOPhotPSFPhotometry(threshold=40*std, 
+                                          fwhm=fwhm, 
+                                          sigma_radius=0.8*fwhm*apy.stats.gaussian_fwhm_to_sigma,
+                                          sharplo=0.0, sharphi=20.0, 
+                                          roundlo=-10.0, roundhi=10.0, 
+                                          crit_separation=2.0*fwhm, 
+                                          psf_model=epsf, 
+                                          fitter=apm.fitting.LevMarLSQFitter(), 
+                                          fitshape=191, niters=1, 
+                                          aperture_radius=fwhm
+                                          )
+result_tab = photometry(image=img_data)
+residual_image = photometry.get_residual_image()
+
+## throw away negative fluxes and uncertainties of zero
+result_tab_redux = result_tab[(result_tab['flux_fit'] > 0) & (result_tab['flux_0'] > 0)]
+result_tab_redux = result_tab_redux[np.invert((result_tab_redux['flux_unc'] == 0) & (result_tab_redux['iter_detected'] != 1))]
+
+positions = (result_tab_redux['x_fit'], result_tab_redux['y_fit'])
+apertures = phu.CircularAperture(positions, r=5.)
+## show photometry results
+plt.subplot(1, 2, 1)
+plt.imshow(img_data, cmap='viridis', aspect=1, interpolation='nearest', origin='upper')
+plt.title('Simulated data')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+
+plt.subplot(1, 2, 2)
+plt.imshow(residual_image, cmap='viridis', aspect=1, interpolation='nearest', origin='upper')
+apertures.plot(color='blue', lw=1.5)
+plt.title('Residual Image')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+plt.show()
+
+
+## test on clusters
+import fitshandler as fh
+import fitsanalyser as fa
+
+filter = 'Ks'
+image_name = 'grid-5.000-5.903-0.345-' + filter
+img_data = fh.GetData(image_name)
+result_tab, result_tab_redux = fa.DoPhotometry(img_data, filter=filter, show=True)
+
+## build my own itterative photometry
+import os
+import time
+import pickle
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import colors as mcol
+
+import fitshandler as fh
+
+import photutils as phu
+import astropy as apy
+import astropy.modeling as apm
+
+show = True
+
+t1 = time.time()
+print('start the clock')
+
+filter = 'Ks'
+image_name = 'grid-5.000-5.903-0.345-' + filter
+img_data = fh.GetData(image_name)
+
+with open(os.path.join('objects', 'epsf-scao-{0}.pkl'.format(filter)), 'rb') as input:
+    epsf = pickle.load(input)
+
+sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
+bkgrms = phu.background.MADStdBackgroundRMS()
+std = bkgrms.calc_background_rms(data=img_data)
+fwhm = 5.0
+
+t2 = time.time()
+print('End part one. Elapsed time = {0}'.format(t2 - t1))
+
+daofind = phu.detection.DAOStarFinder(threshold=5*std,
+                                      fwhm=fwhm,
+                                      sigma_radius=0.8*fwhm*apy.stats.gaussian_fwhm_to_sigma,
+                                      roundhi=10.0, roundlo=-10.0,
+                                      sharplo=0.0, sharphi=20.0)
+                                      
+found = daofind(img_data)
+
+t3 = time.time()
+##
+if show:
+    positions = (found['xcentroid'], found['ycentroid'])
+    apertures = phu.CircularAperture(positions, r=2.)
+    
+    norm = apy.visualization.simple_norm(img_data, 'sqrt', percent=99.99)
+    plt.imshow(img_data, cmap='Greys_r', origin='upper', norm=norm)
+    apertures.plot(color='#0547f9', lw=1.5)
+    plt.show()
+    
+print('End daofind. Elapsed time = {0}'.format(t3 - t2))
+t3 = time.time()
+
+found.rename_column('xcentroid', 'x_0')
+found.rename_column('ycentroid', 'y_0')
+##
+mmmbkg = phu.background.MMMBackground()
+# todo: crit sep and fitshape??
+daogroup = phu.psf.DAOGroup(crit_separation=1.5*fwhm)
+
+if show:
+    groups = daogroup(found)
+    groups.sort('group_id')
+    
+    colour_list = list(mcol.TABLEAU_COLORS.values())
+    norm = apy.visualization.simple_norm(img_data, 'sqrt', percent=99.99)
+    plt.imshow(img_data, cmap='Greys_r', origin='upper', norm=norm)
+    for item in groups:
+        positions = (item['x_0'], item['y_0'])
+        apertures = phu.CircularAperture(positions, r=2.)
+        apertures.plot(color=colour_list[item['group_id']%len(colour_list)], lw=2.5)
+    print(np.sort([np.sum(groups['group_id'] == i) for i in range(np.max(groups['group_id']))]))
+    plt.show()
+
+lmfitter = apm.fitting.LevMarLSQFitter()
+##
+photometry = phu.psf.BasicPSFPhotometry(group_maker=daogroup, bkg_estimator=mmmbkg, 
+                                        psf_model=epsf, fitshape=33, finder=None, 
+                                        fitter=lmfitter, aperture_radius=fwhm)
+
+t4 = time.time()
+print('End initialisation. Elapsed time = {0}'.format(t4 - t3))
+
+result_tab = photometry(image=img_data, init_guesses=found)
+
+t5 = time.time()
+print('End photometry. Elapsed time = {0}'.format(t5 - t4))
+
+residual_image = photometry.get_residual_image()
+
+t6 = time.time()
+print('End residual image. Elapsed time = {0}'.format(t6 - t5))
+
+
+##
+filter = 'Ks'
+image_name = 'grid-5.000-5.903-0.345-' + filter
+img_data = fh.GetData(image_name)
+
+with open(os.path.join('objects', 'epsf-scao-{0}-m18.pkl'.format(filter)), 'rb') as input:
+    epsf = pickle.load(input)
+
+sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
+bkgrms = phu.background.MADStdBackgroundRMS()
+std = bkgrms.calc_background_rms(data=img_data)
+fwhm = 5.0
+
+mmmbkg = phu.background.MMMBackground()
+
+daofind = phu.detection.DAOStarFinder(threshold=5*std,
+                                      fwhm=fwhm,
+                                      sigma_radius=0.8*fwhm*apy.stats.gaussian_fwhm_to_sigma,
+                                      roundhi=10.0, roundlo=-10.0,
+                                      sharplo=0.0, sharphi=20.0)
+
+daogroup = phu.psf.DAOGroup(crit_separation=2.0*fwhm)
+
+lmfitter = apm.fitting.LevMarLSQFitter()
+
+photometry = phu.psf.IterativelySubtractedPSFPhotometry(finder=daofind, group_maker=daogroup,
+                                                bkg_estimator=mmmbkg, psf_model=epsf,
+                                                fitter=lmfitter, niters=1, fitshape=11,
+                                                aperture_radius=fwhm)
+
+result_tab = photometry(image=img_data)
+residual_image = photometry.get_residual_image()
+
+## throw away negative fluxes and uncertainties of zero
+result_tab_redux = result_tab[(result_tab['flux_fit'] > 0) & (result_tab['flux_0'] > 0)]
+result_tab_redux = result_tab_redux[np.invert((result_tab_redux['flux_unc'] == 0) & (result_tab_redux['iter_detected'] != 1))]
+
+positions = (result_tab['x_fit'], result_tab['y_fit'])
+apertures = phu.CircularAperture(positions, r=5.)
+## show photometry results
+plt.subplot(1, 2, 1)
+plt.imshow(img_data, cmap='viridis', aspect=1, interpolation='nearest', origin='upper')
+apertures.plot(color='blue', lw=1.5)
+plt.title('Simulated data')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+
+plt.subplot(1, 2, 2)
+plt.imshow(residual_image, cmap='viridis', aspect=1, interpolation='nearest', origin='upper')
+apertures.plot(color='blue', lw=1.5)
+plt.title('Residual Image')
+plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
+plt.show()
+
+
+
+
+
+
+
+
+
+
 
 
 ##

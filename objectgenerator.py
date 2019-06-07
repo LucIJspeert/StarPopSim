@@ -1,5 +1,5 @@
 # Luc IJspeert
-# Part of smoc: (astronomical) object generator and class
+# Part of starpopsim: (astronomical) object generator and class
 ##
 """This module defines the Astronomical Object class that holds all the information for 
 the simulated astronomical object. 
@@ -23,6 +23,7 @@ from inspect import signature
 import distributions as dist
 import conversions as conv
 import formulas as form
+import visualizer as vis
 
 
 # global defaults
@@ -505,6 +506,7 @@ class AstObject:
     def GenerateFieldStars(self):
         """Adds (Milky Way) field stars to the object."""
         # self.field_stars = np.array([pos_x, pos_y, mag, filt, spec_types])
+        # todo: WIP
         return
         
     def GenerateBackGround(self):
@@ -512,6 +514,7 @@ class AstObject:
         like more clusters or galaxies. These will be unresolved.
         """
         # self.back_ground = 
+        # todo: WIP
         return
         
     def GenerateNGS(self, mag=[13], filter='V'):
@@ -537,7 +540,11 @@ class AstObject:
         self.natural_guide_stars = [pos_x, pos_y, mag, filt, spec_types]
         return
     
-    def CurrentMasses(self):
+    def PerformanceMode():
+        """Sacrifices memory usage for performance during the simulation of images."""
+        #todo: build this
+    
+    def CurrentMasses(self, realistic_remnants=True):
         """Gives the current masses of the stars in Msun.
         Uses isochrone files and the given initial masses of the stars.
         Stars should not have a lower initial mass than the lowest mass in the isochrone file.
@@ -553,10 +560,11 @@ class AstObject:
             
             # Isochrones assign wildly wrong properties to remnants (i.e. M_cur=0).
             # The following functions give estimates for remnant masses
-            remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
-            r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])                       # approx. remnant masses (depend on Z)
-            
-            M_cur_i[remnants_i] = r_M_cur_i
+            if realistic_remnants:
+                remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
+                r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])                       # approx. remnant masses (depend on Z)
+                
+                M_cur_i[remnants_i] = r_M_cur_i
             M_cur = np.append(M_cur, M_cur_i)  
         
         return M_cur
@@ -626,12 +634,14 @@ class AstObject:
                 
                 lifetime = form.MSLifetime(M_init_i[remnants_i])                                    # estimated MS time of the stars
                 remnant_time = lin_age - lifetime                                                   # approx. time that the remnant had to cool
+                mask = (remnant_time < 0)                                                           # overestimated
+                remnant_time[mask] = -remnant_time[mask]/10                                         # hotfix
+                #TODO remnant time is bad estimator (becomes negative)
                 
                 r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])                   # approx. remnant masses
                 r_radii = form.RemnantRadius(r_M_cur_i)                                             # approx. remnant radii
                 r_log_Te_i = np.log10(form.RemnantTeff(r_M_cur_i, r_radii, remnant_time))           # approx. remnant temperatures
                 
-                #TODO remnants get nan temperatures
                 log_Te_i[remnants_i] = r_log_Te_i
             log_Te = np.append(log_Te, log_Te_i)  
         
@@ -669,6 +679,9 @@ class AstObject:
             
             mag_i[:, remnants_i] = r_mag_i
             abs_mag = np.append(abs_mag, mag_i, axis=1)
+            
+        if (filter != 'all'):
+            abs_mag = abs_mag[0]                                                                    # correct for 2D array
         
         return abs_mag
     
@@ -695,18 +708,20 @@ class AstObject:
         true_dist = np.tile(true_dist, num_mags).reshape(num_mags, dimension_2)
         
         abs_mag = self.AbsoluteMagnitudes(filter=filter)
+        if (filter != 'all'):
+            true_dist = true_dist[0]                                                                    # correct for 2D array
         
         return abs_mag + 5*np.log10((true_dist)/10) + self.extinction                               # true_dist in pc!
         
-    def SpectralTypes(self):
+    def SpectralTypes(self, realistic_remnants=True):
         """Gives the spectral types (as indices, to conserve memory) for the stars and
         the corresponding spectral type names.
         Uses isochrone files and the given initial masses of the stars.
         Stars should not have a lower initial mass than the lowest mass in the isochrone file.
         """
-        log_T_eff = self.LogTemperatures()
-        log_L = self.LogLuminosities()
-        log_M_cur = np.log10(self.CurrentMasses())
+        log_T_eff = self.LogTemperatures(realistic_remnants=realistic_remnants)
+        log_L = self.LogLuminosities(realistic_remnants=realistic_remnants)
+        log_M_cur = np.log10(self.CurrentMasses(realistic_remnants=realistic_remnants))
         
         spec_indices, spec_names = FindSpectralType(log_T_eff, log_L, log_M_cur)                    # assign spectra to the stars
         
@@ -739,6 +754,10 @@ class AstObject:
         """Returns log of the total luminosity in Lsun."""
         return np.log10(np.sum(10**self.LogLuminosities(realistic_remnants=False)))                 # remnants don't add much, so leave them as is
         
+    def CoordsArcsec(self):
+        """Returns coordinates converted to arcseconds (from pc)."""
+        return conv.ParsecToArcsec(self.coords, self.d_ang)
+        
     def StarRadii(self, spher=True):
         """Returns the radial coordinate of the stars (spherical or cylindrical) in pc."""
         if spher:
@@ -765,8 +784,9 @@ class AstObject:
         
     def HalfLumRadius(self, spher=False):
         """Returns the (spherical or cylindrical) half luminosity radius in pc."""
-        log_L = self.LogLuminosities()
-        tot_lum = np.sum(10**log_L)                                                                 # do this locally, to avoid unnecesairy overhead
+        lum = 10**self.LogLuminosities(realistic_remnants=False)
+        # todo: take out the nan values in real.remn. causing trouble here
+        tot_lum = np.sum(lum)                                                                       # do this locally, to avoid unnecesairy overhead
         
         if spher:
             r_star = form.Distance(self.coords)                                                     # spherical radii of the stars
@@ -775,9 +795,89 @@ class AstObject:
             
         indices = np.argsort(r_star)                                                                # indices that sort the radii
         r_sorted = r_star[indices]                                                                  # sorted radii
-        lum_sorted = 10**log_L[indices]                                                             # luminosities sorted for radius
+        lum_sorted = lum[indices]                                                                   # luminosities sorted for radius
         lum_sum = np.cumsum(lum_sorted)                                                             # cumulative sum of sorted luminosities
         return np.max(r_sorted[lum_sum <= tot_lum/2])                                               # 2D/3D radius at half the luminosity
+        
+    def Plot2D(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', 
+               filter='V', theme='dark1'):
+        """Make a plot of the object positions in two dimensions
+        Set colour to 'temperature' for a temperature representation.
+        Set filter to None to avoid markers scaling in size with magnitude.
+        Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
+            saveable dark plot, 'fits' for a plot that resembles a .fits image,
+            and None for normal light colours.
+        """
+        if (filter is not None):
+            mags = self.ApparentMagnitudes(filter=filter)
+        else:
+            mags = None
+        
+        if (colour == 'temperature'):
+            temps = 10**self.LogTemperatures()
+        else:
+            temps = None
+        
+        vis.Objects2D(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
+                      axes=axes, colour=colour, T_eff=temps, mag=mags, theme=theme)
+        return
+        
+    def Plot3D(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', 
+               filter='V', theme='dark1'):
+        """Make a plot of the object positions in three dimensions.
+        Set colour to 'temperature' for a temperature representation.
+        Set filter to None to avoid markers scaling in size with magnitude.
+        Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
+            saveable dark plot, and None for normal light colours.
+        """
+        if (filter is not None):
+            mags = self.ApparentMagnitudes(filter=filter)
+        else:
+            mags = None
+        
+        if (colour == 'temperature'):
+            temps = 10**self.LogTemperatures()
+        else:
+            temps = None
+        
+        vis.Objects3D(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
+                      axes=axes, colour=colour, T_eff=temps, mag=mags, theme=theme)
+        return
+        
+    def PlotHRD(self, title='HRD', colour='temperature', theme='dark1'):
+        """Make a plot of stars in an HR diagram.
+        Set colour to 'temperature' for a temperature representation.
+        Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
+            saveable dark plot, and None for normal light colours.
+        """
+        r_mask = self.Remnants()
+        temps = 10**self.LogTemperatures()
+        lums = self.LogLuminosities()
+        
+        vis.HRD(T_eff=temps, log_Lum=lums, title=title, xlabel='Temperature (K)', 
+                ylabel=r'Luminosity log($L/L_\odot$)', colour=colour, theme=theme, mask=r_mask)
+        return
+        
+    def PlotCMD(self, x='B-V', y='V', title='CMD', colour='blue', theme='dark1'):
+        """Make a plot of the stars in a CMD
+        Set x and y to the colour and magnitude to be used (x needs format 'A-B')
+        Set colour to 'temperature' for a temperature representation.
+        """
+        x_filters = x.split('-')
+        mag_A = self.ApparentMagnitudes(filter=x_filters[0])
+        mag_B = self.ApparentMagnitudes(filter=x_filters[1])
+        c_mag = mag_A - mag_B
+        
+        if (y == x_filters[0]):
+            mag = mag_A
+        elif (y == x_filters[1]):
+            mag = mag_B
+        else:
+            mag = self.ApparentMagnitudes(filter=y)
+        
+        vis.CMD(c_mag, mag, title='CMD', xlabel=x, ylabel=y, 
+                colour='blue', T_eff=None, theme=None, adapt_axes=True, mask=None)
+        return
         
     def SaveTo(self, filename):
         """Saves the class to a file."""
