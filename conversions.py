@@ -62,9 +62,19 @@ def RotateXZ(positions, angle):
     
 def ParsecToArcsec(x, d):
     """Convert from distances (x) perpendicular to the distance (d) 
-    both in parsec to arcseconds.
+    (both in parsec, or otherwise the same units) to arcseconds.
     """
     return np.arctan2(x, d)*rad_as
+    
+    
+def DistanceToDModulus(dist):
+    """Compute the distance modulus given a distance in parsec."""
+    return 5*np.log10(dist/10)
+    
+    
+def DModulusToDistance(mod):
+    """Compute the distance in parsec given a distance modulus."""
+    return 10**(mod/5 + 1)
 
 
 def MtotToNstars(M, imf=imf_defaults):
