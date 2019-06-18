@@ -1116,8 +1116,11 @@ def OpenIsochrone(age, Z, columns='all'):
     file_name = os.path.join('tables', ('isoc_Z{1:1.{0}f}.dat'
                                         ).format(-int(np.floor(np.log10(Z)))+1, Z))
     if not os.path.isfile(file_name):                                                               # check wether file for Z exists
-        raise FileNotFoundError(('objectgenerator//OpenIsochrone: file {0} not found. '
-                                 'Try a different metallicity.').format(file_name))
+        file_name = os.path.join('tables', ('isoc_Z{1:1.{0}f}.dat'
+                                            ).format(-int(np.floor(np.log10(Z))), Z))               # try one digit less
+        if not os.path.isfile(file_name): 
+            raise FileNotFoundError(('objectgenerator//OpenIsochrone: file {0} not found. '
+                                    'Try a different metallicity.').format(file_name))
     
     # names to use in the code, and a mapping to the isoc file column names 
     code_names = np.array(['log_age', 'M_initial', 'M_actual', 'log_L', 'log_Te', 

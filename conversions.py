@@ -13,6 +13,7 @@ L_sun = 3.828*10**26            # W
 R_sun = 6.957*10**8             # m
 sigma_SB = 5.670367*10**-8      # W K^-4 m^-2
 rad_as = 648000/np.pi           # radians to arcseconds
+as_rad = np.pi/648000           # arcseconds to radians
 
 # global defaults
 imf_defaults = [0.08, 150]      # lower bound, upper bound on mass
@@ -65,6 +66,13 @@ def ParsecToArcsec(x, d):
     (both in parsec, or otherwise the same units) to arcseconds.
     """
     return np.arctan2(x, d)*rad_as
+    
+    
+def ArcsecToParsec(x, d):
+    """Convert from arcseconds (x) perpendicular to the distance (d) 
+    (in parsec) to distances in parsec.
+    """
+    return np.tan(x*as_rad)*d
     
     
 def DistanceToDModulus(dist):
