@@ -26,6 +26,10 @@ import formulas as form
 import visualizer as vis
 
 
+# global constants
+M_bol_sun = 4.74                # bolometric magnitude of the sun
+
+
 # global defaults
 rdist_default = 'Normal'        # see distributions module for a full list of options
 imf_defaults = [0.08, 150]      # lower bound, upper bound on mass
@@ -931,9 +935,9 @@ def Ellipsoid(N_stars, dist_type='Normal_r', axes=None, **param):
                            'Deleted entry.\n    {0} = {1}'
                            ).format(key, param.pop(key, None)), SyntaxWarning)
     
-    r_dist = eval('dist.' + dist_type)(n=N_stars, **param)                                            # the radial distribution
-    phi_dist = dist.AnglePhi(N_stars)                                                                 # dist for angle with x axis
-    theta_dist = dist.AngleTheta(N_stars)                                                             # dist for angle with z axis
+    r_dist = eval('dist.' + dist_type)(n=N_stars, **param)                                          # the radial distribution
+    phi_dist = dist.AnglePhi(N_stars)                                                               # dist for angle with x axis
+    theta_dist = dist.AngleTheta(N_stars)                                                           # dist for angle with z axis
     
     xyz_dist = conv.SpherToCart(r_dist, theta_dist, phi_dist).transpose()
     
@@ -974,11 +978,11 @@ def StarMasses(N_stars=0, M_tot=0, imf=[0.08, 150]):
         warnings.warn(('objectgenerator//StarMasses: Input mass and number of stars '
                        'cannot be zero simultaniously. Using N_stars=10'), SyntaxWarning)
         N_stars = 10
-    elif (N_stars == 0):                                                                              # a total mass is given
-        N_stars = conv.MtotToNstars(M_tot, imf)                                                         # estimate the number of stars to generate
+    elif (N_stars == 0):                                                                            # a total mass is given
+        N_stars = conv.MtotToNstars(M_tot, imf)                                                     # estimate the number of stars to generate
         
     # mass
-    M_init = dist.invCIMF(N_stars, imf)                                                               # assign initial masses using IMF
+    M_init = dist.invCIMF(N_stars, imf)                                                             # assign initial masses using IMF
     M_tot_gen = np.sum(M_init)                                                                      # total generated mass (will differ from input mass, if given)
     
     if (M_tot != 0):
@@ -1027,7 +1031,6 @@ def FindSpectralType(T_eff, Lum, Mass):
     spec_tbl = np.loadtxt(os.path.join('tables', 'all_stars.txt'), dtype=float, 
                           usecols=[1,2,3,4,5,6,7,8], unpack=True)
     
-    M_bol_sun = 4.74
     spec_letter = ['M', 'K', 'G', 'F', 'A', 'B', 'O']                                               # basic spectral letters (increasing temperature)
     
     # collect the relevant spectral types 
