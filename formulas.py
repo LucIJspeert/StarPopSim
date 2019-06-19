@@ -126,7 +126,7 @@ def ApparentMag(mag, dist, ext=0, sigma=[0]):
     else:
         z_coord = 0
         
-    return mag + 5*np.log10((dist + z_coord)/10.) + ext                                             # sigma and dist in pc!
+    return mag + 5*np.log10((dist + z_coord)/10) + ext                                              # sigma and dist in pc!
 
 
 def AbsoluteMag(mag, dist, ext=0):

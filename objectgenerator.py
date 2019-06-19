@@ -760,8 +760,7 @@ class AstObject:
         
     def CoordsArcsec(self):
         """Returns coordinates converted to arcseconds (from pc)."""
-        rad_as = 648000/np.pi
-        return np.arctan(self.coords/self.d_ang)*rad_as
+        return conv.ParsecToArcsec(self.coords, self.d_ang)
         
     def StarRadii(self, spher=True):
         """Returns the radial coordinate of the stars (spherical or cylindrical) in pc."""
@@ -789,8 +788,9 @@ class AstObject:
         
     def HalfLumRadius(self, spher=False):
         """Returns the (spherical or cylindrical) half luminosity radius in pc."""
-        log_L = self.LogLuminosities()
-        tot_lum = np.sum(10**log_L)                                                                 # do this locally, to avoid unnecesairy overhead
+        lum = 10**self.LogLuminosities(realistic_remnants=False)
+        # todo: take out the nan values in real.remn. causing trouble here
+        tot_lum = np.sum(lum)                                                                       # do this locally, to avoid unnecesairy overhead
         
         if spher:
             r_star = form.Distance(self.coords)                                                     # spherical radii of the stars
@@ -799,7 +799,7 @@ class AstObject:
             
         indices = np.argsort(r_star)                                                                # indices that sort the radii
         r_sorted = r_star[indices]                                                                  # sorted radii
-        lum_sorted = 10**log_L[indices]                                                             # luminosities sorted for radius
+        lum_sorted = lum[indices]                                                                   # luminosities sorted for radius
         lum_sum = np.cumsum(lum_sorted)                                                             # cumulative sum of sorted luminosities
         return np.max(r_sorted[lum_sum <= tot_lum/2])                                               # 2D/3D radius at half the luminosity
         
@@ -1119,8 +1119,11 @@ def OpenIsochrone(age, Z, columns='all'):
     file_name = os.path.join('tables', ('isoc_Z{1:1.{0}f}.dat'
                                         ).format(-int(np.floor(np.log10(Z)))+1, Z))
     if not os.path.isfile(file_name):                                                               # check wether file for Z exists
-        raise FileNotFoundError(('objectgenerator//OpenIsochrone: file {0} not found. '
-                                 'Try a different metallicity.').format(file_name))
+        file_name = os.path.join('tables', ('isoc_Z{1:1.{0}f}.dat'
+                                            ).format(-int(np.floor(np.log10(Z))), Z))               # try one digit less
+        if not os.path.isfile(file_name): 
+            raise FileNotFoundError(('objectgenerator//OpenIsochrone: file {0} not found. '
+                                    'Try a different metallicity.').format(file_name))
     
     # names to use in the code, and a mapping to the isoc file column names 
     code_names = np.array(['log_age', 'M_initial', 'M_actual', 'log_L', 'log_Te', 
