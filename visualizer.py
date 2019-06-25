@@ -113,6 +113,7 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    plt.tight_layout()
     plt.show() 
     return
 
@@ -203,6 +204,7 @@ def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_zlabel(zlabel)
+    plt.tight_layout()
     plt.show() 
     return
 
@@ -269,6 +271,7 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    plt.tight_layout()
     plt.show() 
     return
 
@@ -344,6 +347,7 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    plt.tight_layout()
     plt.show() 
     return
 
@@ -397,6 +401,7 @@ def DistHist(dist, title='Histogram', xlabel='parameter', ylabel='relative numbe
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     if use_labels: plt.legend()
+    plt.tight_layout()
     plt.show() 
     return
     

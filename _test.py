@@ -3974,8 +3974,35 @@ plt.colorbar(orientation='vertical', fraction=0.046, pad=0.04)
 plt.show()
 
 
+## long exp
+def imgsaver(pars, int=None, ret_int=False):
+    M, D, r = pars              # M, D in 10log
+    f = 'Ks'
+    view='wide'                 # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
+    chip='centre'               # read out, small middle bit, centre chip or full detector
+    exp = 14400                  # exposure time in s
+    ao = 'scao' # ao mode PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
+    
+    obj_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r)
+    img_name = 'grid-long-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, f)
+    
+    astobj = obg.AstObject.LoadFrom(obj_name)
+    src = img.MakeSource(astobj, filter=f)
+    if ret_int:
+        image, internals = img.MakeImage(src, exposure=exp, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, return_int=ret_int)
+    else:
+        image = img.MakeImage(src, exposure=exp, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, internals=int)
+        
+    fh.SaveFitsPlot(img_name, grid=False)
+    
+    if ret_int:
+        return internals
+    else:
+        return None
 
-
+imgsaver(par_grid[89])
+imgsaver(par_grid[94])
+imgsaver(par_grid[99])
 
 
 
