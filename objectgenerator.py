@@ -762,12 +762,16 @@ class AstObject:
         """Returns coordinates converted to arcseconds (from pc)."""
         return conv.ParsecToArcsec(self.coords, self.d_ang)
         
-    def StarRadii(self, spher=True):
-        """Returns the radial coordinate of the stars (spherical or cylindrical) in pc."""
+    def Radii(self, unit='pc', spher=False):
+        """Returns the radial coordinate of the stars (spherical or cylindrical) in pc/as."""
         if spher:
             radii = form.Distance(self.coords)
         else:
             radii = form.Distance2D(self.coords)
+        
+        if (unit == 'as'):                                                                          # convert to arcsec if wanted
+            radii = conv.ParsecToArcsec(radii, self.d_ang)
+        
         return radii
     
     def HalfMassRadius(self, spher=False):
