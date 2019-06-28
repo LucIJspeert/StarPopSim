@@ -483,22 +483,26 @@ def invCIMF(n=1, M_L=0.08, M_U=150, M_mid=0.5):
     M_b = ((1.35/0.35*M_L**(-0.35) - M_mid**(-0.35)/0.35 - 1.35*N_dist/C_L)/M_mid)**(-1/1.35)
     return (N_dist < N_mid)*M_a + (N_dist >= N_mid)*M_b
 
+lower = 0.2
+upper = 5
 
-masses = np.arange(0.08, 150, 0.01)
-mass_dist = invCIMF(1000000)
+masses = np.arange(lower, upper, 0.01)
+masses_2 = np.arange(lower, upper, 0.01)
+mass_dist = invCIMF(1000000, M_L=lower, M_U=upper)
 number, bins = np.histogram(mass_dist, density=True, bins='auto')
 
-fig, ax1 = plt.subplots()
+fig, ax1 = plt.subplots(figsize=[7.0, 5.5])
 # fig: probability IMF vs cumulative IMF vs inverted cumul IMF 
-ax1.plot(np.log10(bins[:-1]), np.log10(number), label='inv cdf')
-ax1.plot(np.log10(masses), np.log10(IMFprob(masses)), label='pdf')
-ax1.plot(np.log10(masses), np.log10(CIMF(masses)), label='cdf')
-ax1.set_xlabel('log(M) (Msun)')
-ax1.set_ylabel('log(N) relative number')
-ax1.set_title('Output of the inverted cumulative IMF')
-plt.legend()
+ax1.plot(np.log10(bins[:-1]), np.log10(number), label='histogram')
+ax1.plot(np.log10(masses), np.log10(IMFprob(masses, M_L=lower, M_U=upper)), label='pdf')
+ax1.plot(np.log10(masses_2), np.log10(CIMF(masses_2, M_L=lower, M_U=upper)), label='cdf')
+ax1.set_xlabel(r'log(M) ($M_\odot$)', fontsize=20)
+ax1.set_ylabel('log(N) (relative amount)', fontsize=20)
+# ax1.set_title('Output of the inverted cumulative IMF')
+ax1.tick_params(labelsize=14)
+plt.legend(fontsize=14)
+plt.tight_layout()
 plt.show()
-
 ## total M to N_obj
 
 def invCIMF2(N_dist, M_L=0.08, M_U=150, M_mid=0.5):
@@ -882,16 +886,20 @@ Nvals = N_KingGlobular_r(rvals, s, R)
 r_inter = np.interp(np.random.rand(1000000), Nvals, rvals)
 
 hist, bins = np.histogram(r_inter, bins='auto', density=True)
+# hist_ref1, bins_ref1 = np.histogram(dist.KingGlobular_r(N, s=s, R=R), bins=np.logspace(-0.5, 3.5, 50), density=True)
+# hist_ref2, bins_ref2 = np.histogram(dist.KingGlobular_rho(N, s=s, R=R), bins=np.logspace(-0.5, 3.5, 50), density=True)
 
 fig, ax = plt.subplots()
-# ax.step(bins[:-1], hist, label='King interp')
+# ax.step(bins[1:], hist, label='King interp')
 # ax.plot(rvals, KingGlobular_r(rvals, s, R), label='King')
 # log
-# ax.step(np.log10(bins[:-1]), np.log10(hist), label='King interp')
+# ax.step(np.log10(bins[1:]), np.log10(hist), label='King interp')
 # ax.plot(np.log10(rvals), np.log10(KingGlobular_r(rvals, s, R)), label='King')
 # log cartesian
-ax.step(np.log10(bins[:-1]), np.log10(hist/bins[:-1]**2), label='King interp')
+ax.step(np.log10(bins[1:]), np.log10(hist/bins[1:]**2), label='King interp')
 ax.plot(np.log10(rvals), np.log10(KingGlobular_r(rvals, s, R)/rvals**2), label='King')
+# ax.plot(np.log10(bins_ref1[1:]), np.log10(hist_ref1/bins_ref1[1:]**2), label='r')
+# ax.plot(np.log10(bins_ref2[1:]), np.log10(hist_ref2/bins_ref2[1:]**1), label='rho')
 ax.legend()
 plt.show()
 
@@ -906,26 +914,61 @@ hist_ref4, bins_ref4 = np.histogram(dist.PearsonVII_r(N, s=sc), bins=np.logspace
 hist_ref5, bins_ref5 = np.histogram(dist.KingGlobular_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
 
 fig, ax = plt.subplots()
-ax.plot(np.log10(bins_ref[:-1]), np.log10(hist_ref/bins_ref[:-1]**2), label='Exponential')
-ax.plot(np.log10(bins_ref2[:-1]), np.log10(hist_ref2/bins_ref2[:-1]**2), label='Normal')
-ax.plot(np.log10(bins_ref3[:-1]), np.log10(hist_ref3/bins_ref3[:-1]**2), label='SquaredCauchy')
-ax.plot(np.log10(bins_ref4[:-1]), np.log10(hist_ref4/bins_ref4[:-1]**2), label='PearsonVII')
-ax.plot(np.log10(bins_ref5[:-1]), np.log10(hist_ref5/bins_ref5[:-1]**2), label='King')
+ax.plot(np.log10(bins_ref[1:]), np.log10(hist_ref/bins_ref[1:]**2), label='Exponential')
+ax.plot(np.log10(bins_ref2[1:]), np.log10(hist_ref2/bins_ref2[1:]**2), label='Normal')
+ax.plot(np.log10(bins_ref3[1:]), np.log10(hist_ref3/bins_ref3[1:]**2), label='SquaredCauchy')
+ax.plot(np.log10(bins_ref4[1:]), np.log10(hist_ref4/bins_ref4[1:]**2), label='PearsonVII')
+ax.plot(np.log10(bins_ref5[1:]), np.log10(hist_ref5/bins_ref5[1:]**2), label='King')
 ax.set_title('Distributions, N={0:1.1e}, s={1}, R=30*s'.format(N, sc))
 ax.legend()
 plt.show()
 
 ## King plot
-hist_ref1, bins_ref1 = np.histogram(dist.KingGlobular_r(N, s=5), bins=np.logspace(-0.5, 3.5, 50), density=True)
-hist_ref2, bins_ref2 = np.histogram(dist.KingGlobular_r(N, s=10), bins=np.logspace(-0.5, 3.5, 50), density=True)
-hist_ref3, bins_ref3 = np.histogram(dist.KingGlobular_r(N, s=15), bins=np.logspace(-0.5, 3.5, 50), density=True)
+R_1 = 1/2.9
+R_2 = 6/2.9
+R_3 = 21/2.9
+hist_ref1, bins_ref1 = np.histogram(dist.KingGlobular_rho(N, s=R_1), bins='auto', density=True)
+hist_ref2, bins_ref2 = np.histogram(dist.KingGlobular_rho(N, s=R_2), bins='auto', density=True)
+hist_ref3, bins_ref3 = np.histogram(dist.KingGlobular_rho(N, s=R_3), bins='auto', density=True)
 
-fig, ax = plt.subplots()
-ax.plot(np.log10(bins_ref1[:-1]), np.log10(hist_ref1/bins_ref1[:-1]**2), label='5')
-ax.plot(np.log10(bins_ref2[:-1]), np.log10(hist_ref2/bins_ref2[:-1]**2), label='10')
-ax.plot(np.log10(bins_ref3[:-1]), np.log10(hist_ref3/bins_ref3[:-1]**2), label='15')
-ax.set_title('King, s=var, R=30*s'.format(N, sc))
-ax.legend()
+rvals_1 = np.logspace(-1.5, np.log10(30*R_1 - 0.1), 1000)
+rvals_2 = np.logspace(-1.0, np.log10(30*R_2 - 0.1), 1000)
+rvals_3 = np.logspace(-0.5, np.log10(30*R_3 - 0.1), 1000)
+
+fig, ax = plt.subplots(figsize=[7.0, 5.5])
+ax.step(np.log10(bins_ref1[1:]), np.log10(hist_ref1/bins_ref1[1:]*np.max(bins_ref1[1:])), label='1')
+ax.plot(np.log10(rvals_1), np.log10(dist.pdf_KingGlobular(rvals_1, s=R_1, R=30*R_1, form='cylindrical')/rvals_1*np.max(rvals_1)), label='1 (pdf)')
+ax.step(np.log10(bins_ref2[1:]), np.log10(hist_ref2/bins_ref2[1:]*np.max(bins_ref2[1:])), label='6')
+ax.plot(np.log10(rvals_2), np.log10(dist.pdf_KingGlobular(rvals_2, s=R_2, R=30*R_2, form='cylindrical')/rvals_2*np.max(rvals_2)), label='6 (pdf)')
+ax.step(np.log10(bins_ref3[1:]), np.log10(hist_ref3/bins_ref3[1:]*np.max(bins_ref3[1:])), label='21')
+ax.plot(np.log10(rvals_3), np.log10(dist.pdf_KingGlobular(rvals_3, s=R_3, R=30*R_3, form='cylindrical')/rvals_3*np.max(rvals_3)), label='21 (pdf)')
+# ax.set_title('King, s=var, R=30*s'.format(N, sc))
+ax.set_xlabel('log(r (pc))', fontsize=20)
+ax.set_ylabel('log(N) (relative number)', fontsize=20)
+ax.legend(title='hlr', fontsize=14)
+ax.tick_params(labelsize=14)
+plt.tight_layout()
+plt.show()
+## (spherical)
+hist_ref1, bins_ref1 = np.histogram(dist.KingGlobular_r(N, s=R_1), bins='auto', density=True)
+hist_ref2, bins_ref2 = np.histogram(dist.KingGlobular_r(N, s=R_2), bins='auto', density=True)
+hist_ref3, bins_ref3 = np.histogram(dist.KingGlobular_r(N, s=R_3), bins='auto', density=True)
+# rvals = np.logspace(-1.5, np.log10(30*R_1 - 5), 1000)
+
+fig, ax = plt.subplots(figsize=[7.0, 5.5])
+ax.step(np.log10(bins_ref1[1:]), np.log10(hist_ref1/bins_ref1[1:]**2*np.max(bins_ref1[1:])**2), label='hist')
+ax.plot(np.log10(rvals_1), np.log10(dist.pdf_KingGlobular(rvals_1, s=R_1, R=30*R_1, form='spherical')/rvals_1**2*np.max(rvals_1)**2), label='pdf')
+# ax.step(np.log10(rvals), np.log10(dist.pdf_Exponential(rvals, s=R_1)/rvals**2*np.max(rvals)**2), label='exp', lw=3)
+ax.step(np.log10(bins_ref2[1:]), np.log10(hist_ref2/bins_ref2[1:]**2*np.max(bins_ref2[1:])**2), label='6')
+ax.plot(np.log10(rvals_2), np.log10(dist.pdf_KingGlobular(rvals_2, s=R_2, R=30*R_2, form='spherical')/rvals_2**2*np.max(rvals_2)**2), label='6 (pdf)')
+ax.step(np.log10(bins_ref3[1:]), np.log10(hist_ref3/bins_ref3[1:]**2*np.max(bins_ref3[1:])**2), label='21')
+ax.plot(np.log10(rvals_3), np.log10(dist.pdf_KingGlobular(rvals_3, s=R_3, R=30*R_3, form='spherical')/rvals_3**2*np.max(rvals_3)**2), label='21 (pdf)')
+# ax.set_title('King, s=var, R=30*s'.format(N, sc))
+ax.set_xlabel('log(r (pc))', fontsize=20)
+ax.set_ylabel('log(N) (relative number)', fontsize=20)
+ax.legend(fontsize=14)
+ax.tick_params(labelsize=14)
+plt.tight_layout()
 plt.show()
 
 
