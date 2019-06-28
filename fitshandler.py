@@ -276,6 +276,7 @@ def SaveFitsPlot(filename, index=0, colours='gray', scale='lin', grid=False, chi
         name = os.path.join('images', default_picture_file_name + '.png')
     
     plt.savefig(name, bbox_inches='tight', dpi=600)
+    plt.close()
     return
 
 

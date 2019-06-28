@@ -12,7 +12,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import conversions as conv
 
 
-def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
+def Objects2D(coords, title='Scatter', xlabel='x', ylabel='y',
               axes='xy', colour='blue', T_eff=None, mag=None, theme=None):
     """Plots a 2D scatter of a 3D object (array) along given axes [xy, yz, zx]. 
     Giving effective temperatures makes the marker colour represent temperature.
@@ -24,7 +24,7 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
     # determine which axes to put on the horizontal and vertical axis of the plot
     axes_list = np.array([[0, 1], [1, 2], [2, 0]])
     hor_axis, vert_axis = axes_list[np.array(['xy', 'yz', 'zx']) == axes][0]
-    n_obj = len(objects[:,hor_axis])
+    n_obj = len(coords[:,hor_axis])
     
     # colours can be made to match the temperature (using T_eff)
     if (T_eff is not None):
@@ -49,14 +49,14 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
         sizes = 20                                                                                  # default size
     
     fig, ax = plt.subplots()
-    ax.scatter(objects[:,hor_axis], objects[:,vert_axis], marker='.', 
+    ax.scatter(coords[:,hor_axis], coords[:,vert_axis], marker='.', 
                linewidths=0.0, c=colour, s=sizes)
     
     # take the maximum distance from the origin as axis scale
-    if (np.shape(objects[0]) == (2,)):
-        axis_size = max(max(objects[:,0]), max(objects[:,1]))                                       # two dimensional data
+    if (np.shape(coords[0]) == (2,)):
+        axis_size = max(max(coords[:,0]), max(coords[:,1]))                                       # two dimensional data
     else:
-        axis_size = max(max(objects[:,0]), max(objects[:,1]), max(objects[:,2]))
+        axis_size = max(max(coords[:,0]), max(coords[:,1]), max(coords[:,2]))
     ax.set_xlim(-axis_size, axis_size) 
     ax.set_ylim(-axis_size, axis_size)
     ax.set(aspect='equal', adjustable='datalim')
@@ -113,11 +113,12 @@ def Objects2D(objects, title='Scatter', xlabel='x', ylabel='y',
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    plt.tight_layout()
     plt.show() 
     return
 
 
-def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z', 
+def Objects3D(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z', 
               colour='blue', T_eff=None, mag=None, theme=None):
     """Plots a 3D scatter of a 3D object (array).
     colour can be set to 'temperature' to represent the effective temperatures.
@@ -125,7 +126,7 @@ def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
     Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
         saveable dark plot, and None for normal light colours.
     """
-    n_obj = len(objects[:, 0])
+    n_obj = len(coords[:, 0])
     
     # colours can be made to match the temperature (using T_eff)
     if (T_eff is not None):
@@ -150,11 +151,11 @@ def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
         sizes = 20                                                                                  # default size
     
     fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
-    ax.scatter(objects[:,0], objects[:,1], objects[:,2], 
+    ax.scatter(coords[:,0], coords[:,1], coords[:,2], 
                marker='.', linewidths=0.0, c=colour, s=sizes) 
     
     # take the maximum distance from the origin as axis scale
-    axis_size = max(max(objects[:,0]), max(objects[:,1]), max(objects[:,2]))
+    axis_size = max(max(coords[:,0]), max(coords[:,1]), max(coords[:,2]))
     ax.set_xlim3d(-axis_size, axis_size) 
     ax.set_ylim3d(-axis_size, axis_size)
     ax.set_zlim3d(-axis_size, axis_size)
@@ -203,6 +204,7 @@ def Objects3D(objects, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_zlabel(zlabel)
+    plt.tight_layout()
     plt.show() 
     return
 
@@ -269,6 +271,7 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    plt.tight_layout()
     plt.show() 
     return
 
@@ -344,6 +347,7 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    plt.tight_layout()
     plt.show() 
     return
 
@@ -397,6 +401,7 @@ def DistHist(dist, title='Histogram', xlabel='parameter', ylabel='relative numbe
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     if use_labels: plt.legend()
+    plt.tight_layout()
     plt.show() 
     return
     
