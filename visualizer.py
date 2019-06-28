@@ -217,7 +217,7 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
         saveable dark plot, and None for normal light colours.
     """
     # colours can be made to match the temperature (using T_eff)
-    if (T_eff is not None):
+    if ((T_eff is not None) & (colour == 'temperature')):
         colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
         colour[T_eff <= 10] = [0.2, 0.2, 0.2]                                                       # dead stars
         colour = mcol.to_rgba_array(colour, 0.5)                                                    # add alpha
