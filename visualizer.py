@@ -48,7 +48,7 @@ def Objects2D(coords, title='Scatter', xlabel='x', ylabel='y',
     else:
         sizes = 20                                                                                  # default size
     
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=[7.0, 5.5])
     ax.scatter(coords[:,hor_axis], coords[:,vert_axis], marker='.', 
                linewidths=0.0, c=colour, s=sizes)
     
@@ -150,7 +150,7 @@ def Objects3D(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
     else:
         sizes = 20                                                                                  # default size
     
-    fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
+    fig, ax = plt.subplots(subplot_kw=dict(projection='3d'), figsize=[6.0, 6.0])
     ax.scatter(coords[:,0], coords[:,1], coords[:,2], 
                marker='.', linewidths=0.0, c=colour, s=sizes) 
     
@@ -230,7 +230,7 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
     if mask is None:
         mask = np.ones_like(T_eff, dtype=bool)
     
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=[7.0, 5.5])
     ax.scatter(T_eff[mask], log_Lum[mask], marker='.', linewidths=0.0, c=colour)
     
     if (theme == 'dark1'):
@@ -297,7 +297,7 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
     if mask is None:
         mask = np.ones_like(c_mag, dtype=bool)
     
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=[7.0, 5.5])
     ax.scatter(c_mag[mask], mag[mask], c=colour, marker='.', linewidths=0.0)
     
     if adapt_axes:
@@ -389,7 +389,7 @@ def DistHist(dist, title='Histogram', xlabel='parameter', ylabel='relative numbe
             else:
                 ax.plot(bins[:-1], hist)
     
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=[7.0, 5.5])
     
     if (dim == 1):
         plotfunc(dist)
