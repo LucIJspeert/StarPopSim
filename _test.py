@@ -503,6 +503,43 @@ ax1.tick_params(labelsize=14)
 plt.legend(fontsize=14)
 plt.tight_layout()
 plt.show()
+##
+def inverseCIMF(N, M_L=0.08, M_U=150, M_mid=0.5):
+    """The inverted cumulative IMF"""
+    # same constants as are in the IMF:
+    C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
+    C_L = 1/(1/0.35*M_L**(-0.35) + C_mid - M_mid/1.35*M_U**(-1.35))
+    # the mid value in the CDF
+    N_mid = C_L/0.35*(M_L**(-0.35) - M_mid**(-0.35))
+    # the inverted CDF
+    M_a = (M_L**(-0.35) - 0.35*N/C_L)**(-1/0.35)
+    M_b = ((1.35/0.35*M_L**(-0.35) - M_mid**(-0.35)/0.35 - 1.35*N/C_L)/M_mid)**(-1/1.35)
+    return (N < N_mid)*M_a + (N >= N_mid)*M_b
+    
+lower = 0.1
+upper = 6
+
+masses = np.arange(lower, upper, 0.01)
+masses_2 = np.arange(lower, upper, 0.0005)
+mass_dist = invCIMF(1000000, M_L=lower, M_U=upper)
+number, bins = np.histogram(mass_dist, density=True, bins='auto')
+
+hor_lines = np.logspace(-2, -0.01, 20)
+hor_end_points = inverseCIMF(hor_lines, M_L=lower, M_U=upper)
+
+fig, ax1 = plt.subplots(figsize=[7.0, 5.5])
+# ax1.plot(np.log10([0.08*np.ones_like(hor_end_points), hor_end_points]), np.log10([hor_lines, hor_lines]), '--', c='dimgrey')
+# ax1.plot(np.log10([hor_end_points, hor_end_points]), np.log10([0.002*np.ones_like(hor_lines), hor_lines]), '--', c='dimgrey')
+ax1.plot(np.log10(masses), np.log10(IMFprob(masses, M_L=lower, M_U=upper)), label='pdf')
+ax1.plot(np.log10(masses_2), np.log10(CIMF(masses_2, M_L=lower, M_U=upper)), label='cdf')
+ax1.set_xlabel(r'log(M) ($M_\odot$)')
+ax1.set_ylabel('log(N) (relative amount)')
+# ax1.set_title('Output of the inverted cumulative IMF')
+ax1.set_xlim(-1.08, 0.87)
+ax1.tick_params()
+plt.legend()
+plt.tight_layout()
+plt.show()
 ## total M to N_obj
 
 def invCIMF2(N_dist, M_L=0.08, M_U=150, M_mid=0.5):
