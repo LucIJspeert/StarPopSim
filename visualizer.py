@@ -12,7 +12,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import conversions as conv
 
 
-def Objects2D(coords, title='Scatter', xlabel='x', ylabel='y',
+def Scatter2D(coords, title='Scatter', xlabel='x', ylabel='y',
               axes='xy', colour='blue', T_eff=None, mag=None, theme=None):
     """Plots a 2D scatter of a 3D object (array) along given axes [xy, yz, zx]. 
     Giving effective temperatures makes the marker colour represent temperature.
@@ -118,7 +118,7 @@ def Objects2D(coords, title='Scatter', xlabel='x', ylabel='y',
     return
 
 
-def Objects3D(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z', 
+def Scatter3D(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z', 
               colour='blue', T_eff=None, mag=None, theme=None):
     """Plots a 3D scatter of a 3D object (array).
     colour can be set to 'temperature' to represent the effective temperatures.

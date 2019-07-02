@@ -208,7 +208,7 @@ import visualizer as viz
 
 #_thread.start_new_thread(theplot, ())      # doesn't work for plotting
 
-p = mtp.Process(target=viz.Objects2D, args=(objects,))
+p = mtp.Process(target=viz.Scatter2D, args=(objects,))
 p.start()
 #p.join()
 #p.terminate()
@@ -234,7 +234,7 @@ plt.colorbar()
 plt.show()
 
 ## colours!
-viz.Objects3D(objects, colour=np.arange(2000, 20000, (20000-2000)/10000))       # old, doesn't work anymore
+viz.Scatter3D(objects, colour=np.arange(2000, 20000, (20000-2000)/10000))       # old, doesn't work anymore
 
 ## convert T_eff to T_col
 # Teff    Tcol
@@ -334,7 +334,7 @@ temps = np.arange(1000, 15000, (15000-1000)/10000, dtype=float)
 
 objects = obg.Ellipsoid(10000, 'Exponential', axes=[1,3,2])
 
-viz.Objects3D(objects, colour='temperature', T_eff=temps)
+viz.Scatter3D(objects, colour='temperature', T_eff=temps)
 
 
 
@@ -599,7 +599,7 @@ vis.CMD(magBV_obj, mag2_obj)
 
 ##
 objects = obg.Ellipsoid(20000, 'Exponential', axes=[1,2,1.5])
-viz.Objects3D(objects, colour='temperature', T_eff=10**logTe_obj)
+viz.Scatter3D(objects, colour='temperature', T_eff=10**logTe_obj)
 
 ## wvl/temp to RGB
 import numpy as np
@@ -837,11 +837,11 @@ objects2 = obg.Ellipsoid(100000, dist_type='Exponential_r')
 
 # objects2 = obg.Ellipsoid(100000, dist_type='PearsonVII_r')
 
-vis.Objects2D(objects)
-vis.Objects2D(objects2)
+vis.Scatter2D(objects)
+vis.Scatter2D(objects2)
 
-vis.Objects3D(objects)
-vis.Objects3D(objects2)
+vis.Scatter3D(objects)
+vis.Scatter3D(objects2)
 
 
 ## Tests on radii (Cartesian, cylindrical, spherical)
@@ -1235,7 +1235,7 @@ def GenSphereProj(n, r_dist=Radius):
     
     xyz = conv.SpherToCart(r, theta, phi).transpose()
     
-    #vis.Objects2D(xyz)
+    #vis.Scatter2D(xyz)
     
     radii = form.Distance2D(xyz)
     return radii, r, theta

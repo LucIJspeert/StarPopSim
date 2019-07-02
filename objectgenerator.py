@@ -826,7 +826,7 @@ class AstObject:
         else:
             temps = None
         
-        vis.Objects2D(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
+        vis.Scatter2D(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
                       axes=axes, colour=colour, T_eff=temps, mag=mags, theme=theme)
         return
         
@@ -848,7 +848,7 @@ class AstObject:
         else:
             temps = None
         
-        vis.Objects3D(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
+        vis.Scatter3D(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
                       axes=axes, colour=colour, T_eff=temps, mag=mags, theme=theme)
         return
         
