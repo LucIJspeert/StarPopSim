@@ -544,10 +544,6 @@ class AstObject:
         self.natural_guide_stars = [pos_x, pos_y, mag, filt, spec_types]
         return
     
-    def PerformanceMode():
-        """Sacrifices memory usage for performance during the simulation of images."""
-        #todo: build this
-    
     def CurrentMasses(self, realistic_remnants=True):
         """Gives the current masses of the stars in Msun.
         Uses isochrone files and the given initial masses of the stars.
@@ -826,7 +822,7 @@ class AstObject:
         else:
             temps = None
         
-        vis.Objects2D(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
+        vis.Scatter2D(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
                       axes=axes, colour=colour, T_eff=temps, mag=mags, theme=theme)
         return
         
@@ -848,7 +844,7 @@ class AstObject:
         else:
             temps = None
         
-        vis.Objects3D(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
+        vis.Scatter3D(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
                       axes=axes, colour=colour, T_eff=temps, mag=mags, theme=theme)
         return
         
@@ -886,6 +882,10 @@ class AstObject:
         vis.CMD(c_mag, mag, title='CMD', xlabel=x, ylabel=y, 
                 colour='blue', T_eff=None, theme=None, adapt_axes=True, mask=None)
         return
+        
+    def PerformanceMode():
+        """Sacrifices memory usage for performance during the simulation of images."""
+        #todo: build this
         
     def SaveTo(self, filename):
         """Saves the class to a file."""

@@ -12,7 +12,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import conversions as conv
 
 
-def Objects2D(coords, title='Scatter', xlabel='x', ylabel='y',
+def Scatter2D(coords, title='Scatter', xlabel='x', ylabel='y',
               axes='xy', colour='blue', T_eff=None, mag=None, theme=None):
     """Plots a 2D scatter of a 3D object (array) along given axes [xy, yz, zx]. 
     Giving effective temperatures makes the marker colour represent temperature.
@@ -48,7 +48,7 @@ def Objects2D(coords, title='Scatter', xlabel='x', ylabel='y',
     else:
         sizes = 20                                                                                  # default size
     
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=[7.0, 5.5])
     ax.scatter(coords[:,hor_axis], coords[:,vert_axis], marker='.', 
                linewidths=0.0, c=colour, s=sizes)
     
@@ -118,7 +118,7 @@ def Objects2D(coords, title='Scatter', xlabel='x', ylabel='y',
     return
 
 
-def Objects3D(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z', 
+def Scatter3D(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z', 
               colour='blue', T_eff=None, mag=None, theme=None):
     """Plots a 3D scatter of a 3D object (array).
     colour can be set to 'temperature' to represent the effective temperatures.
@@ -150,7 +150,7 @@ def Objects3D(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
     else:
         sizes = 20                                                                                  # default size
     
-    fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
+    fig, ax = plt.subplots(subplot_kw=dict(projection='3d'), figsize=[6.0, 6.0])
     ax.scatter(coords[:,0], coords[:,1], coords[:,2], 
                marker='.', linewidths=0.0, c=colour, s=sizes) 
     
@@ -217,7 +217,7 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
         saveable dark plot, and None for normal light colours.
     """
     # colours can be made to match the temperature (using T_eff)
-    if (T_eff is not None):
+    if ((T_eff is not None) & (colour == 'temperature')):
         colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
         colour[T_eff <= 10] = [0.2, 0.2, 0.2]                                                       # dead stars
         colour = mcol.to_rgba_array(colour, 0.5)                                                    # add alpha
@@ -230,7 +230,7 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
     if mask is None:
         mask = np.ones_like(T_eff, dtype=bool)
     
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=[7.0, 5.5])
     ax.scatter(T_eff[mask], log_Lum[mask], marker='.', linewidths=0.0, c=colour)
     
     if (theme == 'dark1'):
@@ -297,7 +297,7 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
     if mask is None:
         mask = np.ones_like(c_mag, dtype=bool)
     
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=[7.0, 5.5])
     ax.scatter(c_mag[mask], mag[mask], c=colour, marker='.', linewidths=0.0)
     
     if adapt_axes:
@@ -389,7 +389,7 @@ def DistHist(dist, title='Histogram', xlabel='parameter', ylabel='relative numbe
             else:
                 ax.plot(bins[:-1], hist)
     
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=[7.0, 5.5])
     
     if (dim == 1):
         plotfunc(dist)
