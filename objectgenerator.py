@@ -38,7 +38,7 @@ limiting_number = 10**7         # used in compact mode as maximum number of star
 
 
 class AstObject:
-    """Contains all the information about a generated astronomical object.
+    """Generates the astronomical object and contains all the information about the object.
     Also functions that can be performed on the object are defined here.
     """
     

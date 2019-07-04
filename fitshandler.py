@@ -278,7 +278,9 @@ def SaveFitsPlot(filename, index=0, colours='gray', scale='lin', grid=False, chi
     plt.savefig(name, bbox_inches='tight', dpi=600)
     plt.close()
     return
-
+    
+    
+#todo: make add and subtract functions
 
 
 
