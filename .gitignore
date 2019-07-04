@@ -29,6 +29,7 @@ MANIFEST
 objects/*.pkl
 images/*.fits
 images/*.png
+photometry/*.dat
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
