@@ -19,7 +19,7 @@ At this stage, the implemented instrument simulator is SimCADO. This code simula
 
 
 ## Getting started
-As of version 1.0 (April 2019), the way to get this code is to either download it or make a fork on GitHub. To use it, one can use the command line or a Python environment of yourchoosing to execute the functions.
+As of version 1.0 (April 2019), the way to get this code is to either download it or make a fork on GitHub. To use it, one can use the command line or a Python environment of your choosing to execute the functions.
 
 **To keep StarPopSim updated**, grabbing a copy from the master branch should always provide you with the latest working version.
 
