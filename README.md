@@ -42,7 +42,7 @@ This will create a cluster of stars that has a total initial mass of 1e5 solar m
 Many more options are available. For a more detailed description I refer the reader to the reference material listed above.
 Alternatively, the same can be achieved directly from the command line with:
 
-	>>> python3 constructor.py -M 10**5 -ages 10 -z 0.0014 -D 10**3
+	>>> python3 constructor.py -M 10**5 -ages 10 -Z 0.0014 -D 10**3
 	
 To find out how to create the object you want (via the command line), there is an interactive object builder that will give out the object as well as the command line command that will do exactly that
 
