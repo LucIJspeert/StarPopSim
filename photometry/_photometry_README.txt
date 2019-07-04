@@ -1,0 +1,1 @@
+Put the photometry data in this directory. The program tries to open them from here by default.

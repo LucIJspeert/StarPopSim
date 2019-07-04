@@ -1,5 +1,5 @@
 # Luc IJspeert
-# Part of smoc: (physical) formulas
+# Part of starpopsim: (physical) formulas
 ##
 """Formulas that are not just conversions (to keep things more organized). 
 Most functions optimized for processing many numbers at once (ndarray).
@@ -126,7 +126,7 @@ def ApparentMag(mag, dist, ext=0, sigma=[0]):
     else:
         z_coord = 0
         
-    return mag + 5*np.log10((dist + z_coord)/10.) + ext                                             # sigma and dist in pc!
+    return mag + 5*np.log10((dist + z_coord)/10) + ext                                              # sigma and dist in pc!
 
 
 def AbsoluteMag(mag, dist, ext=0):
@@ -272,9 +272,9 @@ def RemnantTeff(M_rem, R_rem, t_cool, BH_mass=2.0):
     
     Temps = np.zeros_like(M_rem)
     
-    Temps[M_rem > 2] = 10**-8                                                                       # above mass M_rem=BH_mass is considered a BH
+    Temps[M_rem > BH_mass] = 10**(-8)                                                               # above mass M_rem=BH_mass is considered a BH
     
-    mask = (M_rem <= 2)
+    mask = (M_rem <= BH_mass)
     Temps[mask] = T_sun*(10**8/(A*t_cool[mask]))**(7/20)*(M_rem[mask])**(1/4)*(R_rem[mask])**(-1/2)
     
     return Temps

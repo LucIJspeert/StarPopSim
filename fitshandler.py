@@ -1,5 +1,5 @@
 # Luc IJspeert
-# Part of smoc: fits file handler
+# Part of starpopsim: fits file handler
 ##
 """This module contains the interactions with fits files. 
 It is likely biased towards the purpose of the main program.
@@ -170,9 +170,10 @@ def AddToFits(filename, input_data, input_header=None):
     return
 
 
-def PlotFits(filename, index=0, colours='gray', grid=True, chip='single'):
+def PlotFits(filename, index=0, colours='gray', scale='lin', grid=False, chip='single'):
     """Displays the image in a fits file. Optional args: HDUlist index, colours.
     Can also take image objects directly.
+    scale can be set to 'lin', 'sqrt', and 'log'
     chip='single': plots single data array at given index.
         ='full': expects data in index 1-9 and combines it.
     """
@@ -195,17 +196,20 @@ def PlotFits(filename, index=0, colours='gray', grid=True, chip='single'):
             raise ValueError('fitshandler//PlotFits: chip configuration not recognised.')
             
     if (chip == 'full'):
-        image_data_r1 = np.append(image_data_single[6], image_data_single[7], axis=1)
-        image_data_r1 = np.append(image_data_r1, image_data_single[8], axis=1)
-        image_data_r2 = np.append(image_data_single[5], image_data_single[4], axis=1)
-        image_data_r2 = np.append(image_data_r2, image_data_single[3], axis=1)
-        image_data_r3 = np.append(image_data_single[0], image_data_single[1], axis=1)
-        image_data_r3 = np.append(image_data_r3, image_data_single[2], axis=1)
+        image_data_r1 = np.concatenate(image_data_single[6], image_data_single[7], 
+                                       image_data_single[8], axis=1)
+        image_data_r2 = np.concatenate(image_data_single[5], image_data_single[4], 
+                                       image_data_single[3], axis=1)
+        image_data_r3 = np.concatenate(image_data_single[0], image_data_single[1], 
+                                       image_data_single[2], axis=1)
         
-        image_data = np.append(image_data_r1, image_data_r2, axis=0)
-        image_data = np.append(image_data, image_data_r3, axis=0)
+        image_data = np.concatenate(image_data_r1, image_data_r2, image_data_r3, axis=0)
             
-        
+    if (scale == 'log'):
+        image_data = np.log10(image_data - np.min(image_data))
+    elif (scale == 'sqrt'):
+        image_data = (image_data - np.min(image_data))**(1/2)
+    
     # use nice plot parameters
     plt.style.use(astropy_mpl_style)
     
@@ -213,13 +217,15 @@ def PlotFits(filename, index=0, colours='gray', grid=True, chip='single'):
     cax = ax.imshow(image_data, cmap=colours)
     ax.grid(grid)
     cbar = fig.colorbar(cax)
+    plt.tight_layout()
     plt.show()
     return
 
 
-def SaveFitsPlot(filename, index=0, colours='gray', grid=True, chip='single'):
+def SaveFitsPlot(filename, index=0, colours='gray', scale='lin', grid=False, chip='single'):
     """Saves the plotted image in a fits file. Optional args: HDUlist index, colours.
     Can also take image objects directly.
+    scale can be set to 'lin', 'sqrt', and 'log'
     chip='single': plots single data array at given index.
         ='full': expects data in index 1-9 and combines it.
     """
@@ -242,16 +248,20 @@ def SaveFitsPlot(filename, index=0, colours='gray', grid=True, chip='single'):
             raise ValueError('fitshandler//SaveFitsPlot: chip configuration not recognised.')
             
     if (chip == 'full'):
-        image_data_r1 = np.append(image_data_single[6], image_data_single[7], axis=1)
-        image_data_r1 = np.append(image_data_r1, image_data_single[8], axis=1)
-        image_data_r2 = np.append(image_data_single[5], image_data_single[4], axis=1)
-        image_data_r2 = np.append(image_data_r2, image_data_single[3], axis=1)
-        image_data_r3 = np.append(image_data_single[0], image_data_single[1], axis=1)
-        image_data_r3 = np.append(image_data_r3, image_data_single[2], axis=1)
+        image_data_r1 = np.concatenate(image_data_single[6], image_data_single[7], 
+                                       image_data_single[8], axis=1)
+        image_data_r2 = np.concatenate(image_data_single[5], image_data_single[4], 
+                                       image_data_single[3], axis=1)
+        image_data_r3 = np.concatenate(image_data_single[0], image_data_single[1], 
+                                       image_data_single[2], axis=1)
         
-        image_data = np.append(image_data_r1, image_data_r2, axis=0)
-        image_data = np.append(image_data, image_data_r3, axis=0)
-        
+        image_data = np.concatenate(image_data_r1, image_data_r2, image_data_r3, axis=0)
+    
+    if (scale == 'log'):
+        image_data = np.log10(image_data - np.min(image_data))
+    elif (scale == 'sqrt'):
+        image_data = (image_data - np.min(image_data))**(1/2)
+    
     # use nice plot parameters
     plt.style.use(astropy_mpl_style)
     
@@ -266,8 +276,11 @@ def SaveFitsPlot(filename, index=0, colours='gray', grid=True, chip='single'):
         name = os.path.join('images', default_picture_file_name + '.png')
     
     plt.savefig(name, bbox_inches='tight', dpi=600)
+    plt.close()
     return
-
+    
+    
+#todo: make add and subtract functions
 
 
 

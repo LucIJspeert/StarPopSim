@@ -1,5 +1,5 @@
 # Luc IJspeert
-# Part of smoc: (astronomical) image generator (uses SimCADO)
+# Part of starpopsim: (astronomical) image generator (uses SimCADO)
 ##
 """This module generates an image or collection thereof, in the usual fits format.
 The software package SimCADO is used for the optical train.
@@ -13,6 +13,7 @@ import simcado as sim
 
 
 # global constants
+default_image_file_name = 'image_default_save'
 rad_as = 648000/np.pi               # rad to arcsec
 
 
@@ -20,10 +21,11 @@ def MakeSource(astobj, filter='V'):
     """Makes a SimCADO Source object from an AstObj.
     filter determines what magnitudes are used (corresponding to that filter).
     """
-    x_as = np.arctan(astobj.coords[:, 0]/astobj.d_ang)*rad_as                                       # original coordinates assumed to be in pc
-    y_as = np.arctan(astobj.coords[:, 1]/astobj.d_ang)*rad_as
+    coords_as = astobj.CoordsArcsec()
+    x_as = coords_as[:, 0]
+    y_as = coords_as[:, 1]
     
-    magnitudes = astobj.ApparentMagnitudes(filter=filter)[0]
+    magnitudes = astobj.ApparentMagnitudes(filter=filter)
     spec_i, spec_names = astobj.SpectralTypes()
     
     src = sim.source.stars(mags=magnitudes, 
@@ -55,7 +57,7 @@ def MakeSource(astobj, filter='V'):
     return src
     
 def MakeImage(src, exposure=60, NDIT=1, view='wide', chip='centre', filter='V', ao_mode='scao', 
-              filename='image_default_save', internals=None, return_int=False):
+              filename=default_image_file_name, internals=None, return_int=False):
     """Make the image with SimCADO.
     exposure = time in seconds, NDIT = number of exposures taken.
     view = mode = ['wide', 'zoom']: fov 53 arcsec (4 mas/pixel) or 16 (1.5 mas/pixel)

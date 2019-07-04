@@ -26,7 +26,7 @@ As of version 1.0 (April 2019), the way to get this code is to either download i
 **StarPopSim has only been tested in Python 3.6**. 
 Using older versions could result in unexpected errors, although any Python 3 version is expected to work.
 
-**Package dependencies:** Numpy, Scipy, matplotlib, astropy (for .fits functionality), SimCADO (for imaging functionality)
+**Package dependencies:** Numpy, Scipy, matplotlib, SimCADO (for imaging functionality; also requires synphot), astropy (for .fits functionality), photutils (for photometry functionality) 
 
 **Note:** making the astronomical objects in StarPopSim is in principle fully independent from SimCADO. So if different instrument simulation software is going to be used instead, a SimCADO install is not necessary.
 
@@ -88,20 +88,20 @@ StarPopSim comes with a handy fits-file-handling module that does all the basic 
 The two most notable are saving (to png) and plotting a fits image:
 
 	>>> import fitshandler as fh
-	>>> fh.SaveFitsPlot(filename, index=0, colours='gray', grid=True)
-	>>> fh.PlotFits(filename, index=0, colours='gray', grid=True)
+	>>> fh.SaveFitsPlot(filename, index=0, colours='gray', grid=False)
+	>>> fh.PlotFits(filename, index=0, colours='gray', grid=False)
 	
 There is another module for visualisation, that can make various plots of the AstObject made above. To give two examples:
 
 	>>> import visualizer as vis
-	>>> vis.Objects2D(objects, title='Scatter', xlabel='x', ylabel='y', axes='xy', 
-					  colour='blue', T_eff=None, dark_theme=True)
+	>>> vis.Scatter2D(coords, title='Scatter', xlabel='x', ylabel='y', axes='xy', 
+					  colour='blue', T_eff=None, theme=None)
 
-This will make a two-dimensional plot of the object projected on the x-y plane. The colour can be set to 'temperature', if T_eff is specified for each star. The dark theme is just a preset with some nice plotting parameters.
+This will make a two-dimensional plot of the object projected on the x-y plane. The colour can be made to represent temperature, if T_eff is specified for each star. The theme can be set to 'dark1' which is a preset with some nice plotting parameters.
 The following function will make an HR-diagram of the stellar population(s):
 
 	>>> vis.HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)', ylabel=r'Luminosity log($L/L_\odot$)', 
-				colour='temperature', dark_theme=True, mask=None)
+				colour='temperature', theme=None, mask=None)
 
 Here, a boolean mask can be specified to take out specific stars (since they might fall far outside of the wanted plotting area).
 

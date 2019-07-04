@@ -1,5 +1,5 @@
 # Luc IJspeert
-# Part of smoc: distribution functions
+# Part of starpopsim: distribution functions
 ##
 """Distribution definitions to randomly draw numbers from. Optimized for drawing many numbers at once (array).
 Distributions ending in _r are 3D radial (spherical) variants of the 1D (cartesian) versions.
@@ -134,7 +134,7 @@ def PearsonVII_r(n=1, s=1.0):
     N_vals = cdf_PearsonVII(r_vals, s)
     return np.interp(np.random.rand(int(n)), N_vals, r_vals)
 
-
+# todo: combine rho and r
 def KingGlobular_r(n=1, s=1.0, R=None):
     """Radial King distribution for globular clusters with scale height s and outter radius R. 
     Draws n numbers.
