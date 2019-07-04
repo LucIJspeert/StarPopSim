@@ -8,6 +8,7 @@ M_initial  	initial_mass
 M_actual  	star_mass
 log_L  		log_L
 log_Te  	log_Teff
+log_g		log_g
 U			Bessell_U
 B  			Bessell_B
 V  			Bessell_V
