@@ -1,5 +1,5 @@
 # Luc IJspeert
-# SimPopPy test file
+# starpopsim test file
 ##
 import PyQt5
 import matplotlib.pyplot as plt
