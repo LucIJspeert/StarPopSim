@@ -94,14 +94,14 @@ The two most notable are saving (to png) and plotting a fits image:
 There is another module for visualisation, that can make various plots of the AstObject made above. To give two examples:
 
 	>>> import visualizer as vis
-	>>> vis.Objects2D(objects, title='Scatter', xlabel='x', ylabel='y', axes='xy', 
-					  colour='blue', T_eff=None, dark_theme=True)
+	>>> vis.Scatter2D(coords, title='Scatter', xlabel='x', ylabel='y', axes='xy', 
+					  colour='blue', T_eff=None, theme=None)
 
-This will make a two-dimensional plot of the object projected on the x-y plane. The colour can be set to 'temperature', if T_eff is specified for each star. The dark theme is just a preset with some nice plotting parameters.
+This will make a two-dimensional plot of the object projected on the x-y plane. The colour can be made to represent temperature, if T_eff is specified for each star. The theme can be set to 'dark1' which is a preset with some nice plotting parameters.
 The following function will make an HR-diagram of the stellar population(s):
 
 	>>> vis.HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)', ylabel=r'Luminosity log($L/L_\odot$)', 
-				colour='temperature', dark_theme=True, mask=None)
+				colour='temperature', theme=None, mask=None)
 
 Here, a boolean mask can be specified to take out specific stars (since they might fall far outside of the wanted plotting area).
 
