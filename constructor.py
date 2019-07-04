@@ -849,7 +849,7 @@ if __name__ == '__main__':
     parser.add_argument('-ages', type=float, nargs='+', required=False, default=[9],
                         help='age(s) of the stellar population(s), logarithmic or linear.')
                         
-    parser.add_argument('-z', type=float, nargs='+', required=False, default=[0.019], 
+    parser.add_argument('-Z', type=float, nargs='+', required=False, default=[0.019], 
                         help='metallicity(/ies) of the stellar population(s)')
                         
     parser.add_argument('-relN', type=float, nargs='+', required=False, default=[1],
