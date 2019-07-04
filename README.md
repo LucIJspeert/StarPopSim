@@ -88,8 +88,8 @@ StarPopSim comes with a handy fits-file-handling module that does all the basic 
 The two most notable are saving (to png) and plotting a fits image:
 
 	>>> import fitshandler as fh
-	>>> fh.SaveFitsPlot(filename, index=0, colours='gray', grid=False)
-	>>> fh.PlotFits(filename, index=0, colours='gray', grid=False)
+	>>> fh.SaveFitsPlot(filename, index=0, colours='gray', scale='lin', grid=False)
+	>>> fh.PlotFits(filename, index=0, colours='gray', scale='lin', grid=False)
 	
 There is another module for visualisation, that can make various plots of the AstObject made above. To give two examples:
 
