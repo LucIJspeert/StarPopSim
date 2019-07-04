@@ -922,7 +922,7 @@ if __name__ == '__main__':
                                N_stars=args.N, 
                                M_tot_init=args.M, 
                                age=args.ages, 
-                               metal=args.z, 
+                               metal=args.Z, 
                                rel_num=args.relN, 
                                distance=args.D,
                                d_type=args.Dtype,
