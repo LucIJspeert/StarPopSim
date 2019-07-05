@@ -1140,9 +1140,9 @@ def OpenIsochrone(age, Z, columns='all'):
                                     'Try a different metallicity.').format(file_name))
     
     # names to use in the code, and a mapping to the isoc file column names 
-    code_names = np.array(['log_age', 'M_initial', 'M_actual', 'log_L', 'log_Te', 
+    code_names = np.array(['log_age', 'M_initial', 'M_actual', 'log_L', 'log_Te', 'log_g', 
                            'U', 'B', 'V', 'R', 'I', 'J', 'H', 'Ks'])
-    mag_names = code_names[5:]                                                                      # names of filters for later reference
+    mag_names = code_names[6:]                                                                      # names of filters for later reference
     mag_num = len(mag_names)
     var_names, column_names = np.loadtxt(os.path.join('tables', 'column_names.dat'), 
                                          dtype=str, unpack=True)
