@@ -770,8 +770,8 @@ class AstObject:
         
         return radii
     
-    def HalfMassRadius(self, spher=False):
-        """Returns the (spherical or cylindrical) half mass radius in pc."""
+    def HalfMassRadius(self, unit='pc', spher=False):
+        """Returns the (spherical or cylindrical) half mass radius in pc/as."""
         M_cur = self.CurrentMasses()
         tot_mass = np.sum(M_cur)                                                                    # do this locally, to avoid unnecesairy overhead
         
@@ -784,10 +784,15 @@ class AstObject:
         r_sorted = r_star[indices]                                                                  # sorted radii
         mass_sorted = M_cur[indices]                                                                # masses sorted for radius
         mass_sum = np.cumsum(mass_sorted)                                                           # cumulative sum of sorted masses
-        return np.max(r_sorted[mass_sum <= tot_mass/2])                                             # 2D/3D radius at half the mass
+        hmr = np.max(r_sorted[mass_sum <= tot_mass/2])                                              # 2D/3D radius at half the mass
         
-    def HalfLumRadius(self, spher=False):
-        """Returns the (spherical or cylindrical) half luminosity radius in pc."""
+        if (unit == 'as'):                                                                          # convert to arcsec if wanted
+            hmr = conv.ParsecToArcsec(hmr, self.d_ang)
+            
+        return hmr
+        
+    def HalfLumRadius(self, unit='pc', spher=False):
+        """Returns the (spherical or cylindrical) half luminosity radius in pc/as."""
         lum = 10**self.LogLuminosities(realistic_remnants=False)
         # todo: take out the nan values in real.remn. causing trouble here
         tot_lum = np.sum(lum)                                                                       # do this locally, to avoid unnecesairy overhead
@@ -801,7 +806,12 @@ class AstObject:
         r_sorted = r_star[indices]                                                                  # sorted radii
         lum_sorted = lum[indices]                                                                   # luminosities sorted for radius
         lum_sum = np.cumsum(lum_sorted)                                                             # cumulative sum of sorted luminosities
-        return np.max(r_sorted[lum_sum <= tot_lum/2])                                               # 2D/3D radius at half the luminosity
+        hlr = np.max(r_sorted[lum_sum <= tot_lum/2])                                                # 2D/3D radius at half the luminosity
+        
+        if (unit == 'as'):                                                                          # convert to arcsec if wanted
+            hlr = conv.ParsecToArcsec(hlr, self.d_ang)
+            
+        return hlr
         
     def Plot2D(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', 
                filter='V', theme='dark1'):
