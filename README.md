@@ -19,7 +19,7 @@ At this stage, the implemented instrument simulator is SimCADO. This code simula
 
 
 ## Getting started
-As of version 1.0 (April 2019), the way to get this code is to either download it or make a fork on GitHub. To use it, one can use the command line or a Python environment of yourchoosing to execute the functions.
+As of version 1.0 (April 2019), the way to get this code is to either download it or make a fork on GitHub. To use it, one can use the command line or a Python environment of your choosing to execute the functions.
 
 **To keep StarPopSim updated**, grabbing a copy from the master branch should always provide you with the latest working version.
 
@@ -42,7 +42,7 @@ This will create a cluster of stars that has a total initial mass of 1e5 solar m
 Many more options are available. For a more detailed description I refer the reader to the reference material listed above.
 Alternatively, the same can be achieved directly from the command line with:
 
-	>>> python3 constructor.py -M 10**5 -ages 10 -z 0.0014 -D 10**3
+	>>> python3 constructor.py -M 10**5 -ages 10 -Z 0.0014 -D 10**3
 	
 To find out how to create the object you want (via the command line), there is an interactive object builder that will give out the object as well as the command line command that will do exactly that
 
@@ -88,20 +88,20 @@ StarPopSim comes with a handy fits-file-handling module that does all the basic 
 The two most notable are saving (to png) and plotting a fits image:
 
 	>>> import fitshandler as fh
-	>>> fh.SaveFitsPlot(filename, index=0, colours='gray', grid=True)
-	>>> fh.PlotFits(filename, index=0, colours='gray', grid=True)
+	>>> fh.SaveFitsPlot(filename, index=0, colours='gray', scale='lin', grid=False)
+	>>> fh.PlotFits(filename, index=0, colours='gray', scale='lin', grid=False)
 	
 There is another module for visualisation, that can make various plots of the AstObject made above. To give two examples:
 
 	>>> import visualizer as vis
-	>>> vis.Objects2D(objects, title='Scatter', xlabel='x', ylabel='y', axes='xy', 
-					  colour='blue', T_eff=None, dark_theme=True)
+	>>> vis.Scatter2D(coords, title='Scatter', xlabel='x', ylabel='y', axes='xy', 
+					  colour='blue', T_eff=None, theme=None)
 
-This will make a two-dimensional plot of the object projected on the x-y plane. The colour can be set to 'temperature', if T_eff is specified for each star. The dark theme is just a preset with some nice plotting parameters.
+This will make a two-dimensional plot of the object projected on the x-y plane. The colour can be made to represent temperature, if T_eff is specified for each star. The theme can be set to 'dark1' which is a preset with some nice plotting parameters.
 The following function will make an HR-diagram of the stellar population(s):
 
 	>>> vis.HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)', ylabel=r'Luminosity log($L/L_\odot$)', 
-				colour='temperature', dark_theme=True, mask=None)
+				colour='temperature', theme=None, mask=None)
 
 Here, a boolean mask can be specified to take out specific stars (since they might fall far outside of the wanted plotting area).
 
