@@ -49,7 +49,7 @@ class AstObject:
                  age=None, 
                  metal=None, 
                  rel_num=None, 
-                 distance=0,
+                 distance=10,
                  d_type='l',
                  imf_par=None,
                  sf_hist=None,
@@ -117,6 +117,8 @@ class AstObject:
         self.spiral_arms = spiral_arms                                                              # (spiral) number of spiral arms
         self.spiral_bulge = spiral_bulge                                                            # (spiral) relative proportion of central bulge
         self.spiral_bar = spiral_bar                                                                # (spiral) relative proportion of central bar
+        
+        # todo: make distance not required (set to 10)
         
         # properties that are derived/generated
         self.pop_number = np.array([])                                                              # number of stars in each population

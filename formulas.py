@@ -4,21 +4,24 @@
 """Formulas that are not just conversions (to keep things more organized). 
 Most functions optimized for processing many numbers at once (ndarray).
 """
+import warnings
 import numpy as np
 
 
 # global constants
-c_light = 299792458.0           # m/s speed of light 
-h_plank = 6.62607004*10**-34    # J s Planck constant
-k_B = 1.38064852*10**-23        # J/K Boltzmann constant
-Z_sun = 0.019                   # metallicity
-T_sun = 5772                    # K (effective temp)
-M_ch = 1.456                    # in M_sun
-H_0 = 67                        # km/s/Mpc
-d_H = c_light*10**3/H_0         # Hubble distance in pc
-om_r = 9*10**-5                 # omega radiation
-om_m = 0.315                    # omega matter
-om_l = 0.685                    # omega lambda ('dark energy')
+c_light = 299792458.0           # m/s       speed of light 
+h_plank = 6.62607004*10**-34    # J s       Planck constant
+k_B = 1.38064852*10**-23        # J/K       Boltzmann constant
+parsec = 3.086*10**16           # m         parallax second
+year = 31557600                 # s         length of year
+Z_sun = 0.019                   # frac      solar metallicity
+T_sun = 5772                    # K         solar effective temp
+M_ch = 1.456                    # M_sun     Chandrasekhar mass
+H_0 = 67                        # km/s/Mpc  Hubble constant at present epoch
+d_H = c_light*10**3/H_0         # pc        Hubble distance
+om_r = 9*10**-5                 # frac      omega radiation
+om_m = 0.315                    # frac      omega matter
+om_l = 0.685                    # frac      omega lambda ('dark energy')
 
 # global defaults
 imf_defaults = [0.08, 150]      # lower bound, upper bound on mass
@@ -51,66 +54,92 @@ def PlanckBB(nu, T, var='freq'):
     return spec
 
 
-def DComoving(z):
-    """Gives the comoving distance (in pc) given the redshift z."""
-    num_points = 10**5
+def LightTravelTime(z, points=10**4):
+    """Gives the time it takes light (in yr) to travel from a certain redshift z.
+    points is the number of steps for integration: higher=more precision, lower=faster.
+    """
+    min_log_z = -5                                                                                  # minimum valid (log)redshift
     
-    if isinstance(z, list):
-        z = np.array(z)                                                                             # just making sure it works for lists
+    if hasattr(z, '__len__'):
+        z = np.array(z)                                                                             # just making sure it works for lists/tuples
+        z[z == 0] = min_log_z                                                                       # make sure there are no zeros
+    elif (z == 0):
+        z = 10**min_log_z                                                                           # make sure there are no zeros or negative outputs
+        
+    if (np.sum(np.log10(z) <= min_log_z) > 0):
+        warnings.warn('formulas//DComoving: input below minimum valid value, returning negative numbers.')
     
-    if isinstance(z, (np.ndarray)):
-        N = int(np.max([100, num_points/len(z)]))                                                   # integrate with at least 100 points
-        zs = np.array([np.logspace(-5, np.log10(z[i]), N) for i in range(len(z)) if z[i] != 0])
-        ys = 1/np.sqrt(om_r*(1 + zs)**4 + om_m*(1 + zs)**3 + om_l)
-        integral =  np.trapz(ys, zs, axis=1)
-    else:
-        zs = np.logspace(-5, np.log10(z), num_points)
-        ys = 1/np.sqrt(om_r*(1 + zs)**4 + om_m*(1 + zs)**3 + om_l)
-        integral =  np.trapz(ys, zs)
+    zs = np.logspace(min_log_z, np.log10(z), points)
+    ys = 1/((1 + zs)*np.sqrt(om_r*(1 + zs)**4 + om_m*(1 + zs)**3 + om_l))
+    integral =  np.trapz(ys, zs, axis=0)
+        
+    return integral*d_H*parsec/(c_light*year)
+
+    
+def DComoving(z, points=10**4):
+    """Gives the comoving distance (in pc) given the redshift z.
+    points is the number of steps for integration: higher=more precision, lower=faster.
+    """
+    min_log_z = -5                                                                                  # minimum valid (log)redshift
+    
+    if hasattr(z, '__len__'):
+        z = np.array(z)                                                                             # just making sure it works for lists/tuples
+        z[z == 0] = min_log_z                                                                       # make sure there are no zeros
+    elif (z == 0):
+        z = 10**min_log_z                                                                           # make sure there are no zeros or negative outputs
+        
+    if (np.sum(np.log10(z) <= min_log_z) > 0):
+        warnings.warn('formulas//DComoving: input below minimum valid value, returning negative numbers.')
+    
+    zs = np.logspace(min_log_z, np.log10(z), points)
+    ys = 1/np.sqrt(om_r*(1 + zs)**4 + om_m*(1 + zs)**3 + om_l)
+    integral =  np.trapz(ys, zs, axis=0)
         
     return integral*d_H
 
 
-def DLToRedshift(dist):
-    """Calculates the redshift assuming luminosity distance (in pc) is given.
-    Quite slow for arrays (usually not what it would be used for anyway).
+def DLuminosity(z, points=10**4):
+    """Gives the luminosity distance (in pc) to the object given the redshift z.
+    points is the number of steps for integration: higher=more precision, lower=faster.
     """
-    num_points = 1000
-    
-    if isinstance(dist, list):
-        dist = np.array(dist)                                                                       # just making sure it works for lists
-    
-    z_est = 7.04208*10**-11*dist                                                                    # first estimate using a linear formula
-    
-    if isinstance(dist, (np.ndarray)):
-        z_ranges = np.array([np.linspace(0.1*z, 10*z, num_points) for z in z_est])
-        z_best = []
-        for d, z_range in zip(dist, z_ranges):
-            z_best.append(z_range[np.argmin(np.abs(DLuminosity(z_range) - d))])
-        z_best = np.array(z_best)
-    else:
-        z_range = np.linspace(0.1*z_est, 10*z_est, num_points)
-        z_best = z_range[np.argmin(np.abs(DLuminosity(z_range) - dist))]
+    if hasattr(z, '__len__'):
+        z = np.array(z)                                                                             # just making sure it works for lists/tuples
         
-    return z_best
-
-
-def DLuminosity(z):
-    """Gives the luminosity distance (in pc) to the object given the redshift z."""
-    if isinstance(z, list):
-        z = np.array(z)                                                                             # just making sure it works for lists
-        
-    d_C = DComoving(z)
+    d_C = DComoving(z, points=points)
     return (1 + z)*d_C
 
 
-def DAngular(z):
-    """Gives the angular diameter distance (in pc) to the object given the redshift z."""
-    if isinstance(z, list):
-        z = np.array(z)                                                                             # just making sure it works for lists
+def DAngular(z, points=10**4):
+    """Gives the angular diameter distance (in pc) to the object given the redshift z.
+    points is the number of steps for integration: higher=more precision, lower=faster.
+    """
+    if hasattr(z, '__len__'):
+        z = np.array(z)                                                                             # just making sure it works for lists/tuples
         
-    d_C = DComoving(z)
+    d_C = DComoving(z, points=points)
     return d_C/(1 + z)
+
+
+def DLToRedshift(dist, points=10**3):
+    """Calculates the redshift assuming luminosity distance (in pc) is given.
+    Quite slow for arrays (usually not what it would be used for anyway).
+    points is the number of steps for which z is calculated.
+    """
+    num_dist = 10**3                                                                                # precision for distance calculation
+    
+    if hasattr(dist, '__len__'):
+        dist = np.array(dist)                                                                       # just making sure it works for lists/tuples
+    
+    z_est = 7.04208*10**-11*dist                                                                    # first estimate using a linear formula
+    
+    z_range = np.linspace(0.1*z_est, 10*z_est + 0.1, points)
+    arg_best = np.argmin(np.abs(DLuminosity(z_range, points=num_dist) - dist), axis=0)
+    if hasattr(dist, '__len__'):
+        z_best = z_range[arg_best, np.arange(len(arg_best))]
+    else:
+        z_best = z_range[arg_best]
+        
+    return z_best
 
 
 def ApparentMag(mag, dist, ext=0, sigma=[0]):
