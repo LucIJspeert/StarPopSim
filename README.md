@@ -25,6 +25,7 @@ As of version 1.0 (April 2019), the way to get this code is to either download i
 
 **StarPopSim has only been tested in Python 3.6**. 
 Using older versions could result in unexpected errors, although any Python 3 version is expected to work.
+Pyhon 2.x will cause certain funcitons to break.
 
 **Package dependencies:** NumPy >= 1.16.0, SciPy, matplotlib, SimCADO (for imaging functionality; also requires synphot), astropy (for .fits functionality), photutils (for photometry functionality) 
 
