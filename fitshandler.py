@@ -280,7 +280,8 @@ def SaveFitsPlot(filename, index=0, colours='gray', scale='lin', grid=False, chi
     return
     
     
-#todo: make add and subtract functions
+#todo: make add and subtract functions 
+# (does this have added value?)
 
 
 
