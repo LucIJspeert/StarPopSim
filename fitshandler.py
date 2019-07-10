@@ -113,9 +113,10 @@ def GetCardValue(filename, keyword, index=0):
     with fits.open(os.path.join('images', filename)) as hdul:
         value = hdul[index].header[keyword]
         if isinstance(value, str):
-            raise ValueError('fitshandler//GetCardValue: Card value is a string.')
-        else:
-            return value
+            warnings.warn('fitshandler//GetCardValue: Card value is a string.')
+            value = 0
+    
+    return value
 
 
 def GetData(filename, index=0):

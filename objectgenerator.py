@@ -94,10 +94,7 @@ class AstObject:
         
         self.d_type = d_type                                                                        # distance type [l for luminosity, z for redshift]
         
-        if (distance <= 0):                                                                         # account for error at d=0  
-            self.redshift = 10e-9
-            self.d_lum = 10e-3
-        elif (self.d_type == 'z'):
+        if (self.d_type == 'z'):
             self.redshift = distance                                                                # redshift for the object
             self.d_lum = form.DLuminosity(self.redshift)
         else:
@@ -536,13 +533,13 @@ class AstObject:
         else:
             # assume we are using MCAO now. generate random positions within patrol field
             angle = dist.AnglePhi(n=len(mag))
-            radius = dist.Uniform_rho(n=len(mag), min=46, max=90)                                   # radius of patrol field in as
+            radius = dist.Uniform(n=len(mag), min=46, max=90, power=2)                              # radius of patrol field in as
             pos_x_y = conv.PolToCart(radius, angle)
             pos_x = pos_x_y[0]
             pos_y = pos_x_y[1]
         
-        filt = np.full_like(mag, filter, dtype='U5')                                                 # the guide stars can be in a different filter than the observations 
-        spec_types = np.full_like(mag, 'G0V', dtype='U5')                                            # just to give them a spectral type
+        filt = np.full_like(mag, filter, dtype='U5')                                                # the guide stars can be in a different filter than the observations 
+        spec_types = np.full_like(mag, 'G0V', dtype='U5')                                           # just to give them a spectral type
         self.natural_guide_stars = [pos_x, pos_y, mag, filt, spec_types]
         return
     
@@ -564,7 +561,7 @@ class AstObject:
             # The following functions give estimates for remnant masses
             if realistic_remnants:
                 remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
-                r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])                       # approx. remnant masses (depend on Z)
+                r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])                   # approx. remnant masses (depend on Z)
                 
                 M_cur_i[remnants_i] = r_M_cur_i
             M_cur = np.append(M_cur, M_cur_i)  
@@ -998,7 +995,7 @@ def StarMasses(N_stars=0, M_tot=0, imf=[0.08, 150]):
         N_stars = conv.MtotToNstars(M_tot, imf)                                                     # estimate the number of stars to generate
         
     # mass
-    M_init = dist.invCIMF(N_stars, imf)                                                             # assign initial masses using IMF
+    M_init = dist.KroupaIMF(N_stars, imf)                                                             # assign initial masses using IMF
     M_tot_gen = np.sum(M_init)                                                                      # total generated mass (will differ from input mass, if given)
     
     if (M_tot != 0):

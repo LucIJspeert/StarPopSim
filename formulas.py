@@ -148,6 +148,9 @@ def DLToRedshift(dist, points=1e3):
     Quite slow for arrays (usually not what it would be used for anyway).
     points is the number of steps for which z is calculated.
     """
+    # this formula is a 'conversion' strictly speaking
+    # but it is not really meant for number crunching 
+    # and it belongs with the other distance formulas
     num_dist = 10**3                                                                                # precision for distance calculation
     len_flag = hasattr(dist, '__len__')
     
