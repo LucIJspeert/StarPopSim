@@ -115,8 +115,6 @@ class AstObject:
         self.spiral_bulge = spiral_bulge                                                            # (spiral) relative proportion of central bulge
         self.spiral_bar = spiral_bar                                                                # (spiral) relative proportion of central bar
         
-        # todo: make distance not required (set to 10)
-        
         # properties that are derived/generated
         self.pop_number = np.array([])                                                              # number of stars in each population
         self.coords = np.empty([0,3])                                                               # spatial coordinates
