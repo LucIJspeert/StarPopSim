@@ -8,6 +8,7 @@ import argparse
 import os
 import numpy as np
 
+import utils
 import fitshandler as fh
 import imagegenerator as img
 import objectgenerator as obg
@@ -40,7 +41,8 @@ def Image(astobj, exp_time, ndit, filter_name, view_mode, chip_mode, ao_mode, sa
                              filename=savename)
     
     return astimage
-    
+
+
 def DynamicImage(astobj=None, name=None):
     """Dynamically give parameters for imaging via this interactive function."""
     print('--------------------------------------------------------------------------------')
@@ -83,93 +85,7 @@ def DynamicImage(astobj=None, name=None):
     
     return astimage
 
-def isfloat(value, integer=False):
-    """Just a little thing to check input."""
-    if integer:                                                                                     # check for int instead
-        try:
-            int(value)
-            return True
-        except:
-            return False
-    
-    if isinstance(value, str):                                                                      # check strings for *'s
-        value = value.replace('*10**', 'e')
-        value = value.replace('10**', '1e')
-        
-    try:
-        float(value)
-        return True
-    except:
-        return False
-       
-def WhileAsk(question, options, add_opt=None, function='', check='str', help_arg=''):
-    """Asks a question and checks input in a while loop.
-    question: string containing the question to ask  
-    options: list of options separated by </>; can be an empty string
-    add_opt: list of additional options that are not printed (i.e. to define abbreviations)
-    function: the name of the calling function, for use in Help
-    check: type of answer to check for; can be <str>, <float> or <int>
-    args: passed to Help function
-    """
-    if (add_opt is None):
-        add_opt = []
-    
-    a = 0
-    b = 1
-    for i,char in enumerate(options):
-        if (char == '['):
-            a = i
-        elif (char == ']'):
-            b = i
-            
-    default_val = options[a+1:b]                                                                    # default option is between the [brackets]
-    
-    if (options == ''):
-        ans = input(question + ': ')                                                                # ask the question
-    else:
-        ans = input(question + ' ' + options + ': ')                                                # ask the question
-    
-    if (check == 'str'):
-        option_list = options.lower().replace('[', '').replace(']', '').split('/')                  # lower the case, default is between [], options separated by /
-        option_list += [item.lower() for item in add_opt]                                           # add the additional options
-        
-        if ((options == '') & len(option_list) == 1):
-            while ((ans == '') | (' ' in ans)):
-                ans = CheckAnswer(ans, question, options, default_val, function, help_arg)          # check the answer (this gives the possibility for open questions)     
-        else:
-            while (ans.lower() not in option_list):
-                ans = CheckAnswer(ans, question, options, default_val, function, help_arg)          # check the answer
-        
-    elif (check == 'float'):
-        while not isfloat(ans):
-            ans = CheckAnswer(ans, question, options, default_val, function, help_arg)              # check the answer
-            
-    elif (check == 'int'):
-        while not isfloat(ans, integer=True):
-            ans = CheckAnswer(ans, question, options, default_val, function, help_arg)              # check the answer
-            
-    return ans
-    
-def CheckAnswer(ans, question, options, default, function, *args):
-    """Helper function of WhileAsk."""
-    if ((ans == '') & (default != '')):
-        ans = default
-    elif (ans in ['help', 'h']):
-        AskHelp(function, *args)                                                                    # call help function
-        if (options == ''):
-            ans = input(question + ': ')
-        else:
-            ans = input(question + ' ' + options + ': ') 
-    elif (ans.lower() in ['quit', 'q']):
-        raise KeyboardInterrupt #SystemExit                                                                            # exit if wanted
-    else:
-        if (options == ''):
-            ans = input(question + ': ')
-        else:
-            ans = input(question + ' ' + options + ': ') 
-        
-    return ans
-        
+
 def AskHelp(function, add_args):
     """Shows the help on a particular function."""
     if (function == 'Filter'):
@@ -190,6 +106,7 @@ def AskHelp(function, add_args):
         print(' |  No help available for this function at this stage.')
         
     return
+
 
 def LoadAstObj(astobj_name=''):
     """Asks what astobj you want to load."""
@@ -218,21 +135,23 @@ def LoadAstObj(astobj_name=''):
         else:
             default = ''
         
-        file_name = WhileAsk('Which astronomical object file do you want to load?', 
+        file_name = utils.WhileAsk('Which astronomical object file do you want to load?', 
                              '{}'.format(default), add_opt=fnames_list, function='LoadAstObj')
     
     astobj = obg.AstObject.LoadFrom(file_name)
     return astobj, file_name
-    
+
+
 def ExposureTime():
     """Asks how long the exposure time must be."""
-    exp_str = WhileAsk('Exposure time for the observation (seconds)', 
+    exp_str = utils.WhileAsk('Exposure time for the observation (seconds)', 
                        '[{}]'.format(default_exp), function='ExposureTime', check='int')
     return int(exp_str)
-    
+
+
 def NIterations():
     """Asks how many iterations to make."""
-    ndit_str = WhileAsk('Number of exposures to make:', '[1]', function='NIterations', check='int')
+    ndit_str = utils.WhileAsk('Number of exposures to make:', '[1]', function='NIterations', check='int')
     
     if (ndit_str != '1'):
         print(' |  [Note: the number of iterations doesn\'t seem to do anything '
@@ -240,19 +159,21 @@ def NIterations():
         print(' |  [*except when you changed some default to True in the config file of SimCADO]')
         
     return int(ndit_str)
-    
+
+
 def Filter(filters):
     """Asks what astronomical filter to use."""
     filter_default = '/'.join(filters)
     filter_default = filter_default.replace(default_filter, '[' + default_filter + ']')
-    filter = WhileAsk('Filter to use:', filter_default, function='Filter', help_arg=filters)
+    filter = utils.WhileAsk('Filter to use:', filter_default, function='Filter', help_arg=filters)
     return filter
-    
+
+
 def FieldOfView():
     """Asks what view mode the telescope should be set to."""
     options = 'wide/zoom'.replace(default_fov, '[' + default_fov + ']')
     
-    fov = WhileAsk('View mode:', options, add_opt=['w', 'z'], function='FieldOfView')
+    fov = utils.WhileAsk('View mode:', options, add_opt=['w', 'z'], function='FieldOfView')
     
     if (fov.lower() == 'w'):
         fov = 'wide'
@@ -260,12 +181,13 @@ def FieldOfView():
         fov = 'zoom'
     
     return fov
-    
+
+
 def ChipConfig():
     """Asks what detector layout to use."""
     options = 'full/centre/small'.replace(default_chip, '[' + default_chip + ']')
     
-    chip = WhileAsk('Detector layout:', options, add_opt=['f', 'c', 's'], function='ChipConfig')
+    chip = utils.WhileAsk('Detector layout:', options, add_opt=['f', 'c', 's'], function='ChipConfig')
     
     if (chip.lower() == 'f'):
         chip = 'full'
@@ -275,12 +197,13 @@ def ChipConfig():
         chip = 'small'
     
     return chip
-    
+
+
 def AdaptiveOptics():
     """Asks what AO mode to use."""
     options = 'scao/mcao/ltao'.replace(default_ao, '[' + default_ao + ']')
     
-    ao = WhileAsk('Adaptive optics mode:', options, add_opt=['sc', 'mc', 'lt'], 
+    ao = utils.WhileAsk('Adaptive optics mode:', options, add_opt=['sc', 'mc', 'lt'], 
                   function='AdaptiveOptics')
     
     if (ao.lower() == 'sc'):
@@ -291,29 +214,31 @@ def AdaptiveOptics():
         ao = 'ltao'
     
     return ao
-    
+
 
 def SaveFileName():
     """Asks if you want to change the filename."""
     file_name = default_image_file_name
     
     print('The image will be saved under the name ' + file_name)
-    change = WhileAsk(' |  Save image with a different filename?', 'y/[n]', 
+    change = utils.WhileAsk(' |  Save image with a different filename?', 'y/[n]', 
                       add_opt=['yes', 'no'], function='SaveFileName')
     
     if (change.lower() in ['y', 'yes']):
-        file_name = WhileAsk(' |  Give the new name', '', function='SaveFileName')
+        file_name = utils.WhileAsk(' |  Give the new name', '', function='SaveFileName')
         
     return file_name
-    
+
+
 def ShowImage(image_name):
     """Asks if you want the image displayed."""
-    show = WhileAsk('Display the image?', '[y]/n', add_opt=['yes', 'no'], function='ShowImage')
+    show = utils.WhileAsk('Display the image?', '[y]/n', add_opt=['yes', 'no'], function='ShowImage')
     
     if (show in ['y', 'yes']):
         fh.PlotFits(image_name)
     
     return
+
 
 def OneLineCommand(astobj_str, exp, ndit, filter, fov, chip, ao, savename):
     """Gives the command line format to get the generated object."""
@@ -336,6 +261,7 @@ def OneLineCommand(astobj_str, exp, ndit, filter, fov, chip, ao, savename):
         command += ' -save ' + savename
         
     return command
+
 
 ## read in arguments from cmd line
 if __name__ == '__main__':

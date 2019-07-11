@@ -31,6 +31,8 @@ def Scatter2D(coords, title='Scatter', xlabel='x', ylabel='y',
         colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
         colour[T_eff <= 10] = [0.2, 0.2, 0.2]                                                       # dead stars
         colour = mcol.to_rgba_array(colour, 0.5)                                                    # add alpha
+    elif (theme == 'fits'):
+        colour = np.array([mcol.to_rgba((1,1,1), 0.2)])                                             # set the colours to white
     elif (colour == 'blue'):
         colour = np.array([mcol.to_rgba('tab:blue', 0.5)])
     else:
@@ -43,8 +45,8 @@ def Scatter2D(coords, title='Scatter', xlabel='x', ylabel='y',
         if (theme == 'fits'):
             alpha = (m_max - mag)**3
             alpha = alpha/np.max(alpha)                                                             # scale alpha with mag
-            colour = np.tile((1,1,1), (len(alpha), 1))                                              # set colours to white
-            colour = mcol.to_rgba_array(colour, alpha)
+            colour = np.repeat(colour, len(alpha), axis=0)
+            colour[:,3] = alpha
     else:
         sizes = 20                                                                                  # default size
     
@@ -60,59 +62,67 @@ def Scatter2D(coords, title='Scatter', xlabel='x', ylabel='y',
     ax.set_xlim(-axis_size, axis_size) 
     ax.set_ylim(-axis_size, axis_size)
     ax.set(aspect='equal', adjustable='datalim')
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
     
     # The further setup (custom dark theme)
     if (theme == 'dark1'):
         # fancy dark theme
-        c_grey = '0.6'
-        c_grey2 = '0.4'
-        fig.patch.set_color('black')
-        ax.set_facecolor('black')
-        ax.spines['bottom'].set_color(c_grey2)
-        ax.spines['top'].set_color(c_grey2) 
-        ax.spines['right'].set_color(c_grey2)
-        ax.spines['left'].set_color(c_grey2)
-        ax.tick_params(axis='x', colors=c_grey2)
-        ax.tick_params(axis='y', colors=c_grey2)
-        ax.title.set_color(c_grey)
-        ax.xaxis.label.set_color(c_grey)
-        ax.yaxis.label.set_color(c_grey)
+        c_1 = '0.7'
+        c_2 = '0.5'
+        c_3 = '0.0'
+        c_4 = '0.0'
+        s_1 = 12
+        s_2 = 12
     elif (theme == 'dark2'):
         # dark theme for good saving
-        c_grey = '0.6'
-        c_grey2 = '0.4'
-        # fig.patch.set_color('black')
-        ax.set_facecolor('black')
-        ax.spines['bottom'].set_color(c_grey2)
-        ax.spines['top'].set_color(c_grey2) 
-        ax.spines['right'].set_color(c_grey2)
-        ax.spines['left'].set_color(c_grey2)
-        ax.tick_params(axis='x', colors=c_grey2)
-        ax.tick_params(axis='y', colors=c_grey2)
-        ax.title.set_color(c_grey)
-        ax.xaxis.label.set_color(c_grey)
-        ax.yaxis.label.set_color(c_grey)
+        c_1 = '0.2'
+        c_2 = '0.3'
+        c_3 = '1.0'
+        c_4 = '0.0'
+        s_1 = 12
+        s_2 = 12
     elif (theme == 'fits'):
         # theme for imitating .fits images
-        c_grey = '0.6'
-        c_grey2 = '0.4'
-        fig.patch.set_color('black')
-        ax.set_facecolor('black')
-        ax.spines['bottom'].set_color(c_grey2)
-        ax.spines['top'].set_color(c_grey2) 
-        ax.spines['right'].set_color(c_grey2)
-        ax.spines['left'].set_color(c_grey2)
-        ax.tick_params(axis='x', colors=c_grey2)
-        ax.tick_params(axis='y', colors=c_grey2)
-        ax.title.set_color(c_grey)
-        ax.xaxis.label.set_color(c_grey)
-        ax.yaxis.label.set_color(c_grey)
-        ax.invert_yaxis()
-    # todo: dark theme 2 needs some work (no difference yet)
+        c_1 = '0.6'
+        c_2 = '0.4'
+        c_3 = '0.0'
+        c_4 = '0.0'
+        s_1 = 12
+        s_2 = 12
+    else:
+        # defaults (not actually used)
+        c_1 = '0.0'                                                                                 # text
+        c_2 = '0.0'                                                                                 # lines
+        c_3 = '1.0'                                                                                 # outer rim
+        c_4 = '1.0'                                                                                 # inner area
+        s_1 = 12                                                                                    # title/labels
+        s_2 = 12                                                                                    # tick params
     
-    ax.set_title(title)
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
+    if (theme is not None):
+        # set the colours
+        fig.patch.set_color(c_3)
+        ax.set_facecolor(c_4)
+        ax.spines['bottom'].set_color(c_2)
+        ax.spines['top'].set_color(c_2) 
+        ax.spines['right'].set_color(c_2)
+        ax.spines['left'].set_color(c_2)
+        ax.tick_params(axis='x', colors=c_2)
+        ax.tick_params(axis='y', colors=c_2)
+        ax.title.set_color(c_1)
+        ax.xaxis.label.set_color(c_1)
+        ax.yaxis.label.set_color(c_1)
+        # invert y for (0,0) at top left
+        if (theme == 'fits'):
+            ax.invert_yaxis()
+    
+    # set the textsizes
+    ax.title.set_size(s_1)
+    ax.xaxis.label.set_size(s_1)
+    ax.yaxis.label.set_size(s_1)
+    ax.tick_params(labelsize=s_2)
+    
     plt.tight_layout()
     plt.show() 
     return
@@ -133,10 +143,12 @@ def Scatter3D(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
         colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
         colour[T_eff <= 10] = [0.2, 0.2, 0.2]                                                       # dead stars
         colour = mcol.to_rgba_array(colour, 0.5)                                                    # add alpha
+    elif (theme == 'fits'):
+        colour = np.array([mcol.to_rgba((1,1,1), 0.2)])                                             # set colours to white
     elif (colour == 'blue'):
-        colour = mcol.to_rgba('tab:blue', 0.5)
+        colour = np.array([mcol.to_rgba('tab:blue', 0.5)])
     else:
-        colour = mcol.to_rgba(colour, 0.5)
+        colour = np.array([mcol.to_rgba(colour, 0.5)])
     
     # marker sizes and transparancy scaling with mag
     if (mag is not None):
@@ -145,8 +157,8 @@ def Scatter3D(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
         if (theme == 'fits'):
             alpha = (m_max - mag)**3
             alpha = alpha/np.max(alpha)                                                             # scale alpha with mag
-            colour = np.tile((1,1,1), (len(alpha), 1))                                              # set colours to white
-            colour = mcol.to_rgba_array(colour, alpha)
+            colour = np.repeat(colour, len(alpha), axis=0)
+            colour[:,3] = alpha
     else:
         sizes = 20                                                                                  # default size
     
@@ -160,50 +172,66 @@ def Scatter3D(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
     ax.set_ylim3d(-axis_size, axis_size)
     ax.set_zlim3d(-axis_size, axis_size)
     ax.set(aspect='equal', adjustable='box')
-    
-    # The further setup (custom dark theme)
-    if (theme == 'dark1'):
-        # fancy dark theme
-        c_grey = (0.6, 0.6, 0.6)
-        c_grey2 = (0.4, 0.4, 0.4)
-        c_black = (0, 0, 0, 0)                                                                      # (R,G,B,A)
-        fig.patch.set_color('black')
-        ax.set_facecolor(c_black)
-        ax.w_xaxis.set_pane_color(c_black)     
-        ax.w_yaxis.set_pane_color(c_black)
-        ax.w_zaxis.set_pane_color(c_black)
-        # find way to darken grid [not doable I think]
-        ax.tick_params(axis='x', colors=c_grey2)
-        ax.tick_params(axis='y', colors=c_grey2)
-        ax.tick_params(axis='z', colors=c_grey2)
-        ax.title.set_color(c_grey)
-        ax.xaxis.label.set_color(c_grey)
-        ax.yaxis.label.set_color(c_grey)
-        ax.zaxis.label.set_color(c_grey)
-    elif (theme == 'dark2'):
-        # dark theme for good saving
-        c_grey = (0.6, 0.6, 0.6)
-        c_grey2 = (0.4, 0.4, 0.4)
-        c_black = (0, 0, 0, 0)
-        # fig.patch.set_color('black')
-        ax.set_facecolor(c_black)
-        ax.w_xaxis.set_pane_color(c_black)     
-        ax.w_yaxis.set_pane_color(c_black)
-        ax.w_zaxis.set_pane_color(c_black)
-        # find way to darken grid [not doable I think]
-        ax.tick_params(axis='x', colors=c_grey2)
-        ax.tick_params(axis='y', colors=c_grey2)
-        ax.tick_params(axis='z', colors=c_grey2)
-        ax.title.set_color(c_grey)
-        ax.xaxis.label.set_color(c_grey)
-        ax.yaxis.label.set_color(c_grey)
-        ax.zaxis.label.set_color(c_grey)
-    # todo: dark theme 2 needs some work (no difference yet)
-    
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_zlabel(zlabel)
+    
+    # The further setup (custom dark theme)
+    if (theme == 'dark1'):
+        # fancy dark theme
+        c_1 = (0.7,0.7,0.7)
+        c_2 = (0.5,0.5,0.5)
+        c_3 = (0.0,0.0,0.0)
+        c_4 = (0.0,0.0,0.0)
+        s_1 = 12
+        s_2 = 12
+    elif (theme == 'dark2'):
+        # dark theme for good saving
+        c_1 = (0.7,0.7,0.7)
+        c_2 = (0.5,0.5,0.5)
+        c_3 = (1.0,1.0,1.0)
+        c_4 = (0.0,0.0,0.0)
+        s_1 = 12
+        s_2 = 12
+    elif (theme == 'fits'):
+        # theme for imitating .fits images
+        c_1 = (0.6,0.6,0.6)
+        c_2 = (0.4,0.4,0.4)
+        c_3 = (0.0,0.0,0.0)
+        c_4 = (0.0,0.0,0.0)
+        s_1 = 12
+        s_2 = 12
+    else:
+        # defaults (not actually used)
+        c_1 = (0.0,0.0,0.0)                                                                         # text
+        c_2 = (0.0,0.0,0.0)                                                                         # lines
+        c_3 = (1.0,1.0,1.0)                                                                         # outer rim
+        c_4 = (1.0,1.0,1.0)                                                                         # inner area
+        s_1 = 12                                                                                    # title/labels
+        s_2 = 12                                                                                    # tick params
+    
+    if (theme is not None):
+        # set the colours
+        fig.patch.set_color(c_3)
+        ax.set_facecolor(c_4)
+        ax.w_xaxis.set_pane_color(c_4)     
+        ax.w_yaxis.set_pane_color(c_4)
+        ax.w_zaxis.set_pane_color(c_4)
+        ax.tick_params(axis='x', colors=c_2)
+        ax.tick_params(axis='y', colors=c_2)
+        ax.tick_params(axis='z', colors=c_2)
+        ax.title.set_color(c_1)
+        ax.xaxis.label.set_color(c_1)
+        ax.yaxis.label.set_color(c_1)
+        ax.zaxis.label.set_color(c_1)
+    
+    # set the textsizes
+    ax.title.set_size(s_1)
+    ax.xaxis.label.set_size(s_1)
+    ax.yaxis.label.set_size(s_1)
+    ax.tick_params(labelsize=s_2)
+    
     plt.tight_layout()
     plt.show() 
     return
@@ -232,6 +260,11 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
     
     fig, ax = plt.subplots(figsize=[7.0, 5.5])
     ax.scatter(T_eff[mask], log_Lum[mask], marker='.', linewidths=0.0, c=colour)
+    ax.set_xlim(40000, 500) 
+    ax.set_ylim(-5, 7)
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
     
     if (theme == 'dark1'):
         # fancy dark theme
@@ -241,19 +274,21 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
         c_4 = '0.15'
     elif (theme == 'dark2'):
         # dark theme for good saving
-        c_1 = '0.22'
-        c_2 = '0.22'
+        c_1 = '0.10'
+        c_2 = '0.16'
         c_3 = '1.0'
-        c_4 = '0.15'
+        c_4 = '0.25'
     else:
         # defaults (not actually used)
-        c_1 = '0.0'                                                                                 # words
+        c_1 = '0.0'                                                                                 # text
         c_2 = '0.0'                                                                                 # lines
         c_3 = '1.0'                                                                                 # outer rim
         c_4 = '1.0'                                                                                 # inner area
-    # todo: dark theme 2 needs some work
+        s_1 = 12                                                                                    # title/labels
+        s_2 = 12                                                                                    # tick params
     
     if (theme is not None):
+        # set the colours
         fig.patch.set_color(c_3)
         ax.set_facecolor(c_4)
         ax.spines['bottom'].set_color(c_2)
@@ -266,11 +301,12 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
         ax.xaxis.label.set_color(c_1)
         ax.yaxis.label.set_color(c_1)
     
-    ax.set_xlim(40000, 500) 
-    ax.set_ylim(-5, 7)
-    ax.set_title(title)
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
+    # set the textsizes
+    ax.title.set_size(s_1)
+    ax.xaxis.label.set_size(s_1)
+    ax.yaxis.label.set_size(s_1)
+    ax.tick_params(labelsize=s_2)
+    
     plt.tight_layout()
     plt.show() 
     return
@@ -311,6 +347,10 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
         ax.set_xlim(-0.5, 2.0)                                                                      # good for seeing vertical differences
         ax.set_ylim(17.25, -12.75)
     
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    
     if (theme == 'dark1'):
         # fancy dark theme
         c_1 = '0.9'
@@ -319,19 +359,21 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
         c_4 = '0.15'
     elif (theme == 'dark2'):
         # dark theme for good saving
-        c_1 = '0.22'
-        c_2 = '0.22'
+        c_1 = '0.10'
+        c_2 = '0.16'
         c_3 = '1.0'
-        c_4 = '0.15'
+        c_4 = '0.25'
     else:
         # defaults (not actually used)
-        c_1 = '0.0'                                                                                 # words
+        c_1 = '0.0'                                                                                 # text
         c_2 = '0.0'                                                                                 # lines
         c_3 = '1.0'                                                                                 # outer rim
         c_4 = '1.0'                                                                                 # inner area
-    # todo: dark theme 2 needs some work
+        s_1 = 12                                                                                    # title/labels
+        s_2 = 12                                                                                    # tick params
     
     if (theme is not None):
+        # set the colours
         fig.patch.set_color(c_3)
         ax.set_facecolor(c_4)
         ax.spines['bottom'].set_color(c_2)
@@ -343,10 +385,13 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
         ax.title.set_color(c_1)
         ax.xaxis.label.set_color(c_1)
         ax.yaxis.label.set_color(c_1)
+    
+    # set the textsizes
+    ax.title.set_size(s_1)
+    ax.xaxis.label.set_size(s_1)
+    ax.yaxis.label.set_size(s_1)
+    ax.tick_params(labelsize=s_2)
         
-    ax.set_title(title)
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
     plt.tight_layout()
     plt.show() 
     return

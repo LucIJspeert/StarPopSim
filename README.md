@@ -25,8 +25,9 @@ As of version 1.0 (April 2019), the way to get this code is to either download i
 
 **StarPopSim has only been tested in Python 3.6**. 
 Using older versions could result in unexpected errors, although any Python 3 version is expected to work.
+Pyhon 2.x will cause certain funcitons to break.
 
-**Package dependencies:** Numpy, Scipy, matplotlib, SimCADO (for imaging functionality; also requires synphot), astropy (for .fits functionality), photutils (for photometry functionality) 
+**Package dependencies:** NumPy >= 1.16.0, SciPy, matplotlib, SimCADO (for imaging functionality; also requires synphot), astropy (for .fits functionality), photutils (for photometry functionality) 
 
 **Note:** making the astronomical objects in StarPopSim is in principle fully independent from SimCADO. So if different instrument simulation software is going to be used instead, a SimCADO install is not necessary.
 
@@ -88,8 +89,8 @@ StarPopSim comes with a handy fits-file-handling module that does all the basic 
 The two most notable are saving (to png) and plotting a fits image:
 
 	>>> import fitshandler as fh
-	>>> fh.SaveFitsPlot(filename, index=0, colours='gray', grid=False)
-	>>> fh.PlotFits(filename, index=0, colours='gray', grid=False)
+	>>> fh.SaveFitsPlot(filename, index=0, colours='gray', scale='lin', grid=False)
+	>>> fh.PlotFits(filename, index=0, colours='gray', scale='lin', grid=False)
 	
 There is another module for visualisation, that can make various plots of the AstObject made above. To give two examples:
 

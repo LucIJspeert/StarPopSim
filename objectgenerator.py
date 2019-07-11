@@ -20,6 +20,7 @@ import numpy as np
 import scipy.spatial as sps
 from inspect import signature
 
+import utils
 import distributions as dist
 import conversions as conv
 import formulas as form
@@ -33,37 +34,20 @@ M_bol_sun = 4.74                # bolometric magnitude of the sun
 # global defaults
 rdist_default = 'Normal'        # see distributions module for a full list of options
 imf_defaults = [0.08, 150]      # lower bound, upper bound on mass
-default_mag_lim = 32            # magnitude limit found by testing in Ks with exp=1800s
+default_mag_lim = 32            # magnitude limit for compact mode
 limiting_number = 10**7         # used in compact mode as maximum number of stars
 
 
 class AstObject:
     """Generates the astronomical object and contains all the information about the object.
     Also functions that can be performed on the object are defined here.
+    This is the base class for all other objects.
     """
     
-    def __init__(self, 
-                 struct='ellipsoid', 
-                 N_stars=0, 
-                 M_tot_init=0, 
-                 age=None, 
-                 metal=None, 
-                 rel_num=None, 
-                 distance=0,
-                 d_type='l',
-                 imf_par=None,
-                 sf_hist=None,
-                 extinct=0,
-                 incl=None,
-                 r_dist=None,
-                 r_dist_par=None,
-                 ellipse_axes=None,
-                 spiral_arms=0,
-                 spiral_bulge=0,
-                 spiral_bar=0,
-                 compact=False,
-                 cp_mode='num',
-                 mag_lim=None,
+    def __init__(self, struct='ellipsoid', N_stars=0, M_tot_init=0, age=None, metal=None, 
+                 rel_num=None, distance=10, d_type='l', imf_par=None, sf_hist=None, extinct=0, 
+                 incl=None, r_dist=None, r_dist_par=None, ellipse_axes=None, spiral_arms=0, 
+                 spiral_bulge=0, spiral_bar=0, compact=False, cp_mode='num', mag_lim=None,
                  ):
         
         if (age is None):
@@ -94,10 +78,7 @@ class AstObject:
         
         self.d_type = d_type                                                                        # distance type [l for luminosity, z for redshift]
         
-        if (distance <= 0):                                                                         # account for error at d=0  
-            self.redshift = 10e-9
-            self.d_lum = 10e-3
-        elif (self.d_type == 'z'):
+        if (self.d_type == 'z'):
             self.redshift = distance                                                                # redshift for the object
             self.d_lum = form.DLuminosity(self.redshift)
         else:
@@ -239,7 +220,7 @@ class AstObject:
         # check the minimum available mass in isoc file [must go after imf_param check]
         max_M_L = 0
         for i in range(num_pop):
-            M_ini = OpenIsochrone(self.ages[i], self.metal[i], columns='mini')
+            M_ini = utils.OpenIsochrone(self.ages[i], self.metal[i], columns='mini')
             max_M_L = max(max_M_L, np.min(M_ini))
         
         max_M_L_list = [max_M_L for i in range(len(self.imf_param[:,0]))]                           # make it the right shape
@@ -261,7 +242,7 @@ class AstObject:
             self.N_stars = np.rint(np.sum(pop_num)).astype(int)                                     # make sure N_stars is int and rounded off
         
         # check if the population numbers add up to N total and save correct ones
-        self.pop_number = FixTotal(self.N_stars, pop_num)
+        self.pop_number = utils.FixTotal(self.N_stars, pop_num)
         
         # check the inclination(s), make sure it is an array of the right size
         if isinstance(self.inclination, (int, float)):
@@ -503,7 +484,7 @@ class AstObject:
             self.M_tot_init = mass_generated                                                        # set to actual initial mass
         
         # the filter names of the corresponding magnitudes
-        self.mag_names = OpenIsochrone(self.ages[0], self.metal[0], columns='filters')
+        self.mag_names = utils.OpenIsochrone(self.ages[0], self.metal[0], columns='filters')
         
         return
         
@@ -534,13 +515,13 @@ class AstObject:
         else:
             # assume we are using MCAO now. generate random positions within patrol field
             angle = dist.AnglePhi(n=len(mag))
-            radius = dist.Uniform_rho(n=len(mag), min=46, max=90)                                   # radius of patrol field in as
+            radius = dist.Uniform(n=len(mag), min=46, max=90, power=2)                              # radius of patrol field in as
             pos_x_y = conv.PolToCart(radius, angle)
             pos_x = pos_x_y[0]
             pos_y = pos_x_y[1]
         
-        filt = np.full_like(mag, filter, dtype='U5')                                                 # the guide stars can be in a different filter than the observations 
-        spec_types = np.full_like(mag, 'G0V', dtype='U5')                                            # just to give them a spectral type
+        filt = np.full_like(mag, filter, dtype='U5')                                                # the guide stars can be in a different filter than the observations 
+        spec_types = np.full_like(mag, 'G0V', dtype='U5')                                           # just to give them a spectral type
         self.natural_guide_stars = [pos_x, pos_y, mag, filt, spec_types]
         return
     
@@ -554,7 +535,7 @@ class AstObject:
         
         for i, age in enumerate(self.ages):
             # use the isochrone files to interpolate properties
-            iso_M_ini, iso_M_act = OpenIsochrone(age, self.metal[i], columns='mcur')                # get the isochrone values
+            iso_M_ini, iso_M_act = utils.OpenIsochrone(age, self.metal[i], columns='mcur')          # get the isochrone values
             M_init_i = self.M_init[index[i]:index[i+1]]
             M_cur_i = np.interp(M_init_i, iso_M_ini, iso_M_act, right=0)                            # (right) return 0 for stars heavier than boundary in isoc file (dead stars) [may change later in the program]
             
@@ -562,7 +543,7 @@ class AstObject:
             # The following functions give estimates for remnant masses
             if realistic_remnants:
                 remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
-                r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])                       # approx. remnant masses (depend on Z)
+                r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])                   # approx. remnant masses (depend on Z)
                 
                 M_cur_i[remnants_i] = r_M_cur_i
             M_cur = np.append(M_cur, M_cur_i)  
@@ -580,7 +561,7 @@ class AstObject:
         
         for i, age in enumerate(self.ages):
             # use the isochrone files to interpolate properties
-            iso_M_ini, iso_log_L = OpenIsochrone(age, self.metal[i], columns='lum')                 # get the isochrone values
+            iso_M_ini, iso_log_L = utils.OpenIsochrone(age, self.metal[i], columns='lum')           # get the isochrone values
             M_init_i = self.M_init[index[i]:index[i+1]]
             log_L_i = np.interp(M_init_i, iso_M_ini, iso_log_L, right=-9)                           # (right) return -9 --> L = 10**-9 Lsun     [subject to change]
             
@@ -618,7 +599,7 @@ class AstObject:
         
         for i, age in enumerate(self.ages):
             # use the isochrone files to interpolate properties
-            iso_M_ini, iso_log_Te = OpenIsochrone(age, self.metal[i], columns='temp')               # get the isochrone values
+            iso_M_ini, iso_log_Te = utils.OpenIsochrone(age, self.metal[i], columns='temp')         # get the isochrone values
             M_init_i = self.M_init[index[i]:index[i+1]]
             log_Te_i = np.interp(M_init_i, iso_M_ini, iso_log_Te, right=1)                          # (right) return 1 --> Te = 10 K            [subject to change]
             
@@ -664,7 +645,7 @@ class AstObject:
         
         for i, age in enumerate(self.ages):
             # use the isochrone files to interpolate properties
-            iso_M_ini, iso_mag = OpenIsochrone(age, self.metal[i], columns='mag')                   # get the isochrone values
+            iso_M_ini, iso_mag = utils.OpenIsochrone(age, self.metal[i], columns='mag')             # get the isochrone values
             M_init_i = self.M_init[index[i]:index[i+1]]                                             # select the masses of one population
             
             mag_i = np.zeros([num_mags, len(M_init_i)])
@@ -709,7 +690,7 @@ class AstObject:
         
         abs_mag = self.AbsoluteMagnitudes(filter=filter)
         if (filter != 'all'):
-            true_dist = true_dist[0]                                                                    # correct for 2D array
+            true_dist = true_dist[0]                                                                # correct for 2D array
         
         return abs_mag + 5*np.log10((true_dist)/10) + self.extinction                               # true_dist in pc!
         
@@ -739,7 +720,7 @@ class AstObject:
         index = np.cumsum(np.append([0], self.gen_pop_number))                                      # indices defining the different populations
         
         for i, age in enumerate(self.ages):
-            iso_M_ini = OpenIsochrone(age, self.metal[i], columns='mini')
+            iso_M_ini = utils.OpenIsochrone(age, self.metal[i], columns='mini')
             max_mass = np.max(iso_M_ini)                                                            # maximum initial mass in isoc file
             remnants_i = (self.M_init[index[i]:index[i+1]] > max_mass)
             remnants = np.append(remnants, remnants_i)
@@ -770,8 +751,8 @@ class AstObject:
         
         return radii
     
-    def HalfMassRadius(self, spher=False):
-        """Returns the (spherical or cylindrical) half mass radius in pc."""
+    def HalfMassRadius(self, unit='pc', spher=False):
+        """Returns the (spherical or cylindrical) half mass radius in pc/as."""
         M_cur = self.CurrentMasses()
         tot_mass = np.sum(M_cur)                                                                    # do this locally, to avoid unnecesairy overhead
         
@@ -784,10 +765,15 @@ class AstObject:
         r_sorted = r_star[indices]                                                                  # sorted radii
         mass_sorted = M_cur[indices]                                                                # masses sorted for radius
         mass_sum = np.cumsum(mass_sorted)                                                           # cumulative sum of sorted masses
-        return np.max(r_sorted[mass_sum <= tot_mass/2])                                             # 2D/3D radius at half the mass
+        hmr = np.max(r_sorted[mass_sum <= tot_mass/2])                                              # 2D/3D radius at half the mass
         
-    def HalfLumRadius(self, spher=False):
-        """Returns the (spherical or cylindrical) half luminosity radius in pc."""
+        if (unit == 'as'):                                                                          # convert to arcsec if wanted
+            hmr = conv.ParsecToArcsec(hmr, self.d_ang)
+            
+        return hmr
+        
+    def HalfLumRadius(self, unit='pc', spher=False):
+        """Returns the (spherical or cylindrical) half luminosity radius in pc/as."""
         lum = 10**self.LogLuminosities(realistic_remnants=False)
         # todo: take out the nan values in real.remn. causing trouble here
         tot_lum = np.sum(lum)                                                                       # do this locally, to avoid unnecesairy overhead
@@ -801,7 +787,12 @@ class AstObject:
         r_sorted = r_star[indices]                                                                  # sorted radii
         lum_sorted = lum[indices]                                                                   # luminosities sorted for radius
         lum_sum = np.cumsum(lum_sorted)                                                             # cumulative sum of sorted luminosities
-        return np.max(r_sorted[lum_sum <= tot_lum/2])                                               # 2D/3D radius at half the luminosity
+        hlr = np.max(r_sorted[lum_sum <= tot_lum/2])                                                # 2D/3D radius at half the luminosity
+        
+        if (unit == 'as'):                                                                          # convert to arcsec if wanted
+            hlr = conv.ParsecToArcsec(hlr, self.d_ang)
+            
+        return hlr
         
     def Plot2D(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', 
                filter='V', theme='dark1'):
@@ -986,7 +977,7 @@ def StarMasses(N_stars=0, M_tot=0, imf=[0.08, 150]):
         N_stars = conv.MtotToNstars(M_tot, imf)                                                     # estimate the number of stars to generate
         
     # mass
-    M_init = dist.invCIMF(N_stars, imf)                                                             # assign initial masses using IMF
+    M_init = dist.KroupaIMF(N_stars, imf)                                                           # assign initial masses using IMF
     M_tot_gen = np.sum(M_init)                                                                      # total generated mass (will differ from input mass, if given)
     
     if (M_tot != 0):
@@ -1073,7 +1064,7 @@ def NumberLimited(N, age, Z, imf=imf_defaults):
     """
     fraction = np.clip(limiting_number/N, 0, 1)                                                     # fraction of the total number of stars to generate
     
-    M_ini = OpenIsochrone(age, Z, columns='mini')                                                   # get the isochrone values
+    M_ini = utils.OpenIsochrone(age, Z, columns='mini')                                             # get the isochrone values
     mass_lim_high = M_ini[-1]                                                                       # highest value in the isochrone
     
     mass_lim_low = form.MassLimit(fraction, M_max=mass_lim_high, imf=imf)
@@ -1090,7 +1081,7 @@ def MagnitudeLimited(age, Z, mag_lim=default_mag_lim, d=10, ext=0, filter='Ks'):
     distance, age, metallicity and extinction of the population of stars are needed.
     A filter must be specified in which the given limiting magnitude is measured.
     """
-    M_ini, mag_vals = OpenIsochrone(age, Z, columns='mag')                                          # get the isochrone values
+    M_ini, mag_vals = utils.OpenIsochrone(age, Z, columns='mag')                                    # get the isochrone values
     mag_vals = mag_vals[self.mag_names == filter][0]                                                # select the right filter ([0] needed to reduce to 1D array)
 
     abs_mag_lim = form.AbsoluteMag(mag_lim, d, ext=ext)                                             # calculate the limiting absolute magnitude
@@ -1109,139 +1100,12 @@ def MagnitudeLimited(age, Z, mag_lim=default_mag_lim, d=10, ext=0, filter='Ks'):
 
 def RemnantsSinglePop(M_init, age, Z):
     """Gives the positions of the remnants in a single population (as a boolean mask)."""
-    iso_M_ini = OpenIsochrone(age, Z, columns='mini')
+    iso_M_ini = utils.OpenIsochrone(age, Z, columns='mini')
     max_mass = np.max(iso_M_ini)                                                                    # maximum initial mass in isoc file
     return (M_init > max_mass)
 
 
-def OpenIsochrone(age, Z, columns='all'):
-    """Opens the isochrone file and gives the relevant columns.
-    columns can be: 'all', 'mini', 'mcur', 'lum', 'temp', 'mag' (and 'filters')
-    age can be either linear or logarithmic input.
-    """
-    # opening the file (actual opening lateron)
-    file_name = os.path.join('tables', ('isoc_Z{1:1.{0}f}.dat'
-                                        ).format(-int(np.floor(np.log10(Z)))+1, Z))
-    if not os.path.isfile(file_name):                                                               # check wether file for Z exists
-        file_name = os.path.join('tables', ('isoc_Z{1:1.{0}f}.dat'
-                                            ).format(-int(np.floor(np.log10(Z))), Z))               # try one digit less
-        if not os.path.isfile(file_name): 
-            raise FileNotFoundError(('objectgenerator//OpenIsochrone: file {0} not found. '
-                                    'Try a different metallicity.').format(file_name))
-    
-    # names to use in the code, and a mapping to the isoc file column names 
-    code_names = np.array(['log_age', 'M_initial', 'M_actual', 'log_L', 'log_Te', 
-                           'U', 'B', 'V', 'R', 'I', 'J', 'H', 'Ks'])
-    mag_names = code_names[5:]                                                                      # names of filters for later reference
-    mag_num = len(mag_names)
-    var_names, column_names = np.loadtxt(os.path.join('tables', 'column_names.dat'), 
-                                         dtype=str, unpack=True)
-    
-    if ((len(code_names) != len(var_names)) | np.any(code_names != var_names)):
-        raise SyntaxError(('objectgenerator//OpenIsochrone: file "column_names.dat" has '
-                           'incorrect names specified. Use: {0}').format(', '.join(code_names)))
-        
-    name_dict = {vn: cn for vn, cn in zip(var_names, column_names)}
-    
-    # find the column names in the isoc file
-    with open(file_name) as file:
-        for line in file:
-            if line.startswith('#'):
-                header = np.array(line.replace('#', '').split())
-            else:
-                break
-    
-    col_dict = {name: col for col, name in enumerate(header) if name in column_names}
-    
-    var_cols = [col_dict[name_dict[name]] for name in code_names if name not in mag_names]
-    mag_cols = [col_dict[name_dict[name]] for name in mag_names]
-    
-    # load the right columns (part 1 of 2)
-    if (columns == 'all'):
-        log_t, M_ini, M_act, log_L, log_Te = np.loadtxt(file_name, usecols=var_cols, unpack=True)
-        mag = np.loadtxt(file_name, usecols=mag_cols, unpack=True)
-    elif (columns == 'mcur'):
-        log_t, M_ini = np.loadtxt(file_name, usecols=var_cols[:2], unpack=True)
-        M_act = np.loadtxt(file_name, usecols=(col_dict[name_dict['M_actual']]), unpack=True)
-    elif (columns == 'lum'):
-        log_t, M_ini = np.loadtxt(file_name, usecols=var_cols[:2], unpack=True)
-        log_L = np.loadtxt(file_name, usecols=(col_dict[name_dict['log_L']]), unpack=True)
-    elif (columns == 'temp'):
-        log_t, M_ini = np.loadtxt(file_name, usecols=var_cols[:2], unpack=True)
-        log_Te = np.loadtxt(file_name, usecols=(col_dict[name_dict['log_Te']]), unpack=True)
-    elif (columns == 'mag'):
-        log_t, M_ini = np.loadtxt(file_name, usecols=var_cols[:2], unpack=True)
-        mag = np.loadtxt(file_name, usecols=mag_cols, unpack=True)
-    elif (columns == 'filters'):
-        # just return the filter names
-        return mag_names
-    else:
-        # either (columns == 'mini') or a wrong parameter is given
-        log_t, M_ini = np.loadtxt(file_name, usecols=var_cols[:2], unpack=True)
-    
-    # stellar age
-    if (age <= 12):                                                                                 # determine if logarithm or not
-        log_age = age                                                                               # define log_age
-    else:
-        log_age = np.log10(age)                                                                     # calculate log_age (assuming it is not already log)
-        
-    log_t_min = np.min(log_t)                                                                       # minimum available age                                                
-    log_t_max = np.max(log_t)                                                                       # maximum available age
-    uni_log_t = np.unique(log_t)                                                                    # unique array of ages
-        
-    lim_min = (log_age < log_t_min - 0.01)                         
-    lim_max = (log_age > log_t_max + 0.01)
-    if lim_min or lim_max:                                                                          # check the age limits
-        warnings.warn(('objectgenerator//OpenIsochrone: Specified age exceeds limit for Z={0}. '
-                       'Using limit value (log_age={1}).').format(Z, lim_min*log_t_min 
-                       + lim_max*log_t_max), RuntimeWarning)
-        log_age = lim_min*log_t_min + lim_max*log_t_max
-    
-    t_steps = uni_log_t[1:] - uni_log_t[:-1]                                                        # determine the age steps in the isoc files (step sizes may vary)
-    a = np.log10((10**(t_steps) + 1)/2)                                                             # half the age step in logarithms
-    b = t_steps - a                                                                                 # a is downward step, b upward
-    a = np.insert(a, 0, 0.01)                                                                       # need step down for first t value
-    b = np.append(b, 0.01)                                                                          # need step up for last t value
-    log_closest = uni_log_t[(uni_log_t > log_age - a) & (uni_log_t <= log_age + b)]                 # the closest available age (to given one)
-    where_t = np.where(log_t == log_closest)
-    
-    # return the right columns (part 2 of 2)
-    M_ini = M_ini[where_t]                                                                          # M_ini is always returned (exept with 'filters')
-    if (columns == 'all'):
-        M_act = M_act[where_t]
-        log_L = log_L[where_t]
-        log_Te = log_Te[where_t]
-        mag = np.array([m[0] for m in mag[:, where_t]])                                             # weird conversion needed because normal slicing would result in deeper array
-        return M_ini, M_act, log_L, log_Te, mag
-    elif (columns == 'mcur'):
-        M_act = M_act[where_t]
-        return M_ini, M_act
-    elif (columns == 'lum'):
-        log_L = log_L[where_t]
-        return M_ini, log_L
-    elif (columns == 'temp'):
-        log_Te = log_Te[where_t]
-        return M_ini, log_Te
-    elif (columns == 'mag'):
-        mag = np.array([m[0] for m in mag[:, where_t]])                                             # weird conversion needed because normal slicing would result in deeper array
-        return M_ini, mag
-    else:
-        # (columns == 'mini') or wrong argument given
-        return M_ini
 
-
-def FixTotal(tot, nums):
-    """Check if nums add up to total and fixes it.""" 
-    i = 0
-    while (np.sum(nums) != tot):                                                                    # assure number conservation
-        i += 1
-        sum_nums = np.sum(nums)
-        if (sum_nums > tot):
-            nums[-np.mod(i, len(nums))] -= 1
-        elif (sum_nums < tot):
-            nums[-np.mod(i, len(nums))] += 1
-            
-    return nums
 
     
     

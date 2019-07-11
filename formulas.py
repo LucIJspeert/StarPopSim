@@ -4,21 +4,24 @@
 """Formulas that are not just conversions (to keep things more organized). 
 Most functions optimized for processing many numbers at once (ndarray).
 """
+import warnings
 import numpy as np
 
 
 # global constants
-c_light = 299792458.0           # m/s speed of light 
-h_plank = 6.62607004*10**-34    # J s Planck constant
-k_B = 1.38064852*10**-23        # J/K Boltzmann constant
-Z_sun = 0.019                   # metallicity
-T_sun = 5772                    # K (effective temp)
-M_ch = 1.456                    # in M_sun
-H_0 = 67                        # km/s/Mpc
-d_H = c_light*10**3/H_0         # Hubble distance in pc
-om_r = 9*10**-5                 # omega radiation
-om_m = 0.315                    # omega matter
-om_l = 0.685                    # omega lambda ('dark energy')
+c_light = 299792458.0           # m/s       speed of light 
+h_plank = 6.62607004*10**-34    # J s       Planck constant
+k_B = 1.38064852*10**-23        # J/K       Boltzmann constant
+parsec = 3.086*10**16           # m         parallax second
+year = 31557600                 # s         length of year
+Z_sun = 0.019                   # frac      solar metallicity
+T_sun = 5772                    # K         solar effective temp
+M_ch = 1.456                    # M_sun     Chandrasekhar mass
+H_0 = 67                        # km/s/Mpc  Hubble constant at present epoch
+d_H = c_light*10**3/H_0         # pc        Hubble distance
+om_r = 9*10**-5                 # frac      omega radiation
+om_m = 0.315                    # frac      omega matter
+om_l = 0.685                    # frac      omega lambda ('dark energy')
 
 # global defaults
 imf_defaults = [0.08, 150]      # lower bound, upper bound on mass
@@ -27,9 +30,10 @@ imf_defaults = [0.08, 150]      # lower bound, upper bound on mass
 def Distance(points, position=[0,0,0]):
     """Calculates the distance between a set of points and a position (default at origin)."""
     coords = points.transpose()                                                                     # change array to [xs, ys, zs]
-    return ((coords[0] - position[0])**2 
-            + (coords[1] - position[1])**2 
-            + (coords[2] - position[2])**2)**(1/2)
+    distance = ((coords[0] - position[0])**2 
+               + (coords[1] - position[1])**2 
+               + (coords[2] - position[2])**2)**(1/2)
+    return distance
 
 
 def Distance2D(points):
@@ -51,66 +55,122 @@ def PlanckBB(nu, T, var='freq'):
     return spec
 
 
-def DComoving(z):
-    """Gives the comoving distance (in pc) given the redshift z."""
-    num_points = 10**5
-    
-    if isinstance(z, list):
-        z = np.array(z)                                                                             # just making sure it works for lists
-    
-    if isinstance(z, (np.ndarray)):
-        N = int(np.max([100, num_points/len(z)]))                                                   # integrate with at least 100 points
-        zs = np.array([np.logspace(-5, np.log10(z[i]), N) for i in range(len(z)) if z[i] != 0])
-        ys = 1/np.sqrt(om_r*(1 + zs)**4 + om_m*(1 + zs)**3 + om_l)
-        integral =  np.trapz(ys, zs, axis=1)
-    else:
-        zs = np.logspace(-5, np.log10(z), num_points)
-        ys = 1/np.sqrt(om_r*(1 + zs)**4 + om_m*(1 + zs)**3 + om_l)
-        integral =  np.trapz(ys, zs)
-        
-    return integral*d_H
-
-
-def DLToRedshift(dist):
-    """Calculates the redshift assuming luminosity distance (in pc) is given.
-    Quite slow for arrays (usually not what it would be used for anyway).
+def LightTravelTime(z, points=1e4):
+    """Gives the time it takes light (in yr) to travel from a certain redshift z.
+    points is the number of steps for integration: higher=more precision, lower=faster.
     """
-    num_points = 1000
+    min_log_z = -5                                                                                  # default minimum valid (log)redshift
+    len_flag = hasattr(z, '__len__')
     
-    if isinstance(dist, list):
-        dist = np.array(dist)                                                                       # just making sure it works for lists
-    
-    z_est = 7.04208*10**-11*dist                                                                    # first estimate using a linear formula
-    
-    if isinstance(dist, (np.ndarray)):
-        z_ranges = np.array([np.linspace(0.1*z, 10*z, num_points) for z in z_est])
-        z_best = []
-        for d, z_range in zip(dist, z_ranges):
-            z_best.append(z_range[np.argmin(np.abs(DLuminosity(z_range) - d))])
-        z_best = np.array(z_best)
+    # making sure it works for many different types of input
+    if len_flag:
+        z = np.array(z, dtype=np.float)                                                                
     else:
-        z_range = np.linspace(0.1*z_est, 10*z_est, num_points)
-        z_best = z_range[np.argmin(np.abs(DLuminosity(z_range) - dist))]
-        
-    return z_best
+        z = np.array([z], dtype=float)
+    
+    # make sure there are no zeros or negative output
+    zeros_z = (z == 0)
+    below_min = (z < 10**(min_log_z + 1)) & (z != 0)
+    z[zeros_z] = 10**min_log_z
+    min_log_z = np.full_like(z, min_log_z)
+    min_log_z[below_min] = np.log10(z[below_min]) - 5
+    
+    # do the actual calculation
+    zs = np.logspace(min_log_z, np.log10(z), int(points))
+    ys = 1/((1 + zs)*np.sqrt(om_r*(1 + zs)**4 + om_m*(1 + zs)**3 + om_l))
+    integral =  np.trapz(ys, zs, axis=0)
+    if len_flag:
+        time = integral*d_H*parsec/(c_light*year)
+    else:
+        time = integral[0]*d_H*parsec/(c_light*year)
+    
+    return time
+
+    
+def DComoving(z, points=1e4):
+    """Gives the comoving distance (in pc) given the redshift z.
+    points is the number of steps for integration: higher=more precision, lower=faster.
+    """
+    min_log_z = -5                                                                                  # default minimum valid (log)redshift
+    len_flag = hasattr(z, '__len__')
+    
+    # making sure it works for many different types of input
+    if len_flag:
+        z = np.array(z, dtype=np.float)                                                                
+    else:
+        z = np.array([z], dtype=float)
+    
+    # make sure there are no zeros or negative output
+    zeros_z = (z == 0)
+    below_min = (z < 10**(min_log_z + 1)) & (z != 0)
+    z[zeros_z] = 10**min_log_z
+    min_log_z = np.full_like(z, min_log_z)
+    min_log_z[below_min] = np.log10(z[below_min]) - 5
+    
+    # do the actual calculation
+    zs = np.logspace(min_log_z, np.log10(z), int(points))
+    ys = 1/np.sqrt(om_r*(1 + zs)**4 + om_m*(1 + zs)**3 + om_l)
+    integral =  np.trapz(ys, zs, axis=0)
+    if len_flag:
+        distance = integral*d_H
+    else:
+        distance = integral[0]*d_H
+    
+    return distance
 
 
-def DLuminosity(z):
-    """Gives the luminosity distance (in pc) to the object given the redshift z."""
-    if isinstance(z, list):
-        z = np.array(z)                                                                             # just making sure it works for lists
+def DLuminosity(z, points=1e4):
+    """Gives the luminosity distance (in pc) to the object given the redshift z.
+    points is the number of steps for integration: higher=more precision, lower=faster.
+    """
+    # making sure it works for different types of input
+    if hasattr(z, '__len__'):
+        z = np.array(z)
         
-    d_C = DComoving(z)
+    d_C = DComoving(z, points=points)
     return (1 + z)*d_C
 
 
-def DAngular(z):
-    """Gives the angular diameter distance (in pc) to the object given the redshift z."""
-    if isinstance(z, list):
-        z = np.array(z)                                                                             # just making sure it works for lists
+def DAngular(z, points=1e4):
+    """Gives the angular diameter distance (in pc) to the object given the redshift z.
+    points is the number of steps for integration: higher=more precision, lower=faster.
+    """
+    # making sure it works for different types of input
+    if hasattr(z, '__len__'):
+        z = np.array(z)
         
-    d_C = DComoving(z)
+    d_C = DComoving(z, points=points)
     return d_C/(1 + z)
+
+
+def DLToRedshift(dist, points=1e3):
+    """Calculates the redshift assuming luminosity distance (in pc) is given.
+    Quite slow for arrays (usually not what it would be used for anyway).
+    points is the number of steps for which z is calculated.
+    """
+    # this formula is a 'conversion' strictly speaking
+    # but it is not really meant for number crunching 
+    # and it belongs with the other distance formulas
+    num_dist = 10**3                                                                                # precision for distance calculation
+    len_flag = hasattr(dist, '__len__')
+    
+    # making sure it works for many different types of input
+    if len_flag:
+        dist = np.array(dist)
+    else:
+        dist = np.array([dist])
+    
+    z_est = 7.04208*10**-11*dist                                                                    # first estimate using a linear formula
+    
+    z_range = np.linspace(0.1*z_est, 10*z_est + 0.1, int(points))
+    arg_best = np.argmin(np.abs(DLuminosity(z_range, points=num_dist) - dist), axis=0)
+    z_best = z_range[arg_best, np.arange(len(arg_best))]
+    if len_flag:
+        z_best = z_range[arg_best, np.arange(len(arg_best))]
+    else:
+        z_best = z_range[arg_best, np.arange(len(arg_best))][0]
+    
+    return z_best
 
 
 def ApparentMag(mag, dist, ext=0, sigma=[0]):
@@ -133,7 +193,7 @@ def AbsoluteMag(mag, dist, ext=0):
     """Compute the absolute magnitude for the apparant magnitude plus a distance (in pc!).
     ext is an optional extinction to subtract (waveband dependent).
     """
-    return mag - 5*np.log10(dist/10.) - ext                                                         # dist in pc!
+    return mag - 5*np.log10(dist/10) - ext                                                          # dist in pc!
 
 
 def MSLifetime(M):
@@ -153,9 +213,10 @@ def MassFraction(mass_limits, imf=imf_defaults):
     M_L, M_U = imf
     M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
     M_lim_low, M_lim_high = mass_limits
+    
     # same constants as are in the IMF:
     C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
-    C_L = (1/0.35*M_L**(-0.35) + C_mid - M_mid/1.35*M_U**(-1.35))**-1
+    C_L = (1/0.35*M_L**(-0.35) + C_mid - M_mid/1.35*M_U**(-1.35))**(-1)
     
     if (M_lim_low > M_mid):
         f = C_L*M_mid/1.35*(M_lim_low**(-1.35) - M_lim_high**(-1.35))
@@ -173,9 +234,10 @@ def MassLimit(frac, M_max=None, imf=imf_defaults):
     M_mid = 0.5  
     if (M_max is None):
         M_max = M_U
+    
     # same constants as are in the IMF:
     C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
-    C_L = (1/0.35*M_L**(-0.35) + C_mid - M_mid/1.35*M_U**(-1.35))**-1
+    C_L = (1/0.35*M_L**(-0.35) + C_mid - M_mid/1.35*M_U**(-1.35))**(-1)
     # the mid value in the CDF
     N_mid = C_L*M_mid/1.35*(M_mid**(-1.35) - M_U**(-1.35))
     
@@ -192,7 +254,7 @@ def RemnantMass(M_init, Z=Z_sun):
     Also metallicity dependent.
     Taken from various papers
     """
-    if isinstance(M_init, (list, tuple)):
+    if hasattr(M_init, '__len__'):
         M_init = np.array(M_init)
     
     Z_f = Z/Z_sun                                                                                   # metallicity as fraction of solar
@@ -276,6 +338,7 @@ def RemnantTeff(M_rem, R_rem, t_cool, BH_mass=2.0):
     
     mask = (M_rem <= BH_mass)
     Temps[mask] = T_sun*(10**8/(A*t_cool[mask]))**(7/20)*(M_rem[mask])**(1/4)*(R_rem[mask])**(-1/2)
+    # todo: need something for NS
     
     return Temps
 
@@ -284,7 +347,7 @@ def RemnantMagnitudes(T_rem, L_rem):
     """Estimates very roughly what the magnitudes should be in various filters,
     from the temperatures (K) and the luminosities (Lsun).
     """
-    
+    #todo: think of something
     
     
     
