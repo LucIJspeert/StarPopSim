@@ -48,8 +48,6 @@ class AstObject:
     def __init__(self, N_stars=0, M_tot_init=0, age=None, metal=None, rel_num=None, 
                  distance=10, d_type='l', extinct=0, incl=None, sf_hist=None, imf_par=None, 
                  compact=False, cp_mode='num', mag_lim=None, 
-                 
-                 r_dist=None, r_dist_par=None, ellipse_axes=None, spiral_arms=0, spiral_bulge=0, spiral_bar=0
                  ):
         
         if (age is None):
@@ -64,12 +62,12 @@ class AstObject:
             sf_hist = ['none']
         if (incl is None):
             incl = [0]
-        if (r_dist is None):
-            r_dist = [rdist_default]
-        if (r_dist_par is None):
-            r_dist_par = {}
-        if (ellipse_axes is None):
-            ellipse_axes = [1, 1, 1]
+        # if (r_dist is None):
+        #     r_dist = [rdist_default]
+        # if (r_dist_par is None):
+        #     r_dist_par = {}
+        # if (ellipse_axes is None):
+        #     ellipse_axes = [1, 1, 1]
         
         self.N_stars = N_stars                                                                      # number of stars
         self.M_tot_init = M_tot_init                                                                # total initial mass in Msun
@@ -92,12 +90,12 @@ class AstObject:
         self.imf_param = imf_par                                                                    # lower bound, knee position, upper bound for the IMF masses
         self.sfhist = sf_hist                                                                       # star formation history type
         self.extinction = extinct                                                                   # extinction between source and observer
-        self.r_dist_type = r_dist                                                                   # (ellipse) type of radial distribution
-        self.r_dist_param = r_dist_par                                                              # (ellipse) the further spatial distribution parameters (dictionary)
-        self.ellipse_axes = ellipse_axes                                                            # (ellipse) axes scales used for elliptical
-        self.spiral_arms = spiral_arms                                                              # (spiral) number of spiral arms
-        self.spiral_bulge = spiral_bulge                                                            # (spiral) relative proportion of central bulge
-        self.spiral_bar = spiral_bar                                                                # (spiral) relative proportion of central bar
+        # self.r_dist_type = r_dist                                                                   # (ellipse) type of radial distribution
+        # self.r_dist_param = r_dist_par                                                              # (ellipse) the further spatial distribution parameters (dictionary)
+        # self.ellipse_axes = ellipse_axes                                                            # (ellipse) axes scales used for elliptical
+        # self.spiral_arms = spiral_arms                                                              # (spiral) number of spiral arms
+        # self.spiral_bulge = spiral_bulge                                                            # (spiral) relative proportion of central bulge
+        # self.spiral_bar = spiral_bar                                                                # (spiral) relative proportion of central bar
         
         # properties that are derived/generated
         self.pop_number = np.array([])                                                              # number of stars in each population
@@ -238,6 +236,159 @@ class AstObject:
         
         self.pop_number = utils.FixTotal(self.N_stars, pop_num)                                     # make sure the population numbers add up to N_total
         
+        # # check if the dist type(s) exists and get the function signatures
+        # dist_list = list(set(fnmatch.filter(dir(dist), '*_r')))
+        # 
+        # if not isinstance(self.r_dist_type, list):
+        #     self.r_dist_type = [self.r_dist_type]                                                   # make sure it is a list
+        #     
+        # n_r_dists = len(self.r_dist_type)
+        # if (n_r_dists < num_pop):                                                                   # check number of dists
+        #     self.r_dist_type.extend([rdist_default for i in range(num_pop - n_r_dists)])
+        #     n_r_dists = len(self.r_dist_type)                                                       # update the number
+        #     
+        # key_list = []
+        # val_list = []
+        # r_dist_n_par = []
+        # 
+        # for i in range(n_r_dists):
+        #     if (self.r_dist_type[i][-2:] != '_r'):
+        #         self.r_dist_type[i] += '_r'                                                         # add the r to the end for radial version
+        #     
+        #     if (self.r_dist_type[i] not in dist_list):
+        #         warnings.warn(('objectgenerator//CheckInput: Specified distribution <{0}> type '
+        #                        'does not exist. Using default (=Normal_r)'
+        #                        ).format(self.r_dist_type[i]), SyntaxWarning)
+        #         self.r_dist_type[i] = 'Normal_r'
+        #          
+        #     sig = inspect.signature(eval('dist.' + self.r_dist_type[i]))
+        #     key_list.append([k for k, v in sig.parameters.items() if k is not 'n'])                 # add the signature keywords to a list
+        #     val_list.append([v.default for k, v in sig.parameters.items() if k is not 'n'])         # add the signature defaults to a list
+        #     r_dist_n_par.append(len(key_list[i]))                                                   # the number of parameters for each function
+        #     
+        # # check if dist parameters are correctly specified
+        # if isinstance(self.r_dist_param, dict):                                                     # if just one dict, make a list of (one) dict
+        #     self.r_dist_param = [self.r_dist_param]
+        # elif isinstance(self.r_dist_param, (int, float)):                                           # if just one parameter is given, also make a list of (one) dict
+        #     self.r_dist_param = [{key_list[0][0]: self.r_dist_param}]
+        # elif isinstance(self.r_dist_param, list):
+        #     param_shape = np.shape(self.r_dist_param)
+        #     if np.all([isinstance(item, (int, float)) for item in self.r_dist_param]):              # if a 1D list of parameters is given, fill a 2D list that has the correct form
+        #         temp_par_list = [[]]
+        #         track_index = np.cumsum(r_dist_n_par)
+        #         j = 0
+        #         
+        #         for i in range(param_shape[0]):
+        #             if np.any(i == track_index):
+        #                 temp_par_list.append([self.r_dist_param[i]])                                # append a new sublist
+        #                 j +=1                                                                       # keep track of number of sublists
+        #             else:
+        #                 temp_par_list[j].append(self.r_dist_param[i])                               # append to current sublist
+        #         
+        #         self.r_dist_param = temp_par_list
+        #     elif np.all([isinstance(item, (int, float)) for item in self.r_dist_param]):            # if list with numbers combined, do not want that, fix!
+        #         temp_par_list = []
+        #         
+        #         for i in range(param_shape[0]):
+        #             if isinstance(self.r_dist_param[i], (int, float)):
+        #                 temp_par_list.append([self.r_dist_param[i]])
+        #             else:
+        #                 temp_par_list.append(self.r_dist_param[i])
+        #         
+        #         self.r_dist_param = temp_par_list
+        #     
+        #     param_shape = np.shape(self.r_dist_param)                                               # recalculate it
+        #     
+        #     if (np.all([isinstance(item, list) for item in self.r_dist_param])):                    # if a 2D list is given (or made above), check further compatibility
+        #         if (param_shape[0] > n_r_dists):
+        #             warnings.warn(('objectgenerator//CheckInput: Too many radial distribution '
+        #                            'parameters given. Discarding excess.'), SyntaxWarning)
+        #             self.r_dist_param = self.r_dist_param[0:n_r_dists]
+        #         elif (param_shape[0] < n_r_dists):                                                  # fill up missing length with defaults
+        #             filler = [[val_list[param_shape[0] + i]] 
+        #                       for i in range(n_r_dists - param_shape[0])]
+        #             self.r_dist_param += filler
+        #         
+        #         for i, param in enumerate(self.r_dist_param):
+        #             if (len(param) < r_dist_n_par[i]):
+        #                 self.r_dist_param[i].extend([item for item in val_list[i][len(param):]])    # not enough parameters for a particular distribution
+        #         
+        #         
+        #         temp_par_dict_list = []                                                             # now it is ready finally for making a dict out of it
+        #         for i in range(n_r_dists):
+        #             temp_par_dict_list.append({key_list[i][k]: self.r_dist_param[i][k] 
+        #                                        for k in range(r_dist_n_par[i])})
+        #             
+        #         self.r_dist_param = temp_par_dict_list
+        #             
+        # else:
+        #     raise TypeError('objectgenerator//CheckInput: Incompatible data type for rdistpar')     # it is something else... burn it with fire!
+        #     
+        # for i, param_dict in enumerate(self.r_dist_param):
+        #     if not bool(param_dict):                                                                # if dict empty, fill with defaults
+        #         self.r_dist_param[i] = {key_list[i][k]: val_list[i][k] 
+        #                                 for k in range(r_dist_n_par[i])}
+        # 
+        # n_r_param = len(self.r_dist_param)
+        # if (n_r_param < num_pop):                                                                   # check parameter dict number
+        #     self.r_dist_param.extend([{key_list[i][k]: val_list[i][k] 
+        #                                for k in range(r_dist_n_par[i])} 
+        #                                for i in range(n_r_param, num_pop)])
+        #     n_r_param = len(self.r_dist_type)                                                       # update the number
+        # 
+        # # check the ellipse axes
+        # if isinstance(self.ellipse_axes, (int, float)):
+        #     self.ellipse_axes = np.ones([num_pop, 3])                                               # any single number will result in unitary scaling
+        # elif isinstance(self.ellipse_axes, (tuple, list, np.ndarray)):
+        #     self.ellipse_axes = np.array(self.ellipse_axes)                                         # make sure it is an array
+        # elif not isinstance(self.ellipse_axes, (np.ndarray)):
+        #     warnings.warn(('objectgenerator//CheckInput: Incompatible input for ellipse_axes. '
+        #                    'Using [1,1,1].'), SyntaxWarning)
+        #     self.ellipse_axes = np.ones([num_pop, 3])
+        #     
+        # axes_shape = np.shape(self.ellipse_axes)
+        # if (len(axes_shape) == 1): 
+        #     if (axes_shape[0] == 3):
+        #         self.ellipse_axes = np.array([self.ellipse_axes for i in range(num_pop)])           # if 1D make 2D, using same axes for all populations
+        #     elif (axes_shape[0]%3 == 0):
+        #         self.ellipse_axes = np.reshape(self.ellipse_axes, [int(axes_shape[0]/3),3])         # make it a 2D array
+        #     else:
+        #         warnings.warn(('objectgenerator//CheckInput: Wrong number of arguments '
+        #                        'for ellipse_axes. Using [1,1,1].'), SyntaxWarning)
+        #         self.ellipse_axes = np.ones([num_pop, 3])
+        # elif (len(axes_shape) != 2):
+        #     warnings.warn(('objectgenerator//CheckInput: Wrong dimension for ellipse_axes. '
+        #                    'Using [1,1,1].'), SyntaxWarning)
+        #     self.ellipse_axes = np.ones([num_pop, 3])
+        #     
+        # axes_shape = np.shape(self.ellipse_axes)                                                    # update shape                                      
+        # if (axes_shape[0] > num_pop):
+        #     warnings.warn(('objectgenerator//CheckInput: Got too many arguments for ellipse_axes. '
+        #                    'Discarding excess.'), SyntaxWarning)
+        #     self.ellipse_axes = self.ellipse_axes[0:num_pop]
+        # elif (axes_shape[0] < num_pop):
+        #     filler = np.ones([num_pop - axes_shape[0], 3])
+        #     self.ellipse_axes = np.append(self.ellipse_axes, filler, axis=0)
+        
+        # check the SFH
+        if isinstance(self.sfhist, str):
+            self.sfhist = np.array([self.sfhist])
+        elif hasattr(self.sfhist, '__len__'):
+            self.sfhist = np.array(self.sfhist)
+        
+        sfh_len = len(self.sfhist)
+        if ((sfh_len == 1) & (num_pop != 1)):
+            self.sfhist = np.full(num_pop, self.sfhist[0])
+        elif (sfh_len < num_pop):
+            raise ValueError('objectgenerator//CheckInput: too few sfh types given.')
+        elif (sfh_len > num_pop):
+            warnings.warn(('objectgenerator//CheckInput: too many sfh types given. '
+                           'Discarding excess.'), SyntaxWarning)
+            self.sfhist = self.sfhist[:num_pop]
+            
+        return
+    
+    def CheckRadialDistribution():
         # check if the dist type(s) exists and get the function signatures
         dist_list = list(set(fnmatch.filter(dir(dist), '*_r')))
         
@@ -336,8 +487,9 @@ class AstObject:
             self.r_dist_param.extend([{key_list[i][k]: val_list[i][k] 
                                        for k in range(r_dist_n_par[i])} 
                                        for i in range(n_r_param, num_pop)])
-            n_r_param = len(self.r_dist_type)                                                       # update the number
-        
+            n_r_param = len(self.r_dist_type) 
+    
+    def CheckEllipseAxes():
         # check the ellipse axes
         if isinstance(self.ellipse_axes, (int, float)):
             self.ellipse_axes = np.ones([num_pop, 3])                                               # any single number will result in unitary scaling
@@ -372,22 +524,8 @@ class AstObject:
             filler = np.ones([num_pop - axes_shape[0], 3])
             self.ellipse_axes = np.append(self.ellipse_axes, filler, axis=0)
         
-        # check the SFH
-        if not isinstance(self.sfhist, list):
-            self.sfhist = [self.sfhist]                                                             # make sure it is a list
-        
-        sfh_len = len(self.sfhist)
-        if ((sfh_len == 1) & (num_pop != 1)):
-            self.sfhist = [self.sfhist[0] for i in range(num_pop)]
-        elif (sfh_len < num_pop):
-            self.sfhist.extend(['none' for i in range(num_pop - sfh_len)])
-        elif (sfh_len > num_pop):
-            warnings.warn(('objectgenerator//CheckInput: too many sfh types given. '
-                           'Discarding excess.'), SyntaxWarning)
-            self.sfhist = self.sfhist[:num_pop]
-            
         return
-        
+    
     def GenerateStars(self):
         """Generate the masses and positions of the stars."""
         # check if compact mode is on
@@ -932,13 +1070,13 @@ class StarCluster(AstObject):
     
     def __init__(self, N_stars=0, M_tot_init=0, age=None, metal=None, rel_num=None, distance=10, 
                  d_type='l', imf_par=None, sf_hist=None, extinct=0, r_dist=None, r_dist_par=None, 
-                 compact=False, cp_mode='num', mag_lim=None, incl=0
+                 compact=False, cp_mode='num', mag_lim=None, 
                  ):
         
         super().__init__(N_stars=N_stars, M_tot_init=M_tot_init, age=age, metal=metal, 
                          rel_num=rel_num, distance=distance, d_type=d_type, extinct=extinct, 
                          sf_hist=sf_hist, imf_par=imf_par, compact=compact, cp_mode=cp_mode, 
-                         mag_lim=mag_lim, incl=incl
+                         mag_lim=mag_lim,
                          )
 
 
