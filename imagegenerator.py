@@ -55,7 +55,8 @@ def MakeSource(astobj, filter='V'):
     #                             spec_types=spec_types)
     
     return src
-    
+
+
 def MakeImage(src, exposure=60, NDIT=1, view='wide', chip='centre', filter='V', ao_mode='scao', 
               filename=default_image_file_name, internals=None, return_int=False):
     """Make the image with SimCADO.
