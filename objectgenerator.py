@@ -43,11 +43,13 @@ class AstObject:
     Also functions that can be performed on the object are defined here.
     This is the base class for all other objects.
     """
+    structure = 'astronomical object'                                                               # type of object
     
-    def __init__(self, struct='ellipsoid', N_stars=0, M_tot_init=0, age=None, metal=None, 
-                 rel_num=None, distance=10, d_type='l', imf_par=None, sf_hist=None, extinct=0, 
-                 incl=None, r_dist=None, r_dist_par=None, ellipse_axes=None, spiral_arms=0, 
-                 spiral_bulge=0, spiral_bar=0, compact=False, cp_mode='num', mag_lim=None,
+    def __init__(self, N_stars=0, M_tot_init=0, age=None, metal=None, rel_num=None, 
+                 distance=10, d_type='l', extinct=0, incl=None, sf_hist=None, imf_par=None, 
+                 compact=False, cp_mode='num', mag_lim=None, 
+                 
+                 r_dist=None, r_dist_par=None, ellipse_axes=None, spiral_arms=0, spiral_bulge=0, spiral_bar=0
                  ):
         
         if (age is None):
@@ -69,7 +71,6 @@ class AstObject:
         if (ellipse_axes is None):
             ellipse_axes = [1, 1, 1]
         
-        self.structure = struct                                                                     # type of object
         self.N_stars = N_stars                                                                      # number of stars
         self.M_tot_init = M_tot_init                                                                # total initial mass in Msun
         self.ages = age                                                                             # ages of the populations (=max age if SFH is used)
@@ -91,7 +92,6 @@ class AstObject:
         self.imf_param = imf_par                                                                    # lower bound, knee position, upper bound for the IMF masses
         self.sfhist = sf_hist                                                                       # star formation history type
         self.extinction = extinct                                                                   # extinction between source and observer
-        self.inclination = incl                                                                     # inclination angle (rad) - rotation of object's x-axis towards z-axis (l.o.s.)
         self.r_dist_type = r_dist                                                                   # (ellipse) type of radial distribution
         self.r_dist_param = r_dist_par                                                              # (ellipse) the further spatial distribution parameters (dictionary)
         self.ellipse_axes = ellipse_axes                                                            # (ellipse) axes scales used for elliptical
@@ -117,28 +117,32 @@ class AstObject:
         self.gen_pop_number = np.array([])                                                          # (compact mode) actually generated number of stars per population
         
         self.CheckInput()                                                                           # check user input
-        self.GenerateStars()                                                                        # actually generate the stars                                                                        
+        self.GenerateStars()                                                                        # actually generate the stars
+        self.AddInclination(incl)                                                                   # give the object an inclination
         return
         
     def CheckInput(self):
         """Checks the given input for compatibility."""
-        # check metallicity and age
-        if not isinstance(self.ages, (tuple, list, np.ndarray)):
-            raise ValueError('objectgenerator//CheckInput: wrong input type for the age given.')
+        # check metallicity and age and make sure they are arrays
+        if hasattr(self.ages, '__len__'):
+            self.ages = np.array(self.ages)
         else:
-            self.ages = np.array(self.ages)                                                         # make sure it is an array
-        if not isinstance(self.metal, (tuple, list, np.ndarray)):
-            raise ValueError('objectgenerator//CheckInput: wrong input type for the metallicity given.')
+            self.ages = np.array([self.ages])
+            
+        if hasattr(self.metal, '__len__'):
+            self.metal = np.array(self.metal)
         else:
-            self.metal = np.array(self.metal)                                                       # make sure it is an array
+            self.metal = np.array([self.metal])
         
         # much used qtt's
         num_ages = len(self.ages)
         num_metal = len(self.metal)
         
-        # check for empty input (ages and metallicity)
-        if (num_ages == 0) | (num_metal == 0):
-            raise ValueError('objectgenerator//CheckInput: No age and/or metallicity was defined.')
+        # check (ages and metallicity) for empty input and compatible length
+        if (num_ages == 0):
+            raise ValueError('objectgenerator//CheckInput: No age was defined.')
+        elif (num_metal == 0):
+            raise ValueError('objectgenerator//CheckInput: No metallicity was defined.')
         elif (num_ages != num_metal):                                                               # make sure they have the right length
             if (num_ages == 1):
                 self.ages = self.ages[0]*np.ones(num_metal)
@@ -154,23 +158,17 @@ class AstObject:
                 
             num_ages = len(self.ages)                                                               # update length
             num_metal = len(self.metal)                                                             # update length
-        
         num_pop = num_ages                                                                          # define number of populations
         
         # check input for rel_num [must go before usage of num_pop, after ages and metallicity]
-        if isinstance(self.rel_number, (int, float)):
-            self.rel_number = np.ones(num_pop)
-        elif not isinstance(self.rel_number, (tuple, list, np.ndarray)):
-            warnings.warn(('objectgenerator//CheckInput: relative number input not understood. '
-                           'Using ones.'), SyntaxWarning)
-            self.rel_number = np.ones(num_pop)
-            
+        if hasattr(self.rel_number, '__len__'):
+            self.rel_number = np.array(self.rel_number)
+        else:
+            self.rel_number = np.ones(num_pop)                                                      # any single number will result in equal amounts
+        
         relnum_len = len(self.rel_number)
-        if ((relnum_len == 1) & (num_pop != 1)):
-            self.rel_number = self.rel_number[0]*np.ones(num_pop)
-        elif (relnum_len < num_pop):
-            self.rel_number = np.append(self.rel_number, [1 for i in range(num_pop - relnum_len)])
-        elif ((relnum_len > num_pop) & (num_pop != 1)):
+        
+        if ((relnum_len > num_pop) & (num_pop != 1)):
             warnings.warn(('objectgenerator//CheckInput: too many relative numbers given. '
                            'Discarding excess.'), SyntaxWarning)
             self.rel_number = self.rel_number[:num_pop]
@@ -180,93 +178,65 @@ class AstObject:
             num_ages = len(self.ages)                                                               # update length
             num_metal = len(self.metal)                                                             # update length
             num_pop = num_ages                                                                      # [very important] update number of populations
+        elif (relnum_len != num_pop):
+            self.rel_number = np.ones(num_pop)
         
         rel_frac = self.rel_number/np.sum(self.rel_number)                                          # fraction of the total in each population
         
         # check format of imf_param
-        if isinstance(self.imf_param, (tuple, list)):
-            self.imf_param = np.array(self.imf_param)                                               # make it an array
-        elif not isinstance(self.imf_param, (np.ndarray)):
-            warnings.warn(('objectgenerator//CheckInput: Data type for imf_par not understood, '
+        if hasattr(self.imf_param, '__len__'):
+            self.imf_param = np.array(self.imf_param)
+        else:
+            warnings.warn(('objectgenerator//CheckInput: incorrect input type for imf_par, '
                            'using default (={0}).').format(imf_defaults), SyntaxWarning)
             self.imf_param = np.array([imf_defaults for i in range(num_pop)]) 
         
         imf_shape = np.shape(self.imf_param)
-        imf_par_len = len(imf_defaults)
+        imf_par_len = len(imf_defaults)                                                             # how long one set of imf pars is
+        
         if (len(imf_shape) == 1):
             if (imf_shape[0] == imf_par_len):
                 self.imf_param = np.array([self.imf_param for i in range(num_pop)])                 # make it a 2D array using same imf for all populations
             elif (imf_shape[0]%imf_par_len == 0):
                 self.imf_param = np.reshape(self.imf_param, 
-                                            [int(imf_shape[0]/imf_par_len), imf_par_len])           # make it a 2D array
+                                            [imf_shape[0]//imf_par_len, imf_par_len])               # make it a 2D array
             else:
-                warnings.warn(('objectgenerator//CheckInput: Wrong number of arguments for imf_par, '
-                               'using default (={0}).').format(imf_defaults), SyntaxWarning)
-                self.imf_param = np.array([imf_defaults for i in range(num_pop)])
-        elif (len(imf_shape) != 2):
-            warnings.warn(('objectgenerator//CheckInput: Wrong dimension for imf_par, '
-                           'using default (={0}).').format(imf_defaults), SyntaxWarning)
-            self.imf_param = np.array([imf_defaults for i in range(num_pop)])
+                raise ValueError('objectgenerator//CheckInput: Wrong number of arguments for '
+                                 'imf_par, must be multiple of {0}.'.format(imf_par_len))
         
         imf_shape = np.shape(self.imf_param)                                                        # update shape
+        
         if (imf_shape[0] > num_pop):
             warnings.warn(('objectgenerator//CheckInput: Too many arguments for imf_par. '
                            'Discarding excess.'), SyntaxWarning)
             self.imf_param = self.imf_param[0:num_pop]
+        elif (imf_shape[0] == 1) & (num_pop > 1):
+            self.imf_param = np.full([num_pop//imf_par_len, imf_par_len], self.imf_param[0])        # fill up imf_par  
         elif (imf_shape[0] < num_pop):
-            filler = [imf_defaults for i in range(num_pop - int(imf_shape[0]/imf_par_len))]
+            filler = [imf_defaults for i in range(num_pop - imf_shape[0]//imf_par_len)]
             self.imf_param = np.append(self.imf_param, filler, axis=0)                              # fill missing imf_par with default        
         
         # check the minimum available mass in isoc file [must go after imf_param check]
-        max_M_L = 0
+        max_M_L = 0                                                                                 # maximum lowest mass (to use in IMF)
         for i in range(num_pop):
             M_ini = utils.OpenIsochrone(self.ages[i], self.metal[i], columns='mini')
             max_M_L = max(max_M_L, np.min(M_ini))
         
-        max_M_L_list = [max_M_L for i in range(len(self.imf_param[:,0]))]                           # make it the right shape
-        imf_max_M_L = np.array([self.imf_param[:,0], max_M_L_list])                                 # check against user input (if that was higher, use that instead)
-        self.imf_param[:,0] =  np.max(imf_max_M_L, axis=0)                                          # maximum lowest mass (to use in IMF)
+        imf_max_M_L = np.array([self.imf_param[:,0], np.full(num_pop, max_M_L)])
+        self.imf_param[:,0] =  np.max(imf_max_M_L, axis=0)                                          # check against user input (if that was higher, use that instead)
         
         # check input: N_stars or M_tot_init? --> need N_stars [must go after min mass check]
         if (self.N_stars == 0) & (self.M_tot_init == 0):
-            warnings.warn(('objectgenerator//CheckInput: Input mass and number of stars '
-                           'cannot be zero simultaniously. Using N_stars=1000'), SyntaxWarning)
-            self.N_stars = 1000
-            pop_num = np.rint(rel_frac*self.N_stars).astype(int)                                    # rounded off number
+            raise ValueError('objectgenerator//CheckInput: Input mass and number of stars '
+                             'cannot be zero simultaniously. Using N_stars=1000')
         elif (self.N_stars == 0):                                                                   # a total mass is given
-            pop_num = np.array([conv.MtotToNstars(self.M_tot_init*rel_frac[i], 
-                                imf=self.imf_param[i]) for i in range(num_pop)])
+            pop_num = conv.MtotToNstars(self.M_tot_init*rel_frac, imf=self.imf_param)
             self.N_stars = np.sum(pop_num)                                                          # estimate of the number of stars to generate
         else:
             pop_num = np.rint(rel_frac*self.N_stars).astype(int)                                    # rounded off number
             self.N_stars = np.rint(np.sum(pop_num)).astype(int)                                     # make sure N_stars is int and rounded off
         
-        # check if the population numbers add up to N total and save correct ones
-        self.pop_number = utils.FixTotal(self.N_stars, pop_num)
-        
-        # check the inclination(s), make sure it is an array of the right size
-        if isinstance(self.inclination, (int, float)):
-            self.inclination = np.array([self.inclination for i in range(num_pop)]) 
-        elif isinstance(self.inclination, (tuple, list, np.ndarray)):
-            incl_len = len(self.inclination)
-            if (incl_len == 1):
-                self.inclination = np.array([self.inclination[0] for i in range(num_pop)])
-            elif (incl_len < num_pop):
-                self.inclination = np.append(self.inclination, 
-                                             [0 for i in range(num_pop - incl_len)])
-            elif (incl_len > num_pop):
-                warnings.warn(('objectgenerator//CheckInput: too many inclination angles given. '
-                               'Discarding excess.'), SyntaxWarning)
-                self.inclination = np.array(self.inclination[:num_pop])
-            else:
-                self.inclination = np.array(self.inclination)
-        else:
-            raise ValueError('objectgenerator//CheckInput: incompatible inclination given. '
-                             'Use a number, list, or an array of numbers.')
-                
-        if np.any(self.inclination > 2*np.pi):
-            warnings.warn(('objectgenerator//CheckInput: inclination angle over 2pi detected, '
-                           'make sure to use radians!'), SyntaxWarning)
+        self.pop_number = utils.FixTotal(self.N_stars, pop_num)                                     # make sure the population numbers add up to N_total
         
         # check if the dist type(s) exists and get the function signatures
         dist_list = list(set(fnmatch.filter(dir(dist), '*_r')))
@@ -462,17 +432,18 @@ class AstObject:
             gen_imf_param = self.imf_param
         
         # generate the positions, masses   
-        if (self.structure in ['ellipsoid', 'elliptical']):
+        if (self.structure in ['star cluster', 'elliptical galaxy']):
             for i, pop_num in enumerate(self.gen_pop_number):
                 coords_i = Ellipsoid(pop_num, dist_type=self.r_dist_type[i], 
                                      axes=self.ellipse_axes[i], **self.r_dist_param[i])
-                if (self.inclination[i] != 0):
-                    coords_i = conv.RotateXZ(coords_i, self.inclination[i])                         # rotate the XZ plane (x axis towards positive z)
                 M_init_i, M_diff_i = StarMasses(pop_num, 0, imf=gen_imf_param[i])
                 self.coords = np.append(self.coords, coords_i, axis=0)                           
                 self.M_init = np.append(self.M_init, M_init_i)
                 self.M_diff += M_diff_i                                                             # StarMasses already gives diff in Mass (=estimate since no mass was given)
-        elif (self.structure == 'Spiral'):
+        elif (self.structure == 'spiral galaxy'):
+            pass
+        else:
+            # no positions are generated
             pass
         
         # if only N_stars was given, set M_tot_init to the total generated mass
@@ -523,6 +494,56 @@ class AstObject:
         filt = np.full_like(mag, filter, dtype='U5')                                                # the guide stars can be in a different filter than the observations 
         spec_types = np.full_like(mag, 'G0V', dtype='U5')                                           # just to give them a spectral type
         self.natural_guide_stars = [pos_x, pos_y, mag, filt, spec_types]
+        return
+        
+    def AddInclination(self, incl):
+        """Put the object at an inclination w.r.t. the observer, in radians. 
+        The given angle is measured from the x-axis towards the z-axis (which is the l.o.s.).
+        Can be specified for each population separately or for all at once.
+        This is additive (given angles stack with previous ones).
+        """
+        # check the input, make sure it is an array of the right size
+        num_pop = len(self.pop_number)
+        
+        if hasattr(incl, '__len__'):
+            incl = np.array(incl)
+            incl_len = len(incl)
+            
+            if (incl_len == 1):
+                incl = np.full(num_pop, incl[0])
+            elif (incl_len < num_pop):
+                raise ValueError('objectgenerator//AddInclination: too few values given.')
+            elif (incl_len > num_pop):
+                warnings.warn(('objectgenerator//AddInclination: too many values given. '
+                               'Discarding excess.'), SyntaxWarning)
+                incl = incl[:num_pop]
+        else:
+            incl = np.full(num_pop, incl)
+        
+        if hasattr(self, 'inclination'):
+            self.inclination += incl
+        else:
+            self.inclination = incl
+            
+        if np.any(self.inclination > 2*np.pi):
+            warnings.warn(('objectgenerator//AddInclination: inclination angle over 2pi detected, '
+                           'make sure to use radians!'))
+            self.inclination = np.mod(self.inclination, 2*np.pi)
+        
+        # rotate the XZ plane (x axis towards positive z)
+        if np.all(self.inclination == 0):
+            return                                                                                  # don't need to do anything
+        elif (len(np.unique(self.inclination)) == 1):
+            self.coords = conv.RotateXZ(self.coords, self.inclination[0])
+        else:
+            index = np.cumsum(np.append([0], self.gen_pop_number))                                      # indices defining the different populations
+            for i, angle in enumerate(self.inclination):
+                i_1, i_2 = index[i], index[i+1]
+                self.coords[i_1:i_2] = conv.RotateXZ(self.coords[i_1:i_2], angle)
+        
+        # if hasattr(self, 'gas')
+        #todo: add something to rotate gas and dust
+        # (only when one single value was given (or when they are all the same?))
         return
     
     def CurrentMasses(self, realistic_remnants=True):
@@ -903,7 +924,55 @@ class AstObject:
             with open(filename, 'rb') as input:
                 data = pickle.load(input)
         return data
+
+
+class StarCluster(AstObject):
+    """For generating star clusters."""
+    structure = 'star cluster'                                                                      # type of object
+    
+    def __init__(self, N_stars=0, M_tot_init=0, age=None, metal=None, rel_num=None, distance=10, 
+                 d_type='l', imf_par=None, sf_hist=None, extinct=0, r_dist=None, r_dist_par=None, 
+                 compact=False, cp_mode='num', mag_lim=None, incl=0
+                 ):
         
+        super().__init__(N_stars=N_stars, M_tot_init=M_tot_init, age=age, metal=metal, 
+                         rel_num=rel_num, distance=distance, d_type=d_type, extinct=extinct, 
+                         sf_hist=sf_hist, imf_par=imf_par, compact=compact, cp_mode=cp_mode, 
+                         mag_lim=mag_lim, incl=incl
+                         )
+
+
+class EllipticalGalaxy(AstObject):
+    """For generating elliptical galaxies"""
+    structure = 'elliptical galaxy'                                                                 # type of object
+    
+    def __init__(self, N_stars=0, M_tot_init=0, age=None, metal=None, rel_num=None, distance=1000, 
+                 d_type='l', imf_par=None, sf_hist=None, extinct=0, incl=None, r_dist=None, 
+                 r_dist_par=None, ellipse_axes=None, compact=False, cp_mode='num', mag_lim=None,
+                 ):
+        
+        super().__init__(N_stars=N_stars, M_tot_init=M_tot_init, age=age, metal=metal, 
+                         rel_num=rel_num, distance=distance, d_type=d_type, extinct=extinct, 
+                         incl=incl, sf_hist=sf_hist, imf_par=imf_par, compact=compact, 
+                         cp_mode=cp_mode, mag_lim=mag_lim,
+                         )
+    
+
+class SpiralGalaxy(AstObject):
+    """For generating spiral galaxies"""
+    structure = 'spiral galaxy'                                                                     # type of object
+    
+    def __init__(self, N_stars=0, M_tot_init=0, age=None, metal=None, rel_num=None, distance=1000, 
+                 d_type='l', imf_par=None, sf_hist=None, extinct=0, incl=None, spiral_arms=0, 
+                 spiral_bulge=0, spiral_bar=0, compact=False, cp_mode='num', mag_lim=None,
+                 ):
+        
+        super().__init__(N_stars=N_stars, M_tot_init=M_tot_init, age=age, metal=metal, 
+                         rel_num=rel_num, distance=distance, d_type=d_type, extinct=extinct, 
+                         incl=incl, sf_hist=sf_hist, imf_par=imf_par, compact=compact, 
+                         cp_mode=cp_mode, mag_lim=mag_lim,
+                         )
+
 
 def Ellipsoid(N_stars, dist_type='Normal_r', axes=None, **param):
     """Make a spherical distribution of stars using the given 1d radial distribution type.

@@ -90,7 +90,7 @@ def MtotToNstars(M, imf=imf_defaults):
     """Converts from mass in a cluster (one stellar population) 
     to number of objects using the implemented IMF.
     """
-    M_L, M_U = imf
+    M_L, M_U = imf[:,0], imf[:,1]
     M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
     C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
     D_mid = (1/0.35 + 1/0.65)*M_mid**(0.65)
