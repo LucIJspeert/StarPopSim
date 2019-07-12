@@ -21,7 +21,7 @@ def OpenIsochrone(age, Z, columns='all'):
         if not os.path.isfile(file_name):
             raise FileNotFoundError(('objectgenerator//OpenIsochrone: file {0} not found. '
                                     'Try a different metallicity.').format(file_name))
-
+    #todo: perhaps think of a more elegant way to do this
     # names to use in the code, and a mapping to the isoc file column names
     code_names = np.array(['log_age', 'M_initial', 'M_actual', 'log_L', 'log_Te', 'log_g',
                            'U', 'B', 'V', 'R', 'I', 'J', 'H', 'Ks'])
