@@ -178,7 +178,7 @@ def ApparentMag(mag, dist, ext=0, sigma=[0]):
     sigma defines individual distances relative to the distance of the objects distance.
     ext is an optional extinction to add (waveband dependent).
     """
-    if (np.shape(mag) != ()):
+    if hasattr(mag, '__len__'):
         if (len(sigma) == len(mag)):
             z_coord = np.array(sigma)                                                               # can use given coordinates
         else:
