@@ -123,6 +123,72 @@ def OpenIsochrone(age, Z, columns='all'):
         return M_ini
 
 
+def StellarTrack(Z, M_ini):
+    """Opens the isochrone file and gives ... for one star.
+    """
+    # opening the file (actual opening lateron)
+    file_name = os.path.join('tables', ('isoc_Z{1:1.{0}f}.dat'
+                                        ).format(-int(np.floor(np.log10(Z)))+1, Z))
+    if not os.path.isfile(file_name):                                                               # check wether file for Z exists
+        file_name = os.path.join('tables', ('isoc_Z{1:1.{0}f}.dat'
+                                            ).format(-int(np.floor(np.log10(Z))), Z))               # try one digit less
+        if not os.path.isfile(file_name):
+            raise FileNotFoundError(('objectgenerator//OpenIsochrone: file {0} not found. '
+                                    'Try a different metallicity.').format(file_name))
+
+    # names to use in the code, and a mapping to the isoc file column names
+    code_names = np.array(['log_age', 'M_initial', 'M_actual', 'log_L', 'log_Te', 'log_g',
+                           'U', 'B', 'V', 'R', 'I', 'J', 'H', 'Ks'])
+    mag_names = code_names[6:]                                                                      # names of filters for later reference
+    mag_num = len(mag_names)
+    var_names, column_names = np.loadtxt(os.path.join('tables', 'column_names.dat'),
+                                         dtype=str, unpack=True)
+
+    if ((len(code_names) != len(var_names)) | np.any(code_names != var_names)):
+        raise SyntaxError(('objectgenerator//OpenIsochrone: file "column_names.dat" has '
+                           'incorrect names specified. Use: {0}').format(', '.join(code_names)))
+
+    name_dict = {vn: cn for vn, cn in zip(var_names, column_names)}
+
+    # find the column names in the isoc file
+    with open(file_name) as file:
+        for line in file:
+            if line.startswith('#'):
+                header = np.array(line.replace('#', '').split())
+            else:
+                break
+
+    col_dict = {name: col for col, name in enumerate(header) if name in column_names}
+
+    var_cols = [col_dict[name_dict[name]] for name in code_names if name not in mag_names]
+    mag_cols = [col_dict[name_dict[name]] for name in mag_names]
+
+    # load the right columns (part 1 of 2)
+    log_t, M_ini, M_act, log_L, log_Te = np.loadtxt(file_name, usecols=var_cols, unpack=True)
+
+
+    log_t_min = np.min(log_t)                                                                       # minimum available age
+    log_t_max = np.max(log_t)                                                                       # maximum available age
+    uni_log_t = np.unique(log_t)                                                                    # unique array of ages
+
+    lim_min = (log_age < log_t_min - 0.01)
+    lim_max = (log_age > log_t_max + 0.01)
+    if lim_min or lim_max:                                                                          # check the age limits
+        warnings.warn(('objectgenerator//OpenIsochrone: Specified age exceeds limit for Z={0}. '
+                       'Using limit value (log_age={1}).').format(Z, lim_min*log_t_min
+                       + lim_max*log_t_max), RuntimeWarning)
+        log_age = lim_min*log_t_min + lim_max*log_t_max
+
+    t_steps = uni_log_t[1:] - uni_log_t[:-1]                                                        # determine the age steps in the isoc files (step sizes may vary)
+    a = np.log10((10**(t_steps) + 1)/2)                                                             # half the age step in logarithms
+    b = t_steps - a                                                                                 # a is downward step, b upward
+    a = np.insert(a, 0, 0.01)                                                                       # need step down for first t value
+    b = np.append(b, 0.01)                                                                          # need step up for last t value
+    log_closest = uni_log_t[(uni_log_t > log_age - a) & (uni_log_t <= log_age + b)]                 # the closest available age (to given one)
+    where_t = np.where(log_t == log_closest)
+    return
+
+
 def FixTotal(tot, nums):
     """Check if nums add up to total and fixes it."""
     i = 0

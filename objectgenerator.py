@@ -618,6 +618,9 @@ class AstObject:
                     
                     lifetime = form.MSLifetime(M_init_i[remnants_i])                                # estimated MS time of the stars
                     remnant_time = lin_age - lifetime                                               # approx. time that the remnant had to cool
+                    mask = (remnant_time < 0)                                                       # overestimated
+                    remnant_time[mask] = -remnant_time[mask]/10                                     # hotfix
+                    #TODO: remnant time is bad estimator (becomes negative)
                     
                     r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
                     r_radii = form.RemnantRadius(r_M_cur_i)                                         # approx. remnant radii
@@ -661,7 +664,7 @@ class AstObject:
                     remnant_time = lin_age - lifetime                                               # approx. time that the remnant had to cool
                     mask = (remnant_time < 0)                                                       # overestimated
                     remnant_time[mask] = -remnant_time[mask]/10                                     # hotfix
-                    #TODO remnant time is bad estimator (becomes negative)
+                    #TODO: remnant time is bad estimator (becomes negative)
                     
                     r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
                     r_radii = form.RemnantRadius(r_M_cur_i)                                         # approx. remnant radii
@@ -834,7 +837,7 @@ class AstObject:
     def HalfLumRadius(self, unit='pc', spher=False):
         """Returns the (spherical or cylindrical) half luminosity radius in pc/as."""
         lum = 10**self.LogLuminosities(realistic_remnants=False)
-        # todo: take out the nan values in real.remn. causing trouble here
+        
         tot_lum = np.sum(lum)                                                                       # do this locally, to avoid unnecesairy overhead
         
         if spher:
