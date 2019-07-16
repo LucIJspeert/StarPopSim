@@ -29,6 +29,7 @@ import visualizer as vis
 
 # global constants
 M_bol_sun = 4.74                # bolometric magnitude of the sun
+as_rad = np.pi/648000           # arcseconds to radians
 
 
 # global defaults
@@ -411,30 +412,61 @@ class AstObject:
         
         return
         
-    def GenerateFieldStars(self):
-        """Adds (Milky Way) field stars to the object."""
+    def AddFieldStars(self, n=10, fov=53, sky_coords=None):
+        """Adds (Milky Way) field stars to the object in the given f.o.v (in as).
+        [WIP] Nothing is done with sky_coords at the moment.
+        """
         # self.field_stars = np.array([pos_x, pos_y, mag, filt, spec_types])
         # todo: WIP
+        # add like a query to Gaia data, 
+        # default: some random distribution in the shape of the fov
+        fov_rad = fov*as_rad
+        phi = dist.Uniform(n=n, min=0, max=2*np.pi, power=1)
+        theta = dist.AngleTheta(n=n)
+        radius = dist.Uniform(n=n, min=10, max=10**3, power=3)                                      # uniform between 10 pc and a kpc
+        coords = conv.SpherToCart(radius, theta, phi)
+        distance = self.d_lum - np.abs(coords[:,3])
+        
+        mag = dist.Uniform(n=n, min=5, max=20, power=1)                                             # placeholder for magnitudes
+        filt = np.full_like(mag, 'V', dtype='U5')                                                   # placeholder for filter
+        spec_types = np.full_like(mag, 'G0V', dtype='U5')                                           # placeholder for spectral types
+        self.field_stars = np.array([coords[:,0], coords[:,1], mag, filt, spec_types])
         return
         
-    def GenerateBackGround(self):
-        """Adds additional structures to the background,
-        like more clusters or galaxies. These will be unresolved.
+    def AddBackGround(self, n=10, fov=53):
+        """Adds additional structures to the background, like more clusters or galaxies. 
+        These will be unresolved. Give the imaging f.o.v (in as).
         """
         # self.back_ground = 
         # todo: WIP
         return
         
-    def GenerateNGS(self, mag=[13], filter='V'):
+    def AddNGS(self, mag=[13], filter='V', pos_x=None, pos_y=None, spec_types='G0V'):
         """Adds one or more natural guide star(s) for the adaptive optics.
-        The scao mode can only use one NGS that has to be within a magnitude of 10-16 (optical).
-        [The generated positions are specific to the ELT!]
+        The SCAO mode can only use one NGS that has to be within a magnitude of 10-16 (optical).
+        The MCAO mode can track multiple stars. Positions can be specified manually (in as!),
+        as well as the spectral types for these stars.
+        [The automatically generated positions are specific to the ELT!]
         """
-        if (len(mag) == 1):
+        if hasattr(mag, '__len__'):
+            mag = np.array(mag)
+        else:
+            mag = np.array([mag])
+        
+        # give them positions
+        if ((pos_x is not None) & (pos_y is not None)):
+            if hasattr(pos_x, '__len__'):
+                pos_x = np.array(pos_x)
+            else:
+                pos_x = np.array([pos_x])
+            if hasattr(pos_y, '__len__'):
+                pos_y = np.array(pos_y)
+            else:
+                pos_y = np.array([pos_y])
+        elif (len(mag) == 1):
             # just outside fov for 1.5 mas/p scale, but inside patrol field of scao
-            pos_x = [7.1]                                                                           # x position in as
-            pos_y = [10.6]                                                                          # y position in as
-            # todo: could add more position options
+            pos_x = np.array([7.1])                                                                 # x position in as
+            pos_y = np.array([10.6])                                                                # y position in as
         else:
             # assume we are using MCAO now. generate random positions within patrol field
             angle = dist.AnglePhi(n=len(mag))
@@ -443,8 +475,16 @@ class AstObject:
             pos_x = pos_x_y[0]
             pos_y = pos_x_y[1]
         
+        # give them a spectral type
+        if isinstance(spec_types, str):
+            spec_types = np.full_like(mag, spec_types, dtype='U5')
+        elif hasattr(spec_types, '__len__'):
+            spec_types = np.array(spec_types)
+        else:
+            spec_types = np.full_like(mag, 'G0V', dtype='U5')                                           
+        
         filt = np.full_like(mag, filter, dtype='U5')                                                # the guide stars can be in a different filter than the observations 
-        spec_types = np.full_like(mag, 'G0V', dtype='U5')                                           # just to give them a spectral type
+        
         self.natural_guide_stars = [pos_x, pos_y, mag, filt, spec_types]
         return
         
@@ -790,11 +830,11 @@ class AstObject:
         return remnants
     
     def TotalCurrentMass(self):
-        """Returns the total current mass in Msun."""
+        """Returns the total current mass in stars (in Msun)."""
         return np.sum(self.CurrentMasses())
     
     def TotalLuminosity(self):
-        """Returns log of the total luminosity in Lsun."""
+        """Returns log of the total luminosity from stars (in Lsun)."""
         return np.log10(np.sum(10**self.LogLuminosities(realistic_remnants=False)))                 # remnants don't add much, so leave them as is
         
     def CoordsArcsec(self):
@@ -907,7 +947,7 @@ class AstObject:
         Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
             saveable dark plot, and None for normal light colours.
         """
-        r_mask = self.Remnants()
+        r_mask = np.invert(self.Remnants())
         temps = 10**self.LogTemperatures()
         lums = self.LogLuminosities()
         
@@ -942,24 +982,24 @@ class AstObject:
             a selection needed for imaging, by setting full to True or False.
         If for some reason this mode has to be turned off (delete stored data), set turn_off=True.
         """
-        if not hasattr(self, 'current_masses'):
+        if (not hasattr(self, 'current_masses') & (full == True)):
             self.current_masses = self.CurrentMasses(realistic_remnants=True)
-        elif turn_off:
+        elif (turn_off & (full == True)):
             del self.current_masses
             
-        if not hasattr(self, 'log_luminosities'):
+        if (not hasattr(self, 'log_luminosities') & (full == True)):
             self.log_luminosities = self.LogLuminosities(realistic_remnants=True)
-        elif turn_off:
+        elif (turn_off & (full == True)):
             del self.log_luminosities
             
-        if not hasattr(self, 'log_temperatures'):
+        if (not hasattr(self, 'log_temperatures') & (full == True)):
             self.log_temperatures = self.LogTemperatures(realistic_remnants=True)
-        elif turn_off:
+        elif (turn_off & (full == True)):
             del self.log_temperatures
         
-        if not hasattr(self, 'absolute_magnitudes'):
+        if (not hasattr(self, 'absolute_magnitudes') & (full == True)):
             self.absolute_magnitudes = self.AbsoluteMagnitudes()
-        elif turn_off:
+        elif (turn_off & (full == True)):
             del self.absolute_magnitudes
         
         if not hasattr(self, 'apparent_magniutdes'):
