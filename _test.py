@@ -4087,8 +4087,33 @@ imgsaver(par_grid[99])
 
 
 
+## NS cooling
+def T1(t, M, R, log_g, s, q):
+    G_newt = 274.0                  # Msun^-1 Rsun^2 m s-2
+    c_light = 299792458.0           # m/s       speed of light 
+    temp = (10**6*73*10**log_g/10**14)**(1/4) * ((s/q)/(np.exp(6*s*t) - 1))**(1/12) * (1 - 2*G_newt*M/(R*c_light**2))**(1/4)
+    return temp
+    
+def T2(t):
+    return 2*10**(32/5)*t**(-2/5)
 
+R = 1.58*10**-5
+M = 1.4
+log_g = conv.RadiusToGravity(R, M)
+time = np.logspace(1, 8, 1000)
 
+T_1 = T1(time, M, R, log_g, 2e-6, 10**-50)
+T_2 = T2(time)
+T_3 = T1(time, M, R, log_g, 2e-6, 10**-53)
+T_4 = T1(time, M, R, log_g, 2e-6, 10**-55)
+
+fig, ax = plt.subplots(figsize=(5, 5), squeeze=True)
+ax.plot(np.log10(time), np.log10(T_1))
+ax.plot(np.log10(time), np.log10(T_2))
+ax.plot(np.log10(time), np.log10(T_3))
+ax.plot(np.log10(time), np.log10(T_4))
+# ax.set_ylim(5.5, 6.6)
+plt.show()
 
 
 ##
@@ -4102,6 +4127,7 @@ import formulas as form
 import distributions as dist
 import conversions as conv
 import imagegenerator as img
+import utils
 
 
 # cd documents\documenten_radboud_university\masterstage\StarPopSim

@@ -7,7 +7,108 @@ import warnings
 import numpy as np
 
 
-def OpenIsochrone(age, Z, columns='all'):
+# global defaults
+prop_names = np.array(['log_age', 'M_initial', 'M_current', 'log_L', 'log_Te', 'log_g', 'phase'])    # names of stellar properties
+filters_names = np.array(['U', 'B', 'V', 'R', 'I', 'J', 'H', 'Ks'])                                 # names of filters for later reference
+
+
+def OpenIsochronesFile(Z, columns=['all']):
+    """Opens the isochrones file and gives the right columns.
+    columns: ['all'] for all default columns,
+             ['mag'] for all default magnitude columns
+             or a list of any individual column names (see code_names)
+    must be a list.
+    """
+    # check the file name (actual opening lateron)
+    file_name = ('isoc_Z{1:1.{0}f}.dat').format(-int(np.floor(np.log10(Z)))+1, Z)
+    file_name = os.path.join('tables', file_name)
+
+    if not os.path.isfile(file_name):                                                               # check wether file for Z exists
+        file_name = ('isoc_Z{1:1.{0}f}.dat').format(-int(np.floor(np.log10(Z))), Z)                 # try one digit less
+        file_name = os.path.join('tables', file_name)
+        if not os.path.isfile(file_name):
+            raise FileNotFoundError(('objectgenerator//OpenIsochronesFile: file {0} not found. '
+                                    'Try a different metallicity.').format(file_name))
+
+    # mapping the names used in the code to the isoc file column names
+    code_names = np.append(prop_names, filters_names)
+    var_names, column_names = np.loadtxt(os.path.join('tables', 'column_names.dat'),
+                                         dtype=str, unpack=True)
+
+    if ((len(code_names) != len(var_names)) | np.any(code_names != var_names)):
+        raise SyntaxError(('objectgenerator//OpenIsochrone: file "column_names.dat" has '
+                           'incorrect names specified. Use: {0}').format(', '.join(code_names)))
+
+    name_dict = {vn: cn for vn, cn in zip(var_names, column_names)}
+
+    with open(file_name) as file:
+        for line in file:
+            if line.startswith('#'):
+                header = np.array(line.replace('#', '').split())                                    # find the column names in the isoc file
+            else:
+                break
+
+    col_dict = {name: col for col, name in enumerate(header) if name in column_names}
+
+    if (columns[0] == 'all'):
+        cols_to_use = [col_dict[name_dict[name]] for name in code_names]
+    elif (columns[0] == 'mag'):
+        cols_to_use = [col_dict[name_dict[name]] for name in filters_names]
+    else:
+        cols_to_use = [col_dict[name_dict[name]] for name in columns]                               # use the given column names
+
+    data = np.loadtxt(file_name, usecols=cols_to_use, unpack=True)
+    return data
+
+
+def SelectAge(age, Z):
+    """Selects the timestep in the isochrone closest to the given age (lin or log years)."""
+    log_t = OpenIsochronesFile(Z, columns=['log_age'])
+
+    if (age <= 12):                                                                                 # determine if logarithm or not
+        log_age = age                                                                               # define log_age
+    else:
+        log_age = np.log10(age)                                                                     # calculate log_age (assuming it is not already log)
+
+    log_t_min = np.min(log_t)                                                                       # minimum available age
+    log_t_max = np.max(log_t)                                                                       # maximum available age
+    uni_log_t = np.unique(log_t)                                                                    # unique array of ages
+
+    lim_min = (log_age < log_t_min - 0.01)
+    lim_max = (log_age > log_t_max + 0.01)
+    if lim_min or lim_max:                                                                          # check the age limits
+        warnings.warn(('objectgenerator//OpenIsochrone: Specified age exceeds limit for this'
+                       'isochrones file. Using limit value (log_age={1}).').format(Z,
+                       lim_min*log_t_min + lim_max*log_t_max), RuntimeWarning)
+        log_age = lim_min*log_t_min + lim_max*log_t_max
+
+    t_steps = uni_log_t[1:] - uni_log_t[:-1]                                                        # determine the age steps in the isoc files (step sizes may vary)
+    a = np.log10((10**(t_steps) + 1)/2)                                                             # half the age step in logarithms
+    b = t_steps - a                                                                                 # a is downward step, b upward
+    a = np.insert(a, 0, 0.01)                                                                       # need step down for first t value
+    b = np.append(b, 0.01)                                                                          # need step up for last t value
+    log_closest = uni_log_t[(uni_log_t > log_age - a) & (uni_log_t <= log_age + b)]                 # the closest available age (to given one)
+    return np.where(log_t == log_closest)[0]
+
+
+def StellarIsochrone(age, Z, columns=['all']):
+    """Gives the isochrone data for a specified age and metallicity (Z).
+    columns: ['all'] for all default columns,
+             ['mag'] for all default magnitude columns
+             or a list of any individual column names (see code_names)
+    must be a list.
+    """
+    data = OpenIsochronesFile(Z, columns=columns)
+    where_t = SelectAge(age, Z)
+
+    if (len(np.shape(data)) == 1):
+        data = data[where_t]
+    else:
+        data = data[:, where_t]
+    return data
+
+
+def OpenIsochrone_old(age, Z, columns='all'):
     """Opens the isochrone file and gives the relevant columns.
     columns can be: 'all', 'mini', 'mcur', 'lum', 'temp', 'mag' (and 'filters')
     age can be either linear or logarithmic input.
@@ -23,10 +124,9 @@ def OpenIsochrone(age, Z, columns='all'):
                                     'Try a different metallicity.').format(file_name))
     #todo: perhaps think of a more elegant way to do this
     # names to use in the code, and a mapping to the isoc file column names
-    code_names = np.array(['log_age', 'M_initial', 'M_actual', 'log_L', 'log_Te', 'log_g',
+    code_names = np.array(['log_age', 'M_initial', 'M_current', 'log_L', 'log_Te', 'log_g',
                            'U', 'B', 'V', 'R', 'I', 'J', 'H', 'Ks'])
     mag_names = code_names[6:]                                                                      # names of filters for later reference
-    mag_num = len(mag_names)
     var_names, column_names = np.loadtxt(os.path.join('tables', 'column_names.dat'),
                                          dtype=str, unpack=True)
 
@@ -55,7 +155,7 @@ def OpenIsochrone(age, Z, columns='all'):
         mag = np.loadtxt(file_name, usecols=mag_cols, unpack=True)
     elif (columns == 'mcur'):
         log_t, M_ini = np.loadtxt(file_name, usecols=var_cols[:2], unpack=True)
-        M_act = np.loadtxt(file_name, usecols=(col_dict[name_dict['M_actual']]), unpack=True)
+        M_act = np.loadtxt(file_name, usecols=(col_dict[name_dict['M_current']]), unpack=True)
     elif (columns == 'lum'):
         log_t, M_ini = np.loadtxt(file_name, usecols=var_cols[:2], unpack=True)
         log_L = np.loadtxt(file_name, usecols=(col_dict[name_dict['log_L']]), unpack=True)
@@ -123,70 +223,9 @@ def OpenIsochrone(age, Z, columns='all'):
         return M_ini
 
 
-def StellarTrack(Z, M_ini):
-    """Opens the isochrone file and gives ... for one star.
-    """
-    # opening the file (actual opening lateron)
-    file_name = os.path.join('tables', ('isoc_Z{1:1.{0}f}.dat'
-                                        ).format(-int(np.floor(np.log10(Z)))+1, Z))
-    if not os.path.isfile(file_name):                                                               # check wether file for Z exists
-        file_name = os.path.join('tables', ('isoc_Z{1:1.{0}f}.dat'
-                                            ).format(-int(np.floor(np.log10(Z))), Z))               # try one digit less
-        if not os.path.isfile(file_name):
-            raise FileNotFoundError(('objectgenerator//OpenIsochrone: file {0} not found. '
-                                    'Try a different metallicity.').format(file_name))
-
-    # names to use in the code, and a mapping to the isoc file column names
-    code_names = np.array(['log_age', 'M_initial', 'M_actual', 'log_L', 'log_Te', 'log_g',
-                           'U', 'B', 'V', 'R', 'I', 'J', 'H', 'Ks'])
-    mag_names = code_names[6:]                                                                      # names of filters for later reference
-    mag_num = len(mag_names)
-    var_names, column_names = np.loadtxt(os.path.join('tables', 'column_names.dat'),
-                                         dtype=str, unpack=True)
-
-    if ((len(code_names) != len(var_names)) | np.any(code_names != var_names)):
-        raise SyntaxError(('objectgenerator//OpenIsochrone: file "column_names.dat" has '
-                           'incorrect names specified. Use: {0}').format(', '.join(code_names)))
-
-    name_dict = {vn: cn for vn, cn in zip(var_names, column_names)}
-
-    # find the column names in the isoc file
-    with open(file_name) as file:
-        for line in file:
-            if line.startswith('#'):
-                header = np.array(line.replace('#', '').split())
-            else:
-                break
-
-    col_dict = {name: col for col, name in enumerate(header) if name in column_names}
-
-    var_cols = [col_dict[name_dict[name]] for name in code_names if name not in mag_names]
-    mag_cols = [col_dict[name_dict[name]] for name in mag_names]
-
-    # load the right columns (part 1 of 2)
-    log_t, M_ini, M_act, log_L, log_Te = np.loadtxt(file_name, usecols=var_cols, unpack=True)
-
-
-    log_t_min = np.min(log_t)                                                                       # minimum available age
-    log_t_max = np.max(log_t)                                                                       # maximum available age
-    uni_log_t = np.unique(log_t)                                                                    # unique array of ages
-
-    lim_min = (log_age < log_t_min - 0.01)
-    lim_max = (log_age > log_t_max + 0.01)
-    if lim_min or lim_max:                                                                          # check the age limits
-        warnings.warn(('objectgenerator//OpenIsochrone: Specified age exceeds limit for Z={0}. '
-                       'Using limit value (log_age={1}).').format(Z, lim_min*log_t_min
-                       + lim_max*log_t_max), RuntimeWarning)
-        log_age = lim_min*log_t_min + lim_max*log_t_max
-
-    t_steps = uni_log_t[1:] - uni_log_t[:-1]                                                        # determine the age steps in the isoc files (step sizes may vary)
-    a = np.log10((10**(t_steps) + 1)/2)                                                             # half the age step in logarithms
-    b = t_steps - a                                                                                 # a is downward step, b upward
-    a = np.insert(a, 0, 0.01)                                                                       # need step down for first t value
-    b = np.append(b, 0.01)                                                                          # need step up for last t value
-    log_closest = uni_log_t[(uni_log_t > log_age - a) & (uni_log_t <= log_age + b)]                 # the closest available age (to given one)
-    where_t = np.where(log_t == log_closest)
-    return
+def FilterNames():
+    """Just returns the default filter names corresponding to the (ordered) magnitudes."""
+    return filters_names
 
 
 def FixTotal(tot, nums):

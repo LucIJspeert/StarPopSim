@@ -7,9 +7,13 @@ Most functions optimized for processing many numbers at once (ndarray).
 import warnings
 import numpy as np
 
+import utils
+import conversions as conv
+
 
 # global constants
 c_light = 299792458.0           # m/s       speed of light 
+G_newt = 274.0                  # Msun^-1 Rsun^2 m s-2
 h_plank = 6.62607004*10**-34    # J s       Planck constant
 k_B = 1.38064852*10**-23        # J/K       Boltzmann constant
 parsec = 3.086*10**16           # m         parallax second
@@ -24,7 +28,9 @@ om_m = 0.315                    # frac      omega matter
 om_l = 0.685                    # frac      omega lambda ('dark energy')
 
 # global defaults
-imf_defaults = [0.08, 150]      # lower bound, upper bound on mass
+imf_defaults = [0.08, 150]      # M_sun; lower bound, upper bound on mass
+NS_mass = 1.2                   # M_sun; lower mass bound for NSs
+BH_mass = 2.0                   # M_sun; lower mass bound for BHs
 
 
 def Distance(points, position=[0,0,0]):
@@ -196,13 +202,6 @@ def AbsoluteMag(mag, dist, ext=0):
     return mag - 5*np.log10(dist/10) - ext                                                          # dist in pc!
 
 
-def MSLifetime(M):
-    """Estimate the MS lifetime in years of a star of certain initial mass M (in Msun).
-    Applies to stars from 0.1 to 50 Msun (strictly speaking)
-    """
-    return 10**10*(M)**-2.5
-
-
 def BBLuminosity(R, T_eff):
     """Luminosity (in Lsun) of a Black Body with given radius (Rsun) and temperature (K)"""
     return R**2*(T_eff/T_sun)**4
@@ -249,10 +248,34 @@ def MassLimit(frac, M_max=None, imf=imf_defaults):
     return M_lim
 
 
+def RemnantTime(M_init, age, Z):
+    """Calculates approximately how long the remnant has been a remnant.
+    Uses the isochrone files. Takes linear age or log(age) in years.
+    """
+    if (age <= 12):                                                                 # determine if stellar age in logarithm or not
+        lin_age = 10**age                                                           # if so, go back to linear
+    else:
+        lin_age = age
+    
+    iso_log_t, iso_M_init = utils.OpenIsochronesFile(Z, columns=['log_age', 'M_initial'])
+    t_steps = np.unique(iso_log_t)
+    max_M_init = np.array([np.max(iso_M_init[iso_log_t == time]) for time in t_steps])
+    
+    indices = np.searchsorted(max_M_init[::-1], M_init)
+    birth_time = 10**t_steps[::-1][indices]                                                         # time of remnant birth relative to age
+    remnant_time = lin_age - birth_time                                                             # time since remnant birth
+    
+    if hasattr(M_init, '__len__'):
+        remnant_time[remnant_time < 1] = 1                                                          # avoid negatives
+    elif (remnant_time < 1):
+        remnant_time = 1
+    return remnant_time
+
+
 def RemnantMass(M_init, Z=Z_sun):
     """Very rough estimate of the final (remnant) mass given an initial (ZAMS) mass.
     Also metallicity dependent.
-    Taken from various papers
+    Taken from various papers stated in the code comments.
     """
     if hasattr(M_init, '__len__'):
         M_init = np.array(M_init)
@@ -313,34 +336,53 @@ def RemnantMass(M_init, Z=Z_sun):
 
 def RemnantRadius(M_rem):
     """Approximate radius (in Rsun) of remnant with mass M_rem (in Msun)."""
-    R_remnant = np.zeros_like(M_rem)
+    R_rem = np.zeros_like(M_rem)
     
-    mask_WD = M_rem < 1.2
-    R_remnant[mask_WD] = 0.0126*(M_rem[mask_WD])**(-1/3)*(1 - (M_rem[mask_WD]/M_ch)**(4/3))**(1/2)  # WD radius: https://www.astro.princeton.edu/~burrows/classes/403/white.dwarfs.pdf
-    R_remnant[(M_rem > 1.2) & (M_rem <= 2.0)] = 1.58*10**-5                                         # NS radius: uncertain due to e.o.s. but mostly close to constant 11 km
-    mask_BH = (M_rem > 2.0)
-    R_remnant[mask_BH] = 4.245*10**-6*M_rem[mask_BH]                                                # BH radius: Schwarzschild radius
+    # masks for selecting the right remnants
+    mask_WD = (M_rem < NS_mass)
+    mask_NS = (M_rem >= NS_mass) & (M_rem < BH_mass)
+    mask_BH = (M_rem >= BH_mass)
     
-    return R_remnant
+    R_rem[mask_WD] = 0.0126*(M_rem[mask_WD])**(-1/3)*(1 - (M_rem[mask_WD]/M_ch)**(4/3))**(1/2)      # WD radius: https://www.astro.princeton.edu/~burrows/classes/403/white.dwarfs.pdf
+    R_rem[mask_NS] = 1.58*10**-5                                                                    # NS radius: uncertain due to e.o.s. but mostly close to constant 11 km
+    R_rem[mask_BH] = 4.245*10**-6*M_rem[mask_BH]                                                    # BH radius: Schwarzschild radius
+    
+    return R_rem
 
 
-def RemnantTeff(M_rem, R_rem, t_cool, BH_mass=2.0):
-    """Approximation of the effective temperature. 
+def RemnantTeff(M_rem, R_rem, t_cool):
+    """Approximation of the effective temperature in Kelvin. 
     M_rem and R_rem in solar units and t_cool in years.
     These have to be arrays of the same length.
-    Based on WD cooling from Althaus et al. 2010: https://arxiv.org/abs/1007.2659
+    Based on various sources stated in the source comments.
     """
+    T_rem = np.zeros_like(M_rem)
+    
+    # parameter for WD cooling
     A = 12                                                                                          # (mean) atomic weight (assumes C WD)
+    # parameters for NS cooling
+    a_ns = 73
+    s_ns = 2e-6
+    q_ns = 1e-53
     
-    Temps = np.zeros_like(M_rem)
+    # masks for selecting the right remnants
+    mask_WD = (M_rem < NS_mass)
+    mask_NS = (M_rem >= NS_mass) & (M_rem < BH_mass)
+    mask_BH = (M_rem >= BH_mass)
     
-    Temps[M_rem > BH_mass] = 10**(-8)                                                               # above mass M_rem=BH_mass is considered a BH
+    T_rem[mask_WD] = (T_sun*(10**8/(A*t_cool[mask_WD]))**(7/20)*(M_rem[mask_WD])**(1/4)
+                     *(R_rem[mask_WD])**(-1/2))                                                     # WD temperature [Althaus et al., 2010] https://arxiv.org/abs/1007.2659
     
-    mask = (M_rem <= BH_mass)
-    Temps[mask] = T_sun*(10**8/(A*t_cool[mask]))**(7/20)*(M_rem[mask])**(1/4)*(R_rem[mask])**(-1/2)
-    # todo: need something for NS
+    # T_rem[mask_NS] = 2*10**(32/5)*t_cool[mask_NS]**(-2/5)                                         # [crude approx. https://pdfs.semanticscholar.org/2c10/e76c6c264161c48a4742d4c3ba80ed7fbc3f.pdf]
+    log_g = conv.RadiusToGravity(R_rem[mask_NS], M_rem[mask_NS])
+    T_rem[mask_NS] = ((10**6*a_ns*10**log_g/10**14)**(1/4) 
+                     * ((s_ns/q_ns)/(np.e**(6*s_ns*t_cool[mask_NS]) - 1))**(1/12) 
+                     * (1 - 2*G_newt*M_rem[mask_NS]/(R_rem[mask_NS]*c_light**2))**(1/4))            # quite involved this... [Ofengeim and Yakovlev, 2017] http://www.ioffe.ru/astro/Stars/Paper/ofengeim_yak17mn.pdf
+    T_rem[mask_NS] += 10**-99                                                                       # avoid invalid logarithms [also, above formula encounters overflows in power]
     
-    return Temps
+    T_rem[mask_BH] = 6.169*10**(-8)/M_rem[mask_BH]                                                  # temperature due to Hawking radiation (derivation on wikipedia)
+    
+    return T_rem
 
 
 def RemnantMagnitudes(T_rem, L_rem):
