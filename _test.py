@@ -3128,10 +3128,15 @@ sources['y_stddev'] = sources['x_stddev']
 sources['theta'] = [0, 0, 0, 0]
 sources['id'] = [1, 2, 3, 4]
 tshape = (32, 32)
+# image = (make_gaussian_sources_image(tshape, sources) +
+#          make_noise_image(tshape, type='poisson', mean=6.,
+#                           random_state=1) +
+#          make_noise_image(tshape, type='gaussian', mean=0.,
+#                           stddev=2., random_state=1))
 image = (make_gaussian_sources_image(tshape, sources) +
-         make_noise_image(tshape, type='poisson', mean=6.,
+         make_noise_image(tshape, distribution='poisson', mean=6.,
                           random_state=1) +
-         make_noise_image(tshape, type='gaussian', mean=0.,
+         make_noise_image(tshape, distribution='gaussian', mean=0.,
                           stddev=2., random_state=1))
 #
 from matplotlib import rcParams
@@ -3200,10 +3205,15 @@ sources['y_stddev'] = sources['x_stddev']
 sources['theta'] = [0, 0, 0, 0]
 sources['id'] = [1, 2, 3, 4]
 tshape = (4096, 4096)
+# image = (make_gaussian_sources_image(tshape, sources) +
+#          make_noise_image(tshape, type='poisson', mean=6.,
+#                           random_state=1) +
+#          make_noise_image(tshape, type='gaussian', mean=0.,
+#                           stddev=2., random_state=1))
 image = (make_gaussian_sources_image(tshape, sources) +
-         make_noise_image(tshape, type='poisson', mean=6.,
+         make_noise_image(tshape, distribution='poisson', mean=6.,
                           random_state=1) +
-         make_noise_image(tshape, type='gaussian', mean=0.,
+         make_noise_image(tshape, distribution='gaussian', mean=0.,
                           stddev=2., random_state=1))
 #
 from matplotlib import rcParams
@@ -3271,10 +3281,15 @@ sources['y_stddev'] = sources['x_stddev']
 sources['theta'] = np.zeros(n)
 sources['id'] = [i+1 for i in range(n)]
 tshape = (4096, 4096)
+# image = (make_gaussian_sources_image(tshape, sources) +
+#          make_noise_image(tshape, type='poisson', mean=6.,
+#                           random_state=1) +
+#          make_noise_image(tshape, type='gaussian', mean=0.,
+#                           stddev=2., random_state=1))
 image = (make_gaussian_sources_image(tshape, sources) +
-         make_noise_image(tshape, type='poisson', mean=6.,
+         make_noise_image(tshape, distribution='poisson', mean=6.,
                           random_state=1) +
-         make_noise_image(tshape, type='gaussian', mean=0.,
+         make_noise_image(tshape, distribution='gaussian', mean=0.,
                           stddev=2., random_state=1))
 #
 from matplotlib import rcParams
@@ -3370,13 +3385,13 @@ std = bkgrms.calc_background_rms(data=image)
 psf_model = IntegratedGaussianPRF(sigma=sigma_psf)                                                  # Circular Gaussian model integrated over pixels. Because it is integrated, this model is considered a PRF, not a PSF 
 # Detect stars in an image using the DAOFIND (Stetson 1987) algorithm. (uses DAOGroup, DAOStarFinder and MMMBackground)
 photometry = phu.psf.DAOPhotPSFPhotometry(threshold=10*std, 
-                                          fwhm=sigma_psf*sigma_to_fwhm, 
+                                          fwhm=sigma_psf*gaussian_sigma_to_fwhm, 
                                           sharplo=0.0, sharphi=2.0, roundlo=-5.0, roundhi=5.0, 
-                                          crit_separation=2.0*sigma_psf*sigma_to_fwhm, 
-                                          psf_model=psf, 
+                                          crit_separation=2.0*sigma_psf*gaussian_sigma_to_fwhm, 
+                                          psf_model=psf_model, 
                                           fitter=apm.fitting.LevMarLSQFitter(), 
                                           fitshape=(11,11), niters=1, 
-                                          aperture_radius=sigma_psf*sigma_to_fwhm
+                                          aperture_radius=sigma_psf*gaussian_sigma_to_fwhm
                                           )
 result_tab = photometry(image=image)
 residual_image = photometry.get_residual_image()
@@ -3409,10 +3424,15 @@ sources['y_stddev'] = sources['x_stddev']
 sources['theta'] = [0, 0, 0, 0]
 sources['id'] = [1, 2, 3, 4]
 tshape = (4096, 4096)
+# image = (make_gaussian_sources_image(tshape, sources) +
+#          make_noise_image(tshape, type='poisson', mean=6.,
+#                           random_state=1) +
+#          make_noise_image(tshape, type='gaussian', mean=0.,
+#                           stddev=2., random_state=1))
 image = (make_gaussian_sources_image(tshape, sources) +
-         make_noise_image(tshape, type='poisson', mean=6.,
+         make_noise_image(tshape, distribution='poisson', mean=6.,
                           random_state=1) +
-         make_noise_image(tshape, type='gaussian', mean=0.,
+         make_noise_image(tshape, distribution='gaussian', mean=0.,
                           stddev=2., random_state=1))
 #
 from matplotlib import rcParams
@@ -3488,9 +3508,9 @@ image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', fi
 fh.PlotFits('img_test_save', scale='lin', grid=False)
 ## make the epsf
 # identify the stars and their initial positions
-img_data = fh.GetData('img_test_save')
+img_data = fh.GetData('psf_image_H.fits')
 
-peaks_tbl = phu.find_peaks(img_data, threshold=135000., box_size=11)
+peaks_tbl = phu.find_peaks(img_data, threshold=131050., box_size=11)
                            
 peaks_tbl['peak_value'].info.format = '%.8g'  # for consistent table output
 print(peaks_tbl)
@@ -3498,7 +3518,7 @@ print(peaks_tbl)
 peaks_tbl['x_peak'] = src.x_pix
 peaks_tbl['y_peak'] = src.y_pix
 # plot detected stars
-positions = (peaks_tbl['x_peak'], peaks_tbl['y_peak'])
+positions = [(x,y) for x,y in zip(peaks_tbl['x_peak'], peaks_tbl['y_peak'])]
 apertures = phu.CircularAperture(positions, r=5.)
 
 norm = apy.visualization.simple_norm(img_data, 'sqrt', percent=99.9)
@@ -3521,7 +3541,7 @@ img_data -= median_val                                                          
 
 nddata = apy.nddata.NDData(data=img_data)
 
-stars = phu.psf.extract_stars(nddata, stars_tbl, size=170)
+stars = phu.psf.extract_stars(nddata, stars_tbl, size=61)
 # show some of the cutouts
 # nrows = 1
 # ncols = 5
@@ -3534,8 +3554,8 @@ stars = phu.psf.extract_stars(nddata, stars_tbl, size=170)
 fig, ax = plt.subplots(figsize=(5, 5), squeeze=True)
 norm = apy.visualization.simple_norm(stars[0], 'log', percent=99.)
 ax.imshow(stars[0], norm=norm, origin='lower', cmap='viridis')
-    
 plt.show()
+##
 # initialize an EPSFBuilder instance with desired parameters and input the cutouts
 epsf_builder = phu.EPSFBuilder(oversampling=4, maxiters=5, progress_bar=False)
 epsf, fitted_stars = epsf_builder(stars)
@@ -3549,7 +3569,7 @@ plt.show()
 import pickle
 import os
 
-with open(os.path.join('objects', 'epsf-scao-fv.pkl'), 'wb') as output:
+with open(os.path.join('objects', 'epsf-scao.pkl'), 'wb') as output:
     pickle.dump(epsf, output, -1)
 
 
@@ -3580,7 +3600,7 @@ with open(os.path.join('objects', 'epsf-scao.pkl'), 'rb') as input:
     epsf = pickle.load(input)
     
 # get the test image
-image_name = 'img_test_save' # 'grid-5.000-5.903-2.069'
+image_name = 'grid-5.000-5.903-0.345-H'
 fh.PlotFits(image_name, scale='sqrt', grid=False)
 img_data = fh.GetData(image_name)
 
@@ -3589,8 +3609,8 @@ sigma_psf = 4.0
 sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
 bkgrms = phu.background.MADStdBackgroundRMS()
 std = bkgrms.calc_background_rms(data=img_data)
-psf = epsf                                                                                          # phu.psf.IntegratedGaussianPRF(sigma=sigma_psf)
-
+# psf = epsf                                                                                          # phu.psf.IntegratedGaussianPRF(sigma=sigma_psf)
+psf = phu.psf.IntegratedGaussianPRF(sigma=sigma_psf)
 photometry = phu.psf.DAOPhotPSFPhotometry(threshold=40*std, 
                                           fwhm=sigma_psf*sigma_to_fwhm, 
                                           sharplo=0.0, sharphi=2.0, roundlo=-1.5, roundhi=1.5, 

@@ -16,8 +16,76 @@ import astropy.modeling as asm
 import photutils as phu
 
 
+# global constants
+pix_scale = 4*10**-3                             # arcseconds per pixel
+
+
 # global defaults
 default_picture_file_name = 'picture_default_save'
+
+
+def PixelToArcsec(x, filter):
+    #todo: idea: automate centering with photutils
+    if (filter == 'Ks'):
+        filter_corr = 1.0 # 0.55
+    elif (filter == 'H'):
+        filter_corr = 1.4 # 0.95
+    elif (filter == 'J'):
+        filter_corr = 0.6 # 0.2
+    return (x - 2048 - filter_corr)*pix_scale
+    
+
+def ArcsecToPixel(x, filter):
+    if (filter == 'Ks'):
+        filter_corr = 1.0 # 0.55
+    elif (filter == 'H'):
+        filter_corr = 1.4 # 0.95
+    elif (filter == 'J'):
+        filter_corr = 0.6 # 0.2
+    return x/pix_scale + 2048 + filter_corr
+
+
+def FindStarMatch(x, y, mag, x_ref, y_ref, mag_ref):
+    """Matches stars to a reference set of coordinates and magnitudes.
+    Expects arrays as input. Outputs distances, reference indices and outlier mask.
+    For outlier detection it is assumed coordinates are in arcseconds
+    """
+    mag_mask = (mag_ref < np.max(mag) + 2)                                                          # preselect mag_ref below max(mag) + 2
+    mag_ind = np.where(mag_mask)[0]
+    
+    # find a set of closest points based on x,y
+    data_points = np.column_stack([x, y])
+    tbl_grid = np.column_stack([x_ref[mag_mask], y_ref[mag_mask]])
+    tbl_tree = sps.cKDTree(tbl_grid)                                                                # K-Dimensional lookup Tree
+    dists_set, ind_set = tbl_tree.query(data_points, k=8)
+    ind_set = mag_ind[ind_set]                                                                      # convert back to original indexing
+    
+    # determine best match with x,y,mag
+    dists = np.zeros_like(x)
+    ind_final = np.zeros_like(x, dtype=int)
+    
+    for i, ind_s in enumerate(ind_set):
+        data_point = np.column_stack([x[i], y[i], mag[i]])
+        tbl_grid = np.column_stack([x_ref[ind_s], y_ref[ind_s], mag_ref[ind_s]])
+        tbl_tree = sps.cKDTree(tbl_grid)
+        dists[i], ind_final[i] =  tbl_tree.query(data_point, k=1)
+        ind_final[i] = ind_s[ind_final[i]]                                                          # convert back to original indexing
+        
+    # determine the bad matches (more than 1.5 pixel radial distance)
+    outliers = (((x_ref[ind_final] - x)**2 + (y_ref[ind_final] - y)**2)**(1/2) > 1.5*pix_scale)
+    return dists, ind_final, outliers
+    
+    
+def FindCoordMatch(x, y, x_ref, y_ref):
+    """Matches (x,y) coordinates to a reference set by closest distance.
+    Expects arrays as input. Outputs distances, reference indices and outlier mask.
+    """
+    data_points = np.column_stack([x, y])
+    tbl_grid = np.column_stack([x_ref, y_ref])
+    tbl_tree = sps.cKDTree(tbl_grid)                                                                # K-Dimensional lookup Tree
+    dists, ind = tbl_tree.query(data_points, k=1)
+    outliers = (dists > 1.5*pix_scale)
+    return dists, ind, outliers
 
 
 def BuildEPSF(filter='Ks'):
