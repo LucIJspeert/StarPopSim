@@ -4,6 +4,7 @@
 """Formulas that are not just conversions (to keep things more organized). 
 Most functions optimized for processing many numbers at once (ndarray).
 """
+import os
 import warnings
 import numpy as np
 
@@ -20,6 +21,8 @@ parsec = 3.086*10**16           # m         parallax second
 year = 31557600                 # s         length of year
 Z_sun = 0.019                   # frac      solar metallicity
 T_sun = 5772                    # K         solar effective temp
+L_sun = 3.828*10**26            # W         solar luminosity
+R_sun = 6.9551*10**8            # m         solar radius
 M_ch = 1.456                    # M_sun     Chandrasekhar mass
 H_0 = 67                        # km/s/Mpc  Hubble constant at present epoch
 d_H = c_light*10**3/H_0         # pc        Hubble distance
@@ -49,7 +52,7 @@ def Distance2D(points):
 
 
 def PlanckBB(nu, T, var='freq'):
-    """Planck distribution of Black Body radiation. If var='wavl', use wavelength instead.
+    """Planck distribution of Black Body radiation. If var='wavl', use wavelength instead (in m).
     Units are either W/sr^1/m^2/Hz^1 or W/sr^1/m^3 (for freq/wavl).
     """
     if (var == 'wavl'):
@@ -59,6 +62,23 @@ def PlanckBB(nu, T, var='freq'):
         spec = (2*h_plank*nu**3/c_light**2)/(np.e**((h_plank*nu)/(k_B*T)) - 1)                      # else assume freq
         
     return spec
+
+
+def BBMagnitude(lam, T, R, width_nm):
+    """Calculates the magnitude of a black body with temperature T (in K) and radius R (in Rsun),
+    in a filter with bin center lam (in nm) and FWHM width (in nm).
+    [Does not use integration, so very wide bins have large errors.]
+    """
+    width_m = width_nm*1e-9                                                                         # filter FWHM (nm to m)
+    spectral_radiance = PlanckBB(lam, T, var='wavl')                                                # W/sr^1/m^3
+    intensity = 4*np.pi*spectral_radiance*width_m                                                   # W/m^2
+    binned_luminosity = intensity*4*np.pi*(R*R_sun)**2                                              # W
+    return conv.LumToMag(binned_luminosity/L_sun)
+
+
+def BBLuminosity(R, T_eff):
+    """Luminosity (in Lsun) of a Black Body with given radius (Rsun) and temperature (K)"""
+    return R**2*(T_eff/T_sun)**4
 
 
 def LightTravelTime(z, points=1e4):
@@ -200,11 +220,6 @@ def AbsoluteMag(mag, dist, ext=0):
     ext is an optional extinction to subtract (waveband dependent).
     """
     return mag - 5*np.log10(dist/10) - ext                                                          # dist in pc!
-
-
-def BBLuminosity(R, T_eff):
-    """Luminosity (in Lsun) of a Black Body with given radius (Rsun) and temperature (K)"""
-    return R**2*(T_eff/T_sun)**4
 
 
 def MassFraction(mass_limits, imf=imf_defaults):
@@ -351,7 +366,7 @@ def RemnantRadius(M_rem):
 
 
 def RemnantTeff(M_rem, R_rem, t_cool):
-    """Approximation of the effective temperature in Kelvin. 
+    """Approximation (very rough) of the effective temperature in Kelvin. 
     M_rem and R_rem in solar units and t_cool in years.
     These have to be arrays of the same length.
     Based on various sources stated in the source comments.
@@ -378,20 +393,26 @@ def RemnantTeff(M_rem, R_rem, t_cool):
     T_rem[mask_NS] = ((10**6*a_ns*10**log_g/10**14)**(1/4) 
                      * ((s_ns/q_ns)/(np.e**(6*s_ns*t_cool[mask_NS]) - 1))**(1/12) 
                      * (1 - 2*G_newt*M_rem[mask_NS]/(R_rem[mask_NS]*c_light**2))**(1/4))            # quite involved this... [Ofengeim and Yakovlev, 2017] http://www.ioffe.ru/astro/Stars/Paper/ofengeim_yak17mn.pdf
-    T_rem[mask_NS] += 10**-99                                                                       # avoid invalid logarithms [also, above formula encounters overflows in power]
+    #todo: fix above formula to not overflow
+    T_rem[mask_NS] += 10**-6                                                                        # avoid invalid logarithms [also, above formula encounters overflows in power]
     
     T_rem[mask_BH] = 6.169*10**(-8)/M_rem[mask_BH]                                                  # temperature due to Hawking radiation (derivation on wikipedia)
     
     return T_rem
 
 
-def RemnantMagnitudes(T_rem, L_rem):
+def RemnantMagnitudes(T_rem, R_rem, filter):
     """Estimates very roughly what the magnitudes should be in various filters,
-    from the temperatures (K) and the luminosities (Lsun).
+    from the effective temperatures (K) and the object radii (Rsun).
     """
-    #todo: think of something
+    file_name = os.path.join('tables', 'photometric_filters.txt')
+    filter_names = np.loadtxt(file_name, usecols=(0), dtype=str, unpack=True)
+    filter_wavelengths = np.loadtxt(file_name, usecols=(1,2), unpack=True)
     
-    
+    center_nm, width_nm = filter_wavelengths[:, filter_names == filter]
+    center_m = center_nm*1e-9
+    T_rem += 2.2e-5/(center_m) * (T_rem*center_m < 2.2e-5)                                          # increase T where it would lead to overflows
+    return BBMagnitude(center_m, T_rem, R_rem, width_nm*1e-9)
     
     
     

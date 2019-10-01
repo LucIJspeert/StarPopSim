@@ -4136,10 +4136,29 @@ ax.plot(np.log10(time), np.log10(T_4))
 plt.show()
 
 
+## test magnitude redshift
+import os
+
+astobj = obg.StarCluster(N_stars=1000, age=10, metal=0.0014, distance=5*10**8)
+no_rs = astobj.ApparentMagnitudes(add_redshift=False)
+with_rs = astobj.ApparentMagnitudes(add_redshift=True)
+
+file_name = os.path.join('tables', 'photometric_filters.txt')
+filter_names = np.loadtxt(file_name, usecols=(0), dtype=str, unpack=True)
+filter_wavelengths = np.loadtxt(file_name, usecols=(1,2), unpack=True)
+indices = np.arange(len(filter_names))
+filter_indices = [indices[filter_names == name][0] for name in astobj.mag_names]
+##
+nr = 23
+fig, ax = plt.subplots(figsize=(5, 5), squeeze=True)
+ax.plot(filter_wavelengths[0, filter_indices], no_rs[:, nr])
+ax.plot(filter_wavelengths[0, filter_indices], with_rs[:, nr])
+plt.show()
+
+
 ##
 import numpy as np
 import matplotlib.pyplot as plt
-import simcado as sim
 import objectgenerator as obg
 import fitshandler as fh
 import visualizer as vis
@@ -4148,6 +4167,7 @@ import distributions as dist
 import conversions as conv
 import imagegenerator as img
 import utils
+import simcado as sim
 
 
 # cd documents\documenten_radboud_university\masterstage\StarPopSim

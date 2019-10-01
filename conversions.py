@@ -8,9 +8,9 @@ import numpy as np
 
 
 # global constants
-L_0 = 78.70                     # Lsun Luminosity for absolute bolometric magnitude 0
-L_sun = 3.828*10**26            # W
-R_sun = 6.957*10**8             # m
+L_0 = 78.70                     # Lsun      Luminosity for absolute bolometric magnitude 0
+L_sun = 3.828*10**26            # W         solar luminosity
+R_sun = 6.9551*10**8            # m         solar radius
 sigma_SB = 5.670367*10**-8      # W K^-4 m^-2
 G_newt = 274.0                  # Msun^-1 Rsun^2 m s-2
 rad_as = 648000/np.pi           # radians to arcseconds

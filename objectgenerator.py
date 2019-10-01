@@ -18,6 +18,7 @@ import warnings
 
 import numpy as np
 import scipy.spatial as sps
+import scipy.interpolate as spi
 from inspect import signature
 
 import utils
@@ -69,7 +70,6 @@ class AstObject:
         self.rel_number = rel_num                                                                   # relative number of stars in each population (equal if left empty)
         
         self.d_type = d_type                                                                        # distance type [l for luminosity, z for redshift]
-        #todo: add actual redshifts
         if (self.d_type == 'z'):
             self.redshift = distance                                                                # redshift for the object
             self.d_lum = form.DLuminosity(self.redshift)
@@ -628,6 +628,36 @@ class AstObject:
         
         return M_cur
         
+    def StellarRadii(self, realistic_remnants=True):
+        """Gives the stellar radii of the stars in Rsun.
+        Uses isochrone files and the given initial masses of the stars.
+        Stars should not have a lower initial mass than the lowest mass in the isochrone file.
+        """
+        if hasattr(self, 'stellar_radii'):
+            R_cur = self.stellar_radii
+        else:
+            R_cur = np.array([])
+            index = np.cumsum(np.append([0], self._gen_pop_number))                                  # indices defining the different populations
+            
+            for i, age in enumerate(self.ages):
+                # use the isochrone files to interpolate properties
+                iso_M_ini, iso_log_g = utils.StellarIsochrone(age, self.metal[i], 
+                                                              columns=['M_initial', 'log_g'])       # get the isochrone values
+                iso_R_cur = conv.GravityToRadius(iso_log_g, iso_M_ini)
+                M_init_i = self.M_init[index[i]:index[i+1]]
+                R_cur_i = np.interp(M_init_i, iso_M_ini, iso_R_cur, right=0)                        # (right) return 0 for stars heavier than available in isoc file (dead stars)
+                
+                # give estimates for remnant radii (replacing the 0 above)
+                if realistic_remnants:
+                    remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
+                    r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses (depend on Z)
+                    r_R_cur_i = form.RemnantRadius(r_M_cur_i)                                       # approx. remnant radii
+                    R_cur_i[remnants_i] = r_R_cur_i                                                 # fill in the values
+                
+                R_cur = np.append(R_cur, R_cur_i)  
+        
+        return R_cur
+        
     def LogLuminosities(self, realistic_remnants=True):
         """Gives the logarithm of the luminosity of the stars in Lsun.
         Uses isochrone files and the given initial masses of the stars.
@@ -651,11 +681,10 @@ class AstObject:
                 if realistic_remnants:
                     remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
                     remnant_time = form.RemnantTime(M_init_i[remnants_i], age, self.metal[i])       # approx. time that the remnant had to cool
-                    
                     r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
-                    r_radii = form.RemnantRadius(r_M_cur_i)                                         # approx. remnant radii
-                    r_Te_i = form.RemnantTeff(r_M_cur_i, r_radii, remnant_time)                     # approx. remnant temperatures
-                    r_log_L_i = np.log10(form.BBLuminosity(r_radii, r_Te_i))                        # remnant luminosity := BB radiation
+                    r_R_cur_i = form.RemnantRadius(r_M_cur_i)                                       # approx. remnant radii
+                    r_Te_i = form.RemnantTeff(r_M_cur_i, r_R_cur_i, remnant_time)                   # approx. remnant temperatures
+                    r_log_L_i = np.log10(form.BBLuminosity(r_R_cur_i, r_Te_i))                      # remnant luminosity := BB radiation
                     log_L_i[remnants_i] = r_log_L_i                                                 # fill in the values
                 
                 log_L = np.append(log_L, log_L_i)  
@@ -685,17 +714,16 @@ class AstObject:
                 if realistic_remnants:
                     remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
                     remnant_time = form.RemnantTime(M_init_i[remnants_i], age, self.metal[i])       # approx. time that the remnant had to cool
-                    
                     r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
-                    r_radii = form.RemnantRadius(r_M_cur_i)                                         # approx. remnant radii
-                    r_log_Te_i = np.log10(form.RemnantTeff(r_M_cur_i, r_radii, remnant_time))       # approx. remnant temperatures
+                    r_R_cur_i = form.RemnantRadius(r_M_cur_i)                                       # approx. remnant radii
+                    r_log_Te_i = np.log10(form.RemnantTeff(r_M_cur_i, r_R_cur_i, remnant_time))     # approx. remnant temperatures
                     log_Te_i[remnants_i] = r_log_Te_i                                               # fill in the values
                 
                 log_Te = np.append(log_Te, log_Te_i)  
         
         return log_Te
         
-    def AbsoluteMagnitudes(self, filter='all'):
+    def AbsoluteMagnitudes(self, filter='all', realistic_remnants=True):
         """Gives the absolute magnitudes of the stars.
         Uses isochrone files and the given initial masses of the stars.
         Stars should not have a lower initial mass than the lowest mass in the isochrone file.
@@ -704,6 +732,7 @@ class AstObject:
             abs_mag = self.absolute_magnitudes
         else:
             if (filter == 'all'):
+                filter = self.mag_names
                 num_mags = len(self.mag_names)
                 mask = np.full_like(self.mag_names, True, dtype=bool)
             else:
@@ -724,19 +753,24 @@ class AstObject:
                     mag_i[j] = np.interp(M_init_i, iso_M_ini, mag, right=30)                        # (right) return 30 --> L of less than 10**-9 (for stars heavier than available)
                 
                 # give estimates for remnant magnitudes (replacing the 30 above)
-                remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
-                r_mag_i = 11          # ~typical WD
-                #TODO: add better remnant magnitudes
+                if realistic_remnants:
+                    remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
+                    remnant_time = form.RemnantTime(M_init_i[remnants_i], age, self.metal[i])       # approx. time that the remnant had to cool
+                    r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
+                    r_R_cur_i = form.RemnantRadius(r_M_cur_i)                                       # approx. remnant radii
+                    r_Te_i = form.RemnantTeff(r_M_cur_i, r_R_cur_i, remnant_time)                   # approx. remnant temperatures
+                    
+                    for j, filter_name in enumerate(filter):
+                        mag_i[j, remnants_i] = form.RemnantMagnitudes(r_Te_i, r_R_cur_i, filter_name)
                 
-                mag_i[:, remnants_i] = r_mag_i
                 abs_mag = np.append(abs_mag, mag_i, axis=1)
                 
-            if (filter != 'all'):
+            if (num_mags == 1):
                 abs_mag = abs_mag[0]                                                                # correct for 2D array
         
         return abs_mag
     
-    def ApparentMagnitudes(self, filter='all'):
+    def ApparentMagnitudes(self, filter='all', add_redshift=True):
         """Compute the apparent magnitude from the absolute magnitude 
         and the individual distances (in pc!). 
         The filter can be specified. 'all' will give all the filters.
@@ -760,10 +794,35 @@ class AstObject:
             
             dimension_2 = np.sum(np.rint(self.pop_number*self.fraction_generated)).astype(int)
             true_dist = np.tile(true_dist, num_mags).reshape(num_mags, dimension_2)
-            
-            abs_mag = self.AbsoluteMagnitudes(filter=filter)
-            if (filter != 'all'):
+            if (num_mags == 1):
                 true_dist = true_dist[0]                                                            # correct for 2D array
+            
+            # add redshift (rough linear approach)
+            if add_redshift:
+                file_name = os.path.join('tables', 'photometric_filters.txt')
+                filter_names = np.loadtxt(file_name, usecols=(0), dtype=str, unpack=True)
+                filter_wvl = np.loadtxt(file_name, usecols=(1,2), unpack=True)
+                indices = np.arange(len(filter_names))
+                filter_indices = [indices[filter_names == name][0] for name in self.mag_names]
+                
+                wvl_shift = self.redshift*filter_wvl[0, filter_indices]
+                new_filter_wvl = filter_wvl[0, filter_indices] + wvl_shift
+                
+                # reference_mag = np.divide(self.AbsoluteMagnitudes(filter='all'),
+                #                           np.array([filter_wvl[1, filter_indices]]).T)             # divide by filter widths
+                # extrap1d = spi.interp1d(filter_wvl[0, filter_indices], reference_mag.T, 
+                #                         fill_value='extrapolate')
+                # abs_mag = (extrap1d(new_filter_wvl[mask])
+                #           * filter_wvl[1, filter_indices][mask]).T                                 # multiply by filter widths
+                
+                R_cur = self.StellarRadii(realistic_remnants=True)
+                T_eff = 10**self.LogTemperatures(realistic_remnants=True)
+                abs_mag = np.zeros([num_mags, len(R_cur)])
+                for i in range(num_mags):
+                    abs_mag[i] = form.BBMagnitude(new_filter_wvl[i], T_eff, R_cur,
+                                           filter_wvl[1, filter_indices][i])
+            else:
+                abs_mag = self.AbsoluteMagnitudes(filter=filter)
             
             app_mag = form.ApparentMag(abs_mag, true_dist, ext=self.extinction)                     # true_dist in pc!
         
@@ -821,7 +880,7 @@ class AstObject:
         """Returns coordinates converted to arcseconds (from pc)."""
         return conv.ParsecToArcsec(self.coords, self.d_ang)
         
-    def Radii(self, unit='pc', spher=False):
+    def OrbitalRadii(self, unit='pc', spher=False):
         """Returns the radial coordinate of the stars (spherical or cylindrical) in pc/as."""
         if spher:
             radii = form.Distance(self.coords)
@@ -962,24 +1021,29 @@ class AstObject:
             a selection needed for imaging, by setting full to True or False.
         If for some reason this mode has to be turned off (delete stored data), set turn_off=True.
         """
-        if (not hasattr(self, 'current_masses') & (full == True)):
+        if (not hasattr(self, 'current_masses') & full):
             self.current_masses = self.CurrentMasses(realistic_remnants=True)
-        elif (turn_off & (full == True)):
+        elif (turn_off & full):
             del self.current_masses
             
-        if (not hasattr(self, 'log_luminosities') & (full == True)):
+        if (not hasattr(self, 'stellar_radii') & full):
+            self.stellar_radii = self.StellarRadii(realistic_remnants=True)
+        elif (turn_off & full):
+            del self.stellar_radii
+            
+        if (not hasattr(self, 'log_luminosities') & full):
             self.log_luminosities = self.LogLuminosities(realistic_remnants=True)
-        elif (turn_off & (full == True)):
+        elif (turn_off & full):
             del self.log_luminosities
             
-        if (not hasattr(self, 'log_temperatures') & (full == True)):
+        if (not hasattr(self, 'log_temperatures') & full):
             self.log_temperatures = self.LogTemperatures(realistic_remnants=True)
         elif (turn_off & (full == True)):
             del self.log_temperatures
         
-        if (not hasattr(self, 'absolute_magnitudes') & (full == True)):
-            self.absolute_magnitudes = self.AbsoluteMagnitudes()
-        elif (turn_off & (full == True)):
+        if (not hasattr(self, 'absolute_magnitudes') & full):
+            self.absolute_magnitudes = self.AbsoluteMagnitudes(realistic_remnants=True)
+        elif (turn_off & full):
             del self.absolute_magnitudes
         
         if not hasattr(self, 'apparent_magniutdes'):
