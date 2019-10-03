@@ -4,7 +4,6 @@
 """Formulas that are not just conversions (to keep things more organized). 
 Most functions optimized for processing many numbers at once (ndarray).
 """
-import os
 import warnings
 import numpy as np
 
@@ -69,10 +68,11 @@ def BBMagnitude(lam, T, R, width_nm):
     in a filter with bin center lam (in nm) and FWHM width (in nm).
     [Does not use integration, so very wide bins have large errors.]
     """
+    #todo: integration
     width_m = width_nm*1e-9                                                                         # filter FWHM (nm to m)
     spectral_radiance = PlanckBB(lam, T, var='wavl')                                                # W/sr^1/m^3
-    intensity = 4*np.pi*spectral_radiance*width_m                                                   # W/m^2
-    binned_luminosity = intensity*4*np.pi*(R*R_sun)**2                                              # W
+    intensity = np.pi*spectral_radiance*width_m                                                     # W/m^2         integrate d(Ohm)d(nu)
+    binned_luminosity = intensity*4*np.pi*(R*R_sun)**2                                              # W             integrate dA
     return conv.LumToMag(binned_luminosity/L_sun)
 
 
@@ -405,14 +405,11 @@ def RemnantMagnitudes(T_rem, R_rem, filter):
     """Estimates very roughly what the magnitudes should be in various filters,
     from the effective temperatures (K) and the object radii (Rsun).
     """
-    file_name = os.path.join('tables', 'photometric_filters.txt')
-    filter_names = np.loadtxt(file_name, usecols=(0), dtype=str, unpack=True)
-    filter_wavelengths = np.loadtxt(file_name, usecols=(1,2), unpack=True)
-    
-    center_nm, width_nm = filter_wavelengths[:, filter_names == filter]
-    center_m = center_nm*1e-9
-    T_rem += 2.2e-5/(center_m) * (T_rem*center_m < 2.2e-5)                                          # increase T where it would lead to overflows
-    return BBMagnitude(center_m, T_rem, R_rem, width_nm*1e-9)
+    phot_dat = utils.OpenPhotometricData(columns=['name', 'alt_name', 'mean', 'width'])
+    f_mask = ((phot_dat['name'] == filter) | (phot_dat['alt_name'] == filter))
+    center, width = phot_dat[['mean', 'width']][f_mask][0]                                          # center and width are read in in meters
+    T_rem += 2.2e-5/(center) * (T_rem*center < 2.2e-5)                                              # increase T where it would lead to overflows
+    return BBMagnitude(center, T_rem, R_rem, width)
     
     
     

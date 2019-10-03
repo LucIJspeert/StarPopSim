@@ -799,28 +799,26 @@ class AstObject:
             
             # add redshift (rough linear approach)
             if add_redshift:
-                file_name = os.path.join('tables', 'photometric_filters.txt')
-                filter_names = np.loadtxt(file_name, usecols=(0), dtype=str, unpack=True)
-                filter_wvl = np.loadtxt(file_name, usecols=(1,2), unpack=True)
-                indices = np.arange(len(filter_names))
-                filter_indices = [indices[filter_names == name][0] for name in self.mag_names]
+                phot_dat = utils.OpenPhotometricData(columns=['name', 'alt_name', 'mean', 'width'])
+                filter_indices = [np.arange(len(phot_dat))[(phot_dat['name'] == name) | 
+                                  (phot_dat['alt_name'] == name)][0] for name in self.mag_names]
                 
-                wvl_shift = self.redshift*filter_wvl[0, filter_indices]
-                new_filter_wvl = filter_wvl[0, filter_indices] + wvl_shift
+                wvl_shift = self.redshift*phot_dat['mean'][filter_indices]
+                shifted_filter = phot_dat['mean'][filter_indices] + wvl_shift
                 
                 # reference_mag = np.divide(self.AbsoluteMagnitudes(filter='all'),
-                #                           np.array([filter_wvl[1, filter_indices]]).T)             # divide by filter widths
-                # extrap1d = spi.interp1d(filter_wvl[0, filter_indices], reference_mag.T, 
+                #                           np.array([phot_dat['width'][filter_indices]]).T)         # divide by filter widths
+                # extrap1d = spi.interp1d(phot_dat['mean'][filter_indices], reference_mag.T, 
                 #                         fill_value='extrapolate')
-                # abs_mag = (extrap1d(new_filter_wvl[mask])
-                #           * filter_wvl[1, filter_indices][mask]).T                                 # multiply by filter widths
+                # abs_mag = (extrap1d(shifted_filter[mask])
+                #           * phot_dat['width'][filter_indices][mask]).T                             # multiply by filter widths
                 
                 R_cur = self.StellarRadii(realistic_remnants=True)
                 T_eff = 10**self.LogTemperatures(realistic_remnants=True)
                 abs_mag = np.zeros([num_mags, len(R_cur)])
                 for i in range(num_mags):
-                    abs_mag[i] = form.BBMagnitude(new_filter_wvl[i], T_eff, R_cur,
-                                           filter_wvl[1, filter_indices][i])
+                    abs_mag[i] = form.BBMagnitude(shifted_filter[i], T_eff, R_cur,
+                                           phot_dat['width'][filter_indices][i])
             else:
                 abs_mag = self.AbsoluteMagnitudes(filter=filter)
             

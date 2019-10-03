@@ -228,6 +228,30 @@ def FilterNames():
     return filters_names
 
 
+def OpenPhotometricData(columns=None):
+    """Gives the data in the file photometric_filters.dat as a structured array.
+    Columns can be specified if less of the data is wanted (array of strings).
+    """
+    file_name = os.path.join('tables', 'photometric_filters.dat')
+    column_type = [('name', 'U20'),
+                   ('alt_name', 'U4'),
+                   ('mean', 'f4'),
+                   ('width', 'f4'),
+                   ('solar_mag', 'f4')]
+
+    if columns is not None:
+        use_i = [i for i, item in enumerate(column_type) if (item[0] in columns)]
+        column_type = [column_type[i] for i in use_i]
+        columns = use_i
+
+    phot_dat = np.loadtxt(file_name, dtype=column_type, usecols=columns)
+    if ('mean' in np.array(column_type)[:,0]):
+        phot_dat['mean'] = phot_dat['mean']*1e-9                                                    # convert to m
+    if ('width' in np.array(column_type)[:,0]):
+        phot_dat['width'] = phot_dat['width']*1e-9                                                  # convert to m
+    return phot_dat
+
+
 def FixTotal(tot, nums):
     """Check if nums add up to total and fixes it."""
     i = 0

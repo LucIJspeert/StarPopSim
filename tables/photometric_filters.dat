@@ -1,0 +1,16 @@
+# photometric data for a list of filters 
+# includes filter name, alternative reference name, mean wavelength, FWHM in nm and solar magnitude (Vega)
+# source: https://ui.adsabs.harvard.edu/abs/2018ApJS..236...47W/abstract
+# --------------------------------------------------------------------------------------------------------
+# dtype=[('name', 'U20'), ('alt_name', 'U4'), ('mean', 'f4'), ('width', 'f4'), ('solar_mag', 'f4')]
+# name			alt		mean		width		solar_mag
+Bessel_U		U		360			63			5.57
+Bessel_B		B		439			89			5.46
+Bessel_V		V		550			84			4.82
+Bessel_R		R		655			145			4.44
+Bessel_I		I		800			150			4.11
+2MASS_J			J		1241		203			3.67
+2MASS_H			H		1660		261			3.32
+2MASS_Ks		Ks		2160		279			3.27
+Bessel_K		K		2168		305			3.27
+Bessel_L		L		3484		510			3.26

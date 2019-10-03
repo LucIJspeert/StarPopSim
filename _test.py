@@ -4136,6 +4136,72 @@ ax.plot(np.log10(time), np.log10(T_4))
 plt.show()
 
 
+## calculating lum/mag with BB radiation
+c_light = 299792458.0           # m/s       speed of light 
+h_plank = 6.62607004*10**-34    # J s       Planck constant
+k_B = 1.38064852*10**-23        # J/K       Boltzmann constant
+R_sun = 6.9551*10**8            # m         solar radius
+L_sun = 3.828*10**26            # W         solar luminosity
+
+def PlanckBB(nu, T, var='freq'):
+    """Planck distribution of Black Body radiation. If var='wavl', use wavelength instead (in m).
+    Units are either W/sr^1/m^2/Hz^1 or W/sr^1/m^3 (for freq/wavl).
+    """
+    if (var == 'wavl'):
+        lam = nu
+        spec = (2*h_plank*c_light**2/lam**5)/(np.e**((h_plank*c_light)/(lam*k_B*T)) - 1)
+    else:
+        spec = (2*h_plank*nu**3/c_light**2)/(np.e**((h_plank*nu)/(k_B*T)) - 1)                      # else assume freq
+        
+    return spec
+
+import os
+file_name = os.path.join('tables', 'photometric_filters.dat')
+column_type = [('name', 'U20'), 
+               ('alt_name', 'U4'), 
+               ('mean', 'f4'), 
+               ('width', 'f4'), 
+               ('solar_mag', 'f4')]
+phot_dat = np.loadtxt(file_name, dtype=column_type)
+phot_dat['mean'] = phot_dat['mean']*1e-9
+phot_dat['width'] = phot_dat['width']*1e-9
+
+lam_arr = np.linspace(0.1, 8, 1000)*1e-6
+
+fig, ax = plt.subplots(figsize=(5, 5), squeeze=True)
+ax.plot(lam_arr, PlanckBB(lam_arr, 7000, var='wavl'))
+ax.plot(lam_arr, PlanckBB(lam_arr, 5770, var='wavl'))
+ax.plot(lam_arr, PlanckBB(lam_arr, 5000, var='wavl'))
+ax.plot(lam_arr, PlanckBB(lam_arr, 4000, var='wavl'))
+ax.plot(lam_arr, PlanckBB(lam_arr, 3000, var='wavl'))
+ax.plot([phot_dat['mean']-phot_dat['width'], phot_dat['mean']+phot_dat['width']], 
+        [PlanckBB(phot_dat['mean'], 5770, var='wavl'),PlanckBB(phot_dat['mean'], 5770, var='wavl')])
+ax.plot(np.linspace(phot_dat['mean']-phot_dat['width'], phot_dat['mean']+phot_dat['width'], 10), 
+        PlanckBB(np.linspace(phot_dat['mean']-phot_dat['width'], phot_dat['mean']+phot_dat['width'], 10), 5770, var='wavl'))
+ax.set_xlabel('wavelength (m)')
+ax.set_ylabel('spectral radiance (W sr^-1 m^-3)')
+plt.show()
+
+integral = np.trapz(PlanckBB(lam_arr, 5770, var='wavl'), x=lam_arr)                                 # W/sr^1/m^2
+intensity = np.pi*integral                                                                          # W/m^2
+luminosity = intensity*4*np.pi*(R_sun)**2                                                           # W
+magnitude = conv.LumToMag(luminosity/L_sun)
+print('M_bol sun: ', magnitude) 
+
+integral = PlanckBB(phot_dat['mean'], 5770, var='wavl')*phot_dat['width']                                  # W/sr^1/m^2
+intensity = np.pi*integral                                                                          # W/m^2
+luminosity = intensity*4*np.pi*(R_sun)**2                                                           # W
+magnitude = conv.LumToMag(luminosity/L_sun)
+print(', '.join(['{0}= {1}'.format(name, num) for name,num in zip(filter_names, magnitude)]))
+print('')
+
+lam_arr = np.linspace(phot_dat['mean']-phot_dat['width'], phot_dat['mean']+phot_dat['width'], 10)
+integral = np.trapz(PlanckBB(lam_arr, 5770, var='wavl'), x=lam_arr, axis=1)                         # W/sr^1/m^2
+intensity = np.pi*integral                                                                          # W/m^2
+luminosity = intensity*4*np.pi*(R_sun)**2                                                           # W
+magnitude = conv.LumToMag(luminosity/L_sun)
+print(', '.join(['{0}= {1}'.format(name, num) for name,num in zip(filter_names, magnitude)]))
+
 ## test magnitude redshift
 import os
 
