@@ -5,6 +5,7 @@
 Optimized for converting many numbers at once (ndarray).
 """
 import numpy as np
+import utils
 
 
 # global constants
@@ -126,14 +127,22 @@ def RadiusToGravity(R, M):
     return log_g
 
 
-def MagToLum(mag):
+def MagToLum(mag, filters=None):
     """Converts from bolometric magnitude to luminosity (in Lsun)."""
     return L_0*10**(-0.4*mag)
 
 
-def LumToMag(lum):
-    """Converts from luminosity (in Lsun) to bolometric magnitude."""
-    return -2.5*np.log10(lum/L_0)
+def LumToMag(lum, filters=None):
+    """Converts from luminosity (in Lsun) to bolometric magnitude.
+    Can also convert integrated spectral flux to magnitudes in certain filters.
+    """
+    if filters is not None:
+        zero_point = utils.OpenPhotometricData(columns=['mag_zp'], filters=filters)
+        mag = zero_point - 2.5*np.log10(lum)
+    else:
+        mag = -2.5*np.log10(lum/L_0)
+    
+    return mag
 
 
 def TemperatureToRGB(c_temp):

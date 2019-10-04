@@ -63,21 +63,29 @@ def PlanckBB(nu, T, var='freq'):
     return spec
 
 
-def BBMagnitude(lam, T, R, width_nm):
+def BBMagnitude(T_eff, R, lam=None, width=None, filters=None):
     """Calculates the magnitude of a black body with temperature T (in K) and radius R (in Rsun),
-    in a filter with bin center lam (in nm) and FWHM width (in nm).
-    [Does not use integration, so very wide bins have large errors.]
+    in a filter with bin center lam (in m) and FWHM width (in m) or over any range of wavelengths.
+    To get correct (Vega) magnitudes, a filter must be specified; 
+        otherwise bolometric magnitude is assumed. 
+        If filters are specified, lam and width can be left blank
     """
-    #todo: integration
-    width_m = width_nm*1e-9                                                                         # filter FWHM (nm to m)
-    spectral_radiance = PlanckBB(lam, T, var='wavl')                                                # W/sr^1/m^3
-    intensity = np.pi*spectral_radiance*width_m                                                     # W/m^2         integrate d(Ohm)d(nu)
-    binned_luminosity = intensity*4*np.pi*(R*R_sun)**2                                              # W             integrate dA
-    return conv.LumToMag(binned_luminosity/L_sun)
+    if (lam is None) & (width is None):
+        phot_dat = utils.OpenPhotometricData(columns=['mean', 'width'], filters=filters)
+        lam = phot_dat['mean']
+        width = phot_dat['width']
+    
+    lam_arr = np.linspace(lam - width/2, lam + width/2, 10 + 990*(len(T_eff) == 1)).T                   # More accuracy if only one T
+    T_eff = T_eff.reshape((len(T_eff),) + (1,)*len(np.shape(lam_arr)))
+    R = R.reshape((len(R),) + (1,)*len(np.shape(lam)))
+    integral = np.trapz(PlanckBB(lam_arr, T_eff, var='wavl'), x=lam_arr, axis=-1)                       # W/sr^1/m^2
+    intensity = np.pi*integral                                                                      # W/m^2         integrate d(Ohm)d(nu)
+    luminosity = intensity*4*np.pi*(R*R_sun)**2                                                     # W             integrate dA
+    return conv.LumToMag(luminosity/L_sun, filters=filters)
 
 
-def BBLuminosity(R, T_eff):
-    """Luminosity (in Lsun) of a Black Body with given radius (Rsun) and temperature (K)"""
+def BBLuminosity(T_eff, R):
+    """Luminosity (in Lsun) of a Black Body with given radius (in Rsun) and temperature (in K)"""
     return R**2*(T_eff/T_sun)**4
 
 
@@ -199,20 +207,11 @@ def DLToRedshift(dist, points=1e3):
     return z_best
 
 
-def ApparentMag(mag, dist, ext=0, sigma=[0]):
+def ApparentMag(mag, dist, ext=0):
     """Compute the apparent magnitude for the absolute magnitude plus a distance (in pc!). 
-    sigma defines individual distances relative to the distance of the objects distance.
     ext is an optional extinction to add (waveband dependent).
     """
-    if hasattr(mag, '__len__'):
-        if (len(sigma) == len(mag)):
-            z_coord = np.array(sigma)                                                               # can use given coordinates
-        else:
-            z_coord = np.array([0])                                                                 # define z coord relative to dist 
-    else:
-        z_coord = 0
-        
-    return mag + 5*np.log10((dist + z_coord)/10) + ext                                              # sigma and dist in pc!
+    return mag + 5*np.log10(dist/10) + ext                                                          # dist in pc!
 
 
 def AbsoluteMag(mag, dist, ext=0):
@@ -401,12 +400,13 @@ def RemnantTeff(M_rem, R_rem, t_cool):
     return T_rem
 
 
-def RemnantMagnitudes(T_rem, R_rem, filter):
+def RemnantMagnitudes(T_rem, R_rem, filters):
     """Estimates very roughly what the magnitudes should be in various filters,
     from the effective temperatures (K) and the object radii (Rsun).
     """
+    #todo: make usable for multiple filters
     phot_dat = utils.OpenPhotometricData(columns=['name', 'alt_name', 'mean', 'width'])
-    f_mask = ((phot_dat['name'] == filter) | (phot_dat['alt_name'] == filter))
+    f_mask = ((phot_dat['name'] == filters) | (phot_dat['alt_name'] == filters))
     center, width = phot_dat[['mean', 'width']][f_mask][0]                                          # center and width are read in in meters
     T_rem += 2.2e-5/(center) * (T_rem*center < 2.2e-5)                                              # increase T where it would lead to overflows
     return BBMagnitude(center, T_rem, R_rem, width)

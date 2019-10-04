@@ -4137,6 +4137,11 @@ plt.show()
 
 
 ## calculating lum/mag with BB radiation
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+import conversions as conv
+
 c_light = 299792458.0           # m/s       speed of light 
 h_plank = 6.62607004*10**-34    # J s       Planck constant
 k_B = 1.38064852*10**-23        # J/K       Boltzmann constant
@@ -4155,14 +4160,16 @@ def PlanckBB(nu, T, var='freq'):
         
     return spec
 
-import os
+
 file_name = os.path.join('tables', 'photometric_filters.dat')
 column_type = [('name', 'U20'), 
                ('alt_name', 'U4'), 
                ('mean', 'f4'), 
                ('width', 'f4'), 
-               ('solar_mag', 'f4')]
+               ('solar_mag', 'f4'), 
+               ('mag_zp', 'f4')]
 phot_dat = np.loadtxt(file_name, dtype=column_type)
+phot_dat = phot_dat[:8]
 phot_dat['mean'] = phot_dat['mean']*1e-9
 phot_dat['width'] = phot_dat['width']*1e-9
 
@@ -4192,15 +4199,24 @@ integral = PlanckBB(phot_dat['mean'], 5770, var='wavl')*phot_dat['width']       
 intensity = np.pi*integral                                                                          # W/m^2
 luminosity = intensity*4*np.pi*(R_sun)**2                                                           # W
 magnitude = conv.LumToMag(luminosity/L_sun)
-print(', '.join(['{0}= {1}'.format(name, num) for name,num in zip(filter_names, magnitude)]))
+print(', '.join(['{0}= {1}'.format(name, num) for name,num in zip(phot_dat['alt_name'], magnitude)]))
 print('')
 
-lam_arr = np.linspace(phot_dat['mean']-phot_dat['width'], phot_dat['mean']+phot_dat['width'], 10)
-integral = np.trapz(PlanckBB(lam_arr, 5770, var='wavl'), x=lam_arr, axis=1)                         # W/sr^1/m^2
+lam_arr = np.linspace(phot_dat['mean']-phot_dat['width']/2, phot_dat['mean']+phot_dat['width']/2, 10).T
+# lam_arr = lam_arr[0]
+temps = np.array([5000, 5300, 5770, 6000])
+integral = np.trapz(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*len(np.shape(lam_arr))), var='wavl'), x=lam_arr, axis=-1)      # W/sr^1/m^2
 intensity = np.pi*integral                                                                          # W/m^2
-luminosity = intensity*4*np.pi*(R_sun)**2                                                           # W
+luminosity = intensity*4*np.pi*(np.array([1,2,1,1]).reshape((4,) + (1,)*(len(phot_dat['mean']) > 1))*R_sun)**2                                                           # W
 magnitude = conv.LumToMag(luminosity/L_sun)
-print(', '.join(['{0}= {1}'.format(name, num) for name,num in zip(filter_names, magnitude)]))
+print(magnitude)
+# print(', '.join(['{0}= {1}'.format(name, num) for name,num in zip(phot_dat['alt_name'], magnitude)]))
+
+temps = np.array([5770])
+spec_radiance = np.mean(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*len(np.shape(lam_arr))), var='wavl'), axis=-1)     # W/sr^1/m^3
+spec_flux = np.pi*spec_radiance                                                                     # W/m^3
+magnitude = phot_dat['mag_zp'] - 2.5*np.log10(spec_flux/1e7)
+print(magnitude)
 
 ## test magnitude redshift
 import os

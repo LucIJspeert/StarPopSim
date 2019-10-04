@@ -684,7 +684,7 @@ class AstObject:
                     r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
                     r_R_cur_i = form.RemnantRadius(r_M_cur_i)                                       # approx. remnant radii
                     r_Te_i = form.RemnantTeff(r_M_cur_i, r_R_cur_i, remnant_time)                   # approx. remnant temperatures
-                    r_log_L_i = np.log10(form.BBLuminosity(r_R_cur_i, r_Te_i))                      # remnant luminosity := BB radiation
+                    r_log_L_i = np.log10(form.BBLuminosity(r_Te_i, r_R_cur_i))                      # remnant luminosity := BB radiation
                     log_L_i[remnants_i] = r_log_L_i                                                 # fill in the values
                 
                 log_L = np.append(log_L, log_L_i)  
@@ -739,7 +739,7 @@ class AstObject:
                 num_mags = 1
                 mask = (self.mag_names == filter)
                 
-            abs_mag = np.empty([num_mags, 0])
+            abs_mag = np.empty([0, num_mags])
             index = np.cumsum(np.append([0], self._gen_pop_number))                                  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
@@ -748,10 +748,10 @@ class AstObject:
                 iso_mag = utils.StellarIsochrone(age, self.metal[i], columns=['mag'])               # get the isochrone values
                 
                 M_init_i = self.M_init[index[i]:index[i+1]]                                         # select the masses of one population
-                mag_i = np.zeros([num_mags, len(M_init_i)])
+                mag_i = np.zeros([len(M_init_i), num_mags])
                 for j, mag in enumerate(iso_mag[mask]):
-                    mag_i[j] = np.interp(M_init_i, iso_M_ini, mag, right=30)                        # (right) return 30 --> L of less than 10**-9 (for stars heavier than available)
-                
+                    mag_i[:, j] = np.interp(M_init_i, iso_M_ini, mag, right=30)                     # (right) return 30 --> L of less than 10**-9 (for stars heavier than available)
+                #todo: use spi.interp1d
                 # give estimates for remnant magnitudes (replacing the 30 above)
                 if realistic_remnants:
                     remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
@@ -761,12 +761,12 @@ class AstObject:
                     r_Te_i = form.RemnantTeff(r_M_cur_i, r_R_cur_i, remnant_time)                   # approx. remnant temperatures
                     
                     for j, filter_name in enumerate(filter):
-                        mag_i[j, remnants_i] = form.RemnantMagnitudes(r_Te_i, r_R_cur_i, filter_name)
+                        mag_i[remnants_i, j] = form.RemnantMagnitudes(r_Te_i, r_R_cur_i, filter_name)
                 
-                abs_mag = np.append(abs_mag, mag_i, axis=1)
+                abs_mag = np.append(abs_mag, mag_i, axis=0)
                 
             if (num_mags == 1):
-                abs_mag = abs_mag[0]                                                                # correct for 2D array
+                abs_mag = abs_mag.flatten()                                                         # correct for 2D array
         
         return abs_mag
     
@@ -792,33 +792,30 @@ class AstObject:
                 delta_d = form.Distance(self.coords, np.array([0, 0, self.d_lum]))                  # distances to each star
                 true_dist = delta_d                                                                 # distance is now properly calculated for each star
             
-            dimension_2 = np.sum(np.rint(self.pop_number*self.fraction_generated)).astype(int)
-            true_dist = np.tile(true_dist, num_mags).reshape(num_mags, dimension_2)
-            if (num_mags == 1):
-                true_dist = true_dist[0]                                                            # correct for 2D array
+            true_dist = true_dist.reshape((len(true_dist),) + (1,)*(num_mags > 1))                  # fix dimension for broadcast
             
             # add redshift (rough linear approach)
             if add_redshift:
                 phot_dat = utils.OpenPhotometricData(columns=['name', 'alt_name', 'mean', 'width'])
-                filter_indices = [np.arange(len(phot_dat))[(phot_dat['name'] == name) | 
+                i_filters = [np.arange(len(phot_dat))[(phot_dat['name'] == name) | 
                                   (phot_dat['alt_name'] == name)][0] for name in self.mag_names]
                 
-                wvl_shift = self.redshift*phot_dat['mean'][filter_indices]
-                shifted_filter = phot_dat['mean'][filter_indices] + wvl_shift
+                wvl_shift = self.redshift*phot_dat['mean'][i_filters]
+                shifted_filter = phot_dat['mean'][i_filters] + wvl_shift
                 
                 # reference_mag = np.divide(self.AbsoluteMagnitudes(filter='all'),
-                #                           np.array([phot_dat['width'][filter_indices]]).T)         # divide by filter widths
-                # extrap1d = spi.interp1d(phot_dat['mean'][filter_indices], reference_mag.T, 
+                #                           np.array([phot_dat['width'][i_filters]]).T)         # divide by filter widths
+                # extrap1d = spi.interp1d(phot_dat['mean'][i_filters], reference_mag.T, 
                 #                         fill_value='extrapolate')
                 # abs_mag = (extrap1d(shifted_filter[mask])
-                #           * phot_dat['width'][filter_indices][mask]).T                             # multiply by filter widths
+                #           * phot_dat['width'][i_filters][mask]).T                             # multiply by filter widths
                 
                 R_cur = self.StellarRadii(realistic_remnants=True)
                 T_eff = 10**self.LogTemperatures(realistic_remnants=True)
                 abs_mag = np.zeros([num_mags, len(R_cur)])
                 for i in range(num_mags):
                     abs_mag[i] = form.BBMagnitude(shifted_filter[i], T_eff, R_cur,
-                                           phot_dat['width'][filter_indices][i])
+                                           phot_dat['width'][i_filters][i])
             else:
                 abs_mag = self.AbsoluteMagnitudes(filter=filter)
             
