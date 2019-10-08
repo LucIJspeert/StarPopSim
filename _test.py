@@ -4147,6 +4147,7 @@ h_plank = 6.62607004*10**-34    # J s       Planck constant
 k_B = 1.38064852*10**-23        # J/K       Boltzmann constant
 R_sun = 6.9551*10**8            # m         solar radius
 L_sun = 3.828*10**26            # W         solar luminosity
+parsec = 3.08567758*10**16      # m         parsec
 
 def PlanckBB(nu, T, var='freq'):
     """Planck distribution of Black Body radiation. If var='wavl', use wavelength instead (in m).
@@ -4167,11 +4168,12 @@ column_type = [('name', 'U20'),
                ('mean', 'f4'), 
                ('width', 'f4'), 
                ('solar_mag', 'f4'), 
-               ('mag_zp', 'f4')]
+               ('zp_flux', 'f4')]
 phot_dat = np.loadtxt(file_name, dtype=column_type)
 phot_dat = phot_dat[:8]
 phot_dat['mean'] = phot_dat['mean']*1e-9
 phot_dat['width'] = phot_dat['width']*1e-9
+phot_dat['zp_flux'] = phot_dat['zp_flux']*1e7
 
 lam_arr = np.linspace(0.1, 8, 1000)*1e-6
 
@@ -4215,7 +4217,20 @@ print(magnitude)
 temps = np.array([5770])
 spec_radiance = np.mean(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*len(np.shape(lam_arr))), var='wavl'), axis=-1)     # W/sr^1/m^3
 spec_flux = np.pi*spec_radiance                                                                     # W/m^3
-magnitude = phot_dat['mag_zp'] - 2.5*np.log10(spec_flux/1e7)
+# translation to 10 pc
+integrated = spec_flux*(np.array([1,2,1,1]).reshape((4,) + (1,)*(len(phot_dat['mean']) > 1))*R_sun)**2
+calibrated = integrated/(10*parsec)**2
+magnitude = - 2.5*np.log10(calibrated/phot_dat['zp_flux'])
+print(magnitude)
+
+# try integrated, then divided by filter width [does not change it much]
+temps = np.array([5770])
+spec_radiance = np.trapz(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*len(np.shape(lam_arr))), var='wavl'), x=lam_arr, axis=-1)/phot_dat['width']     # W/sr^1/m^3
+spec_flux = np.pi*spec_radiance                                                                     # W/m^3
+# translation to 10 pc
+integrated = spec_flux*(np.array([1,2,1,1]).reshape((4,) + (1,)*(len(phot_dat['mean']) > 1))*R_sun)**2
+calibrated = integrated/(10*parsec)**2
+magnitude = - 2.5*np.log10(calibrated/phot_dat['zp_flux'])
 print(magnitude)
 
 ## test magnitude redshift

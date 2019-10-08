@@ -1,7 +1,9 @@
-# This file enables the program to find the right columns in your isochrone files.
-# Just map your column names to the names in the first column.
+# This file enables the program to find the right columns in the isochrone files.
+# Just map the column names from the isochrone fileto the names in the first column.
+# Photometric filter names are not necesary as long as they are present in the file
+# photometric_filters.dat
 # Don't change the names in the first column of this file!
-#---------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------
 # name		column_name
 log_age		log10_isochrone_age_yr
 M_initial  	initial_mass
@@ -10,11 +12,3 @@ log_L  		log_L
 log_Te  	log_Teff
 log_g		log_g
 phase		phase
-U			Bessell_U
-B  			Bessell_B
-V  			Bessell_V
-R  			Bessell_R
-I  			Bessell_I
-J  			2MASS_J
-H  			2MASS_H
-Ks  		2MASS_Ks

@@ -127,20 +127,24 @@ def RadiusToGravity(R, M):
     return log_g
 
 
-def MagToLum(mag, filters=None):
+def MagToLum(mag):
     """Converts from bolometric magnitude to luminosity (in Lsun)."""
     return L_0*10**(-0.4*mag)
 
 
-def LumToMag(lum, filters=None):
-    """Converts from luminosity (in Lsun) to bolometric magnitude.
-    Can also convert integrated spectral flux to magnitudes in certain filters.
-    """
+def LumToMag(lum):
+    """Converts from luminosity (in Lsun) to bolometric magnitude."""
+    return -2.5*np.log10(lum/L_0)
+    
+    
+def FluxToMag(flux, filters=None):
+    """Converts spectral flux density (in W/m^3) to magnitude in certain filters."""
     if filters is not None:
-        zero_point = utils.OpenPhotometricData(columns=['mag_zp'], filters=filters)
-        mag = zero_point - 2.5*np.log10(lum)
+        zero_point_flux = utils.OpenPhotometricData(columns=['zp_flux'], filters=filters)
+        mag = -2.5*np.log10(flux/zero_point_flux)
     else:
-        mag = -2.5*np.log10(lum/L_0)
+        # just convert raw input
+        mag = -2.5*np.log10(flux)
     
     return mag
 

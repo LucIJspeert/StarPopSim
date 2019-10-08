@@ -50,10 +50,13 @@ def Distance2D(points):
     return (coords[0]**2 + coords[1]**2)**(1/2)
 
 
-def PlanckBB(nu, T, var='freq'):
+def PlanckBB(nu, T, var='freq', allow_overflow=False):
     """Planck distribution of Black Body radiation. If var='wavl', use wavelength instead (in m).
     Units are either W/sr^1/m^2/Hz^1 or W/sr^1/m^3 (for freq/wavl).
     """
+    if not allow_overflow:
+        T = T + 2.2e-5/(nu) * (T*nu < 2.2e-5)                                                       # increase T where it would lead to overflows
+    
     if (var == 'wavl'):
         lam = nu
         spec = (2*h_plank*c_light**2/lam**5)/(np.e**((h_plank*c_light)/(lam*k_B*T)) - 1)
@@ -63,25 +66,27 @@ def PlanckBB(nu, T, var='freq'):
     return spec
 
 
-def BBMagnitude(T_eff, R, lam=None, width=None, filters=None):
-    """Calculates the magnitude of a black body with temperature T (in K) and radius R (in Rsun),
-    in a filter with bin center lam (in m) and FWHM width (in m) or over any range of wavelengths.
-    To get correct (Vega) magnitudes, a filter must be specified; 
-        otherwise bolometric magnitude is assumed. 
-        If filters are specified, lam and width can be left blank
+def BBMagnitude(T_eff, R, filters):
+    """Calculates roughly the magnitude (Vega) of a black body with temperature T (in K) 
+    and radius R (in Rsun), in a set of filters (list of names).
     """
-    if (lam is None) & (width is None):
-        phot_dat = utils.OpenPhotometricData(columns=['mean', 'width'], filters=filters)
-        lam = phot_dat['mean']
-        width = phot_dat['width']
+    phot_dat = utils.OpenPhotometricData(columns=['mean', 'width'], filters=filters)
+    lam = phot_dat['mean']
+    width = phot_dat['width']
+    lam_arr = np.linspace(lam - width/2, lam + width/2, 10).T
     
-    lam_arr = np.linspace(lam - width/2, lam + width/2, 10 + 990*(len(T_eff) == 1)).T                   # More accuracy if only one T
-    T_eff = T_eff.reshape((len(T_eff),) + (1,)*len(np.shape(lam_arr)))
-    R = R.reshape((len(R),) + (1,)*len(np.shape(lam)))
-    integral = np.trapz(PlanckBB(lam_arr, T_eff, var='wavl'), x=lam_arr, axis=-1)                       # W/sr^1/m^2
-    intensity = np.pi*integral                                                                      # W/m^2         integrate d(Ohm)d(nu)
-    luminosity = intensity*4*np.pi*(R*R_sun)**2                                                     # W             integrate dA
-    return conv.LumToMag(luminosity/L_sun, filters=filters)
+    # make shapes broadcastable, if not dealing with single numbers
+    if hasattr(T_eff, '__len__'):
+        T_eff = T_eff.reshape((len(T_eff),) + (1,)*len(np.shape(lam_arr)))
+    if hasattr(R, '__len__'):
+        R = R.reshape((len(R),) + (1,)*len(np.shape(lam)))
+    
+    spec_radiance = PlanckBB(lam_arr, T_eff, var='wavl')                                            # W/sr^1/m^3
+    spec_radiance = np.mean(spec_radiance, axis=-1)                                                 # take the mean
+    spec_flux_density = np.pi*spec_radiance                                                         # W/m^3     integrate d(Ohm)d(nu)
+    spec_flux = spec_flux_density*(R*R_sun)**2                                                      # W/m       times surface star
+    calibrated_spec_flux_density = spec_flux/(10*parsec)**2                                         # W/m^3     at ten pc
+    return conv.FluxToMag(calibrated_spec_flux_density, filters=filters)
 
 
 def BBLuminosity(T_eff, R):
@@ -398,18 +403,6 @@ def RemnantTeff(M_rem, R_rem, t_cool):
     T_rem[mask_BH] = 6.169*10**(-8)/M_rem[mask_BH]                                                  # temperature due to Hawking radiation (derivation on wikipedia)
     
     return T_rem
-
-
-def RemnantMagnitudes(T_rem, R_rem, filters):
-    """Estimates very roughly what the magnitudes should be in various filters,
-    from the effective temperatures (K) and the object radii (Rsun).
-    """
-    #todo: make usable for multiple filters
-    phot_dat = utils.OpenPhotometricData(columns=['name', 'alt_name', 'mean', 'width'])
-    f_mask = ((phot_dat['name'] == filters) | (phot_dat['alt_name'] == filters))
-    center, width = phot_dat[['mean', 'width']][f_mask][0]                                          # center and width are read in in meters
-    T_rem += 2.2e-5/(center) * (T_rem*center < 2.2e-5)                                              # increase T where it would lead to overflows
-    return BBMagnitude(center, T_rem, R_rem, width)
     
     
     
