@@ -762,7 +762,7 @@ class AstObject:
         
         return abs_mag
     
-    def ApparentMagnitudes(self, filters=None, add_redshift=True):
+    def ApparentMagnitudes(self, filters=None, add_redshift=False):
         """Compute the apparent magnitude from the absolute magnitude and 
         the individual distances (in pc!). Redshift can be roughly included.
         A list of filters can be specified; None will result in all available magnitudes..
