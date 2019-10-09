@@ -244,22 +244,23 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
     Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
         saveable dark plot, and None for normal light colours.
     """
+    # the mask can be used to hide remnants as the screw with the plot area   
+    if mask is None:
+        mask = np.ones_like(T_eff, dtype=bool)
+    
     # colours can be made to match the temperature (using T_eff)
     if ((T_eff is not None) & (colour == 'temperature')):
         colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
         colour[T_eff <= 10] = [0.2, 0.2, 0.2]                                                       # dead stars
         colour = mcol.to_rgba_array(colour, 0.5)                                                    # add alpha
+        colour = colour[mask]
     elif (colour == 'blue'):
         colour = mcol.to_rgba('tab:blue', 0.5)
     else:
         colour = mcol.to_rgba(colour, 0.5)
-     
-    # the mask can be used to hide remnants as the screw with the plot area   
-    if mask is None:
-        mask = np.ones_like(T_eff, dtype=bool)
     
     fig, ax = plt.subplots(figsize=[7.0, 5.5])
-    ax.scatter(T_eff[mask], log_Lum[mask], marker='.', linewidths=0.0, c=colour)
+    ax.scatter(T_eff[mask], log_Lum[mask], c=colour, marker='.', linewidths=0.0)
     ax.set_xlim(40000, 500) 
     ax.set_ylim(-5, 7)
     ax.set_title(title)
@@ -272,12 +273,16 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
         c_2 = '0.7'
         c_3 = '0.22'
         c_4 = '0.15'
+        s_1 = 12
+        s_2 = 12
     elif (theme == 'dark2'):
         # dark theme for good saving
         c_1 = '0.10'
         c_2 = '0.16'
         c_3 = '1.0'
         c_4 = '0.25'
+        s_1 = 12
+        s_2 = 12
     else:
         # defaults (not actually used)
         c_1 = '0.0'                                                                                 # text
@@ -324,6 +329,7 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
         colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
         colour[T_eff <= 10] = [0.2, 0.2, 0.2]                                                       # dead stars
         colour = mcol.to_rgba_array(colour, 0.5)                                                    # add alpha
+        colour = colour[mask]
     elif (colour == 'blue'):
         colour = mcol.to_rgba('tab:blue', 0.5)
     else:
@@ -357,12 +363,16 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
         c_2 = '0.7'
         c_3 = '0.22'
         c_4 = '0.15'
+        s_1 = 12
+        s_2 = 12
     elif (theme == 'dark2'):
         # dark theme for good saving
         c_1 = '0.10'
         c_2 = '0.16'
         c_3 = '1.0'
         c_4 = '0.25'
+        s_1 = 12
+        s_2 = 12
     else:
         # defaults (not actually used)
         c_1 = '0.0'                                                                                 # text

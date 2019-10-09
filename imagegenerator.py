@@ -28,30 +28,21 @@ def MakeSource(astobj, filter='V'):
     magnitudes = astobj.ApparentMagnitudes(filter=filter)
     spec_i, spec_names = astobj.SpectralTypes()
     
-    src = sim.source.stars(mags=magnitudes, 
-                           x=x_as, 
-                           y=y_as, 
-                           filter=filter, 
+    src = sim.source.stars(mags=magnitudes, x=x_as, y=y_as, filter=filter, 
                            spec_types=spec_names[spec_i])
     
     # add the guide stars (if generated)                        
     if hasattr(astobj, 'natural_guide_stars'):
-        x_as, y_as, magnitudes, filters, spec_types = astobj.natural_guide_stars
-        filter = np.unique(filters)[0]                                                              # can only have 1 filter
-        src += sim.source.stars(mags=magnitudes, 
-                                x=x_as, 
-                                y=y_as, 
-                                filter=filter, 
+        x_as, y_as, magnitudes, ngs_filter, spec_types = astobj.natural_guide_stars
+        ngs_filter = np.unique(ngs_filter)[0]                                                       # reduce to 1 filter
+        src += sim.source.stars(mags=magnitudes, x=x_as, y=y_as, filter=ngs_filter, 
                                 spec_types=spec_types)
                                 
     # add the foreground stars (if generated)                        
     # if hasattr(astobj, 'field_stars'):
     #     x_as, y_as, magnitudes, filters, spec_types = astobj.field_stars
-    #     filter = np.unique(filters)[0]                                                              # can only have 1 filter
-    #     src += sim.source.stars(mags=magnitudes, 
-    #                             x=x_as, 
-    #                             y=y_as, 
-    #                             filter=filter, 
+    #     filter = np.unique(filters)[0]                                                              # reduce to 1 filter
+    #     src += sim.source.stars(mags=magnitudes, x=x_as, y=y_as, filter=filter, 
     #                             spec_types=spec_types)
     
     return src

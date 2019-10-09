@@ -5,12 +5,13 @@
 Optimized for converting many numbers at once (ndarray).
 """
 import numpy as np
+import utils
 
 
 # global constants
-L_0 = 78.70                     # Lsun Luminosity for absolute bolometric magnitude 0
-L_sun = 3.828*10**26            # W
-R_sun = 6.957*10**8             # m
+L_0 = 78.70                     # Lsun      Luminosity for absolute bolometric magnitude 0
+L_sun = 3.828*10**26            # W         solar luminosity
+R_sun = 6.9551*10**8            # m         solar radius
 sigma_SB = 5.670367*10**-8      # W K^-4 m^-2
 G_newt = 274.0                  # Msun^-1 Rsun^2 m s-2
 rad_as = 648000/np.pi           # radians to arcseconds
@@ -90,7 +91,7 @@ def MtotToNstars(M, imf=imf_defaults):
     """Converts from mass in a cluster (one stellar population) 
     to number of objects using the implemented IMF.
     """
-    M_L, M_U = imf
+    M_L, M_U = imf[:,0], imf[:,1]
     M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
     C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
     D_mid = (1/0.35 + 1/0.65)*M_mid**(0.65)
@@ -134,6 +135,18 @@ def MagToLum(mag):
 def LumToMag(lum):
     """Converts from luminosity (in Lsun) to bolometric magnitude."""
     return -2.5*np.log10(lum/L_0)
+    
+    
+def FluxToMag(flux, filters=None):
+    """Converts spectral flux density (in W/m^3) to magnitude in certain filters."""
+    if filters is not None:
+        zero_point_flux = utils.OpenPhotometricData(columns=['zp_flux'], filters=filters)
+        mag = -2.5*np.log10(flux/zero_point_flux)
+    else:
+        # just convert raw input
+        mag = -2.5*np.log10(flux)
+    
+    return mag
 
 
 def TemperatureToRGB(c_temp):
