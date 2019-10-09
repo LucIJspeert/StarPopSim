@@ -4236,20 +4236,19 @@ print(magnitude)
 ## test magnitude redshift
 import os
 
-astobj = obg.StarCluster(N_stars=1000, age=10, metal=0.0014, distance=5*10**8)
+astobj = obg.StarCluster(N_stars=1000, age=10, metal=0.0014, distance=5*10**10)
 no_rs = astobj.ApparentMagnitudes(add_redshift=False)
 with_rs = astobj.ApparentMagnitudes(add_redshift=True)
 
-file_name = os.path.join('tables', 'photometric_filters.txt')
-filter_names = np.loadtxt(file_name, usecols=(0), dtype=str, unpack=True)
-filter_wavelengths = np.loadtxt(file_name, usecols=(1,2), unpack=True)
-indices = np.arange(len(filter_names))
-filter_indices = [indices[filter_names == name][0] for name in astobj.mag_names]
+phot_data = utils.OpenPhotometricData(columns=['alt_name', 'mean'])
+filters = utils.SupportedFilters()
+mask = [name in filters for name in phot_data['alt_name']]
 ##
-nr = 23
+nr = 5
 fig, ax = plt.subplots(figsize=(5, 5), squeeze=True)
-ax.plot(filter_wavelengths[0, filter_indices], no_rs[:, nr])
-ax.plot(filter_wavelengths[0, filter_indices], with_rs[:, nr])
+ax.plot(phot_data['mean'][mask], no_rs[nr])
+ax.plot(phot_data['mean'][mask], with_rs[nr])
+ax.invert_yaxis()
 plt.show()
 
 

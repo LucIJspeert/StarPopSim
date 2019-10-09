@@ -66,27 +66,32 @@ def PlanckBB(nu, T, var='freq', allow_overflow=False):
     return spec
 
 
-def BBMagnitude(T_eff, R, filters):
+def BBMagnitude(T_eff, R, filters, filter_means=None):
     """Calculates roughly the magnitude (Vega) of a black body with temperature T (in K) 
     and radius R (in Rsun), in a set of filters (list of names).
+    filter means can be specified to shift the filter wavelengths (mimicking redshift).
     """
     phot_dat = utils.OpenPhotometricData(columns=['mean', 'width'], filters=filters)
-    lam = phot_dat['mean']
+    if filter_means is not None:
+        lam = filter_means
+    else:
+        lam = phot_dat['mean']
     width = phot_dat['width']
     lam_arr = np.linspace(lam - width/2, lam + width/2, 10).T
     
     # make shapes broadcastable, if not dealing with single numbers
     if hasattr(T_eff, '__len__'):
-        T_eff = T_eff.reshape((len(T_eff),) + (1,)*len(np.shape(lam_arr)))
+        T_eff = T_eff.reshape((len(T_eff),) + (1,)*(len(np.shape(lam_arr)) - (len(filters) == 1)))
     if hasattr(R, '__len__'):
-        R = R.reshape((len(R),) + (1,)*len(np.shape(lam)))
+        R = R.reshape((len(R),) + (1,)*(len(np.shape(lam)) - (len(filters) == 1)))
     
     spec_radiance = PlanckBB(lam_arr, T_eff, var='wavl')                                            # W/sr^1/m^3
     spec_radiance = np.mean(spec_radiance, axis=-1)                                                 # take the mean
     spec_flux_density = np.pi*spec_radiance                                                         # W/m^3     integrate d(Ohm)d(nu)
     spec_flux = spec_flux_density*(R*R_sun)**2                                                      # W/m       times surface star
     calibrated_spec_flux_density = spec_flux/(10*parsec)**2                                         # W/m^3     at ten pc
-    return conv.FluxToMag(calibrated_spec_flux_density, filters=filters)
+    mag = conv.FluxToMag(calibrated_spec_flux_density, filters=filters)
+    return mag
 
 
 def BBLuminosity(T_eff, R):

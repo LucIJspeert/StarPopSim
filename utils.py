@@ -57,6 +57,52 @@ def OpenIsochronesFile(Z, columns=None):
     return data
 
 
+def OpenPhotometricData(columns=None, filters=None):
+    """Gives the data in the file photometric_filters.dat as a structured array.
+    Columns can be specified if less of the data is wanted (array of strings).
+    Filters can be specified to get only those rows (array of strings)
+    """
+    file_name = os.path.join('tables', 'photometric_filters.dat')
+    column_types = [('name', 'U16'),
+                    ('alt_name', 'U4'),
+                    ('mean', 'f4'),
+                    ('width', 'f4'),
+                    ('solar_mag', 'f4'),
+                    ('zp_flux', 'f4')]
+    reduce = False
+
+    # select the columns
+    if columns is not None:
+        use_i = [i for i, item in enumerate(column_types) if (item[0] in columns)]
+        used_types = [column_types[i] for i in use_i]
+        if (len(columns) == 1):
+            reduce = True
+            single_column = columns[0]
+        columns = use_i
+    else:
+        used_types = column_types
+
+    phot_dat = np.loadtxt(file_name, dtype=used_types, usecols=columns)
+
+    # select the filters
+    if filters is not None:
+        filter_names = np.loadtxt(file_name, dtype=column_types[:2], usecols=[0,1])
+        mask_filters = np.sum([((filter_names['name'] == name) | (filter_names['alt_name'] == name))
+                               for name in filters], dtype=bool, axis=0)
+        phot_dat = phot_dat[mask_filters]
+
+    # some default conversions
+    if ('mean' in np.array(used_types)[:, 0]):
+        phot_dat['mean'] = phot_dat['mean']*1e-9                                                    # convert to m
+    if ('width' in np.array(used_types)[:, 0]):
+        phot_dat['width'] = phot_dat['width']*1e-9                                                  # convert to m
+    if ('zp_flux' in np.array(used_types)[:, 0]):
+        phot_dat['zp_flux'] = phot_dat['zp_flux']*1e7                                               # convert to W/m^3
+    if reduce:
+        phot_dat = phot_dat[single_column]                                                          # get rid of the array structure
+    return phot_dat
+
+
 def SelectAge(age, Z):
     """Selects the timestep in the isochrone closest to the given age (lin or log years)."""
     log_t = OpenIsochronesFile(Z, columns=['log_age'])
@@ -134,52 +180,6 @@ def GetFilterMask(filters):
         filters = [filters]
     mask_filters = [((full_names == name) | (alt_names == name)) for name in filters]
     return np.sum(mask_filters, dtype=bool, axis=0)
-
-
-def OpenPhotometricData(columns=None, filters=None):
-    """Gives the data in the file photometric_filters.dat as a structured array.
-    Columns can be specified if less of the data is wanted (array of strings).
-    Filters can be specified to get only those rows (array of strings)
-    """
-    file_name = os.path.join('tables', 'photometric_filters.dat')
-    column_types = [('name', 'U16'),
-                    ('alt_name', 'U4'),
-                    ('mean', 'f4'),
-                    ('width', 'f4'),
-                    ('solar_mag', 'f4'),
-                    ('zp_flux', 'f4')]
-    reduce = False
-
-    # select the columns
-    if columns is not None:
-        use_i = [i for i, item in enumerate(column_types) if (item[0] in columns)]
-        used_types = [column_types[i] for i in use_i]
-        if (len(columns) == 1):
-            reduce = True
-            single_column = columns[0]
-        columns = use_i
-    else:
-        used_types = column_types
-
-    phot_dat = np.loadtxt(file_name, dtype=used_types, usecols=columns)
-
-    # select the filters
-    if filters is not None:
-        filter_names = np.loadtxt(file_name, dtype=column_types[:2], usecols=[0,1])
-        mask_filters = np.sum([((filter_names['name'] == name) | (filter_names['alt_name'] == name))
-                               for name in filters], dtype=bool, axis=0)
-        phot_dat = phot_dat[mask_filters]
-
-    # some default conversions
-    if ('mean' in np.array(used_types)[:, 0]):
-        phot_dat['mean'] = phot_dat['mean']*1e-9                                                    # convert to m
-    if ('width' in np.array(used_types)[:, 0]):
-        phot_dat['width'] = phot_dat['width']*1e-9                                                  # convert to m
-    if ('zp_flux' in np.array(used_types)[:, 0]):
-        phot_dat['zp_flux'] = phot_dat['zp_flux']*1e7                                               # convert to W/m^3
-    if reduce:
-        phot_dat = phot_dat[single_column]                                                          # get rid of the array structure
-    return phot_dat
 
 
 def FixTotal(tot, nums):

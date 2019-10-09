@@ -734,9 +734,11 @@ class AstObject:
         
         if hasattr(self, 'absolute_magnitudes'):
             abs_mag = self.absolute_magnitudes[:, utils.GetFilterMask(filters)]
+            if (len(filters) == 1):
+                abs_mag = abs_mag.flatten()                                                         # correct for 2D array
         else:
-            abs_mag = np.empty([0, len(filters)])
-            index = np.cumsum(np.append([0], self._gen_pop_number))                                  # indices defining the different populations
+            abs_mag = np.empty((0,) + (len(filters),)*(len(filters) != 1))
+            index = np.cumsum(np.append([0], self._gen_pop_number))                                 # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
@@ -754,12 +756,9 @@ class AstObject:
                     r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
                     r_R_cur_i = form.RemnantRadius(r_M_cur_i)                                       # approx. remnant radii
                     r_Te_i = form.RemnantTeff(r_M_cur_i, r_R_cur_i, remnant_time)                   # approx. remnant temperatures
-                    mag_i[remnants_i] = form.BBMagnitude(r_Te_i, r_R_cur_i, filters)
+                    mag_i[remnants_i] = form.BBMagnitude(r_Te_i, r_R_cur_i, filters)                # approx. remnant magnitudes
                 
                 abs_mag = np.append(abs_mag, mag_i, axis=0)
-                
-        if (len(filters) == 1):
-            abs_mag = abs_mag.flatten()                                                             # correct for 2D array
         
         return abs_mag
     
@@ -773,6 +772,8 @@ class AstObject:
         
         if hasattr(self, 'apparent_magnitudes'):
             app_mag = self.apparent_magnitudes[:, utils.GetFilterMask(filters)]
+            if (len(filters) == 1):
+                abs_mag = abs_mag.flatten()                                                         # correct for 2D array
         else:
             if (self.d_lum > 100*np.abs(np.min(self.coords[:,2]))):                                 # distance 'much larger' than individual variations
                 true_dist = self.d_lum - self.coords[:,2]                                           # approximate the individual distance to each star with the z-coordinate
@@ -781,32 +782,17 @@ class AstObject:
             
             true_dist = true_dist.reshape((len(true_dist),) + (1,)*(len(filters) > 1))              # fix dimension for broadcast
             
-            # add redshift (rough linear approach)
+            # add redshift (rough approach)
             if add_redshift:
-                phot_dat = utils.OpenPhotometricData(columns=['mean', 'width'], filters=filters)
-                shifted_filters = (1 + self.redshift)*phot_dat['mean']
-                
-                # reference_mag = np.divide(self.AbsoluteMagnitudes(filters='all'),
-                #                           np.array([phot_dat['width'][i_filters]]).T)         # divide by filter widths
-                # extrap1d = spi.interp1d(phot_dat['mean'][i_filters], reference_mag.T, 
-                #                         fill_value='extrapolate')
-                # abs_mag = (extrap1d(shifted_filters[mask])
-                #           * phot_dat['width'][i_filters][mask]).T                             # multiply by filter widths
-                
+                filter_means = utils.OpenPhotometricData(columns=['mean'], filters=filters)
+                shifted_filters = (1 + self.redshift)*filter_means
                 R_cur = self.StellarRadii(realistic_remnants=True)
                 T_eff = 10**self.LogTemperatures(realistic_remnants=True)
-                abs_mag = np.zeros([len(filters), len(R_cur)])
-                # todo: go on here
-                for i in range(len(filters)):
-                    abs_mag[i] = form.BBMagnitude(shifted_filters[i], T_eff, R_cur,
-                                           phot_dat['width'][i_filters][i])
+                abs_mag = form.BBMagnitude(T_eff, R_cur, filters, filter_means=shifted_filters)
             else:
                 abs_mag = self.AbsoluteMagnitudes(filters=filters)
             
             app_mag = form.ApparentMag(abs_mag, true_dist, ext=self.extinction)                     # true_dist in pc!
-            
-        if (len(filters) == 1):
-            abs_mag = abs_mag.flatten()                                                             # correct for 2D array
         
         return app_mag
         
