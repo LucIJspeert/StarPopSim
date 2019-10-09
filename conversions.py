@@ -5,13 +5,15 @@
 Optimized for converting many numbers at once (ndarray).
 """
 import numpy as np
+import utils
 
 
 # global constants
-L_0 = 78.70                     # Lsun Luminosity for absolute bolometric magnitude 0
-L_sun = 3.828*10**26            # W
-R_sun = 6.957*10**8             # m
+L_0 = 78.70                     # Lsun      Luminosity for absolute bolometric magnitude 0
+L_sun = 3.828*10**26            # W         solar luminosity
+R_sun = 6.9551*10**8            # m         solar radius
 sigma_SB = 5.670367*10**-8      # W K^-4 m^-2
+G_newt = 274.0                  # Msun^-1 Rsun^2 m s-2
 rad_as = 648000/np.pi           # radians to arcseconds
 as_rad = np.pi/648000           # arcseconds to radians
 
@@ -75,13 +77,13 @@ def ArcsecToParsec(x, d):
     return np.tan(x*as_rad)*d
     
     
-def DistanceToDModulus(dist):
-    """Compute the distance modulus given a distance in parsec."""
+def ParsecToDModulus(dist):
+    """Compute the distance modulus given a distance in pc."""
     return 5*np.log10(dist/10)
     
     
-def DModulusToDistance(mod):
-    """Compute the distance in parsec given a distance modulus."""
+def DModulusToParsec(mod):
+    """Compute the distance in pc given a distance modulus."""
     return 10**(mod/5 + 1)
 
 
@@ -89,7 +91,7 @@ def MtotToNstars(M, imf=imf_defaults):
     """Converts from mass in a cluster (one stellar population) 
     to number of objects using the implemented IMF.
     """
-    M_L, M_U = imf
+    M_L, M_U = imf[:,0], imf[:,1]
     M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
     C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
     D_mid = (1/0.35 + 1/0.65)*M_mid**(0.65)
@@ -113,7 +115,6 @@ def NstarsToMtot(N, imf=imf_defaults):
 
 def GravityToRadius(log_g, M):
     """Converts surface gravity (log g - cgs) to radius (Rsun). Mass must be given in Msun."""
-    G_newt = 274.0                                                                                  # Msun^-1 Rsun^2 m s-2
     g_si = 10**log_g/100                                                                            # convert log g (cgs - cm/s^2) to g (si - m/s^2)
     R_2 = G_newt*M/g_si                                                                             # radius (in Rsun) squared
     return np.sqrt(R_2)
@@ -121,20 +122,31 @@ def GravityToRadius(log_g, M):
 
 def RadiusToGravity(R, M):
     """Converts radius (Rsun) to surface gravity (log g - cgs). Mass must be given in Msun."""
-    G_newt = 274.0                                                                                  # Msun^-1 Rsun^2 m s-2
     g_si = G_newt*M/R**2                                                                            # surface gravity in m/s^2
     log_g = 2 + np.log10(g_si)                                                                      # convert g (si - m/s^2) to log g (cgs - cm/s^2)
     return log_g
 
 
-def MagnitudeToLuminosity(mag):
-    """Çonverts from bolometric magnitude to luminosity (in Lsun)."""
+def MagToLum(mag):
+    """Converts from bolometric magnitude to luminosity (in Lsun)."""
     return L_0*10**(-0.4*mag)
 
 
-def LuminosityToMagnitude(lum):
+def LumToMag(lum):
     """Converts from luminosity (in Lsun) to bolometric magnitude."""
     return -2.5*np.log10(lum/L_0)
+    
+    
+def FluxToMag(flux, filters=None):
+    """Converts spectral flux density (in W/m^3) to magnitude in certain filters."""
+    if filters is not None:
+        zero_point_flux = utils.OpenPhotometricData(columns=['zp_flux'], filters=filters)
+        mag = -2.5*np.log10(flux/zero_point_flux)
+    else:
+        # just convert raw input
+        mag = -2.5*np.log10(flux)
+    
+    return mag
 
 
 def TemperatureToRGB(c_temp):
@@ -144,7 +156,7 @@ def TemperatureToRGB(c_temp):
     Input: array-like
     Output: numpy.ndarray
     """
-    if isinstance(c_temp, (list, tuple)):
+    if hasattr(c_temp, '__len__'):
         c_temp = np.array(c_temp)
     
     # edited from source code at: 
@@ -189,13 +201,13 @@ def WavelengthToRGB(wavelength, maxI=1):
     Input: array-like
     Output: numpy.ndarray
     """ 
-    if isinstance(wavelength, (list, tuple)):
+    if hasattr(wavelength, '__len__'):
         wavelength = np.array(wavelength)
     
     # edited from source code at: http://www.efg2.com/Lab/ScienceAndEngineering/Spectra.htm
-     # Gamma determines gradient between colours, IntensityMax determines max output value
+     # Gamma determines gradient between colours, max_intensity determines max output value
     Gamma = 0.8
-    IntensityMax = maxI
+    max_intensity = maxI
     
     red = np.zeros(len(wavelength))
     green = np.zeros(len(wavelength))
@@ -242,7 +254,7 @@ def WavelengthToRGB(wavelength, maxI=1):
   
     def Adjust(colour, factor):
         # Don't want 0^x = 1 for x != 0
-        return (colour != 0.0)*IntensityMax*(colour*factor)**Gamma
+        return (colour != 0.0)*max_intensity*(colour*factor)**Gamma
             
     R = Adjust(red,   factor)
     G = Adjust(green, factor)

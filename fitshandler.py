@@ -113,9 +113,10 @@ def GetCardValue(filename, keyword, index=0):
     with fits.open(os.path.join('images', filename)) as hdul:
         value = hdul[index].header[keyword]
         if isinstance(value, str):
-            raise ValueError('fitshandler//GetCardValue: Card value is a string.')
-        else:
-            return value
+            warnings.warn('fitshandler//GetCardValue: Card value is a string.')
+            value = 0
+    
+    return value
 
 
 def GetData(filename, index=0):
@@ -280,7 +281,8 @@ def SaveFitsPlot(filename, index=0, colours='gray', scale='lin', grid=False, chi
     return
     
     
-#todo: make add and subtract functions
+#todo: make add and subtract functions 
+# (does this have added value?)
 
 
 

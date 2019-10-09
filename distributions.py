@@ -13,7 +13,7 @@ import scipy.special as sps
 imf_defaults = [0.08, 150]      # lower bound, upper bound on mass
 
 
-def IMF(M, imf=imf_defaults):
+def pdf_KroupaIMF(M, imf=imf_defaults):
     """(Forward) Initial Mass Function (=probability density function), 
     normalized to 1 probability.
     Modified Salpeter IMF; actually Kroupa IMF above 0.08 solar mass.
@@ -27,9 +27,9 @@ def IMF(M, imf=imf_defaults):
     return (M < M_mid)*C_L*M**(-1.35) + (M >= M_mid)*C_U*M**(-2.35)
 
 
-def invCIMF(n=1, imf=imf_defaults):
-    """The inverted cumulative Initial Mass Function. 
-    Spits out n masses between lower and upper bound.
+def KroupaIMF(n=1, imf=imf_defaults):
+    """Generate masses distributed like the Kroupa Initial Mass Function. 
+    Spits out n masses between lower and upper bound in 'imf'.
     """
     M_L, M_U = imf
     # fixed turnover position (where slope changes)
@@ -46,6 +46,14 @@ def invCIMF(n=1, imf=imf_defaults):
     return (N_dist < N_mid)*M_a + (N_dist >= N_mid)*M_b
 
 # below: general distributions (i.e. for Cartesian coordinates)
+
+def Uniform(n=1, min=0, max=1, power=1):
+    """Uniformly distributed parameter between min and max.
+    power=2 gives the cylindrical distribution, power=3 the spherical one.
+    """
+    C = (max**power - min**power)
+    return (C*np.random.rand(int(n)) + min**power)**(1/power)
+
 
 def Normal(n=1, mean=0.0, s=1.0):
     """Normal (gaussian) distribution with some mean and width (s=sigma). Draws n numbers."""
@@ -85,113 +93,70 @@ def PowerLaw(n=1, power=-2.0, min=1e-9, max=1):
     C = max**p1 - min**p1
     return (N_dist*C + min**p1)**(1/p1)
     
-# below: distributions for spherical coordinates
+# below: distributions for spherical/cylindrical coordinates (marked '_r')
 
 def AnglePhi(n=1):
     """Uniformly chosen angle(s) between 0 and 2 pi."""
     return 2*np.pi*np.random.rand(int(n)) 
 
 
-def AngleTheta(n=1):
-    """Angle(s) between 0 and pi chosen from a sine distribution."""
-    return np.arccos(2*np.random.rand(int(n)) - 1)
-    
-
-def Uniform_r(n=1, min=0, max=1):
-    """Uniformly distributed (spherical) radius between min and max."""
-    C = (max**3 - min**3)
-    return (C*np.random.rand(int(n)) + min**3)**(1/3)
+def AngleTheta(n=1, min=0, max=np.pi):
+    """Angle(s) between min and max chosen from a sine distribution.
+    Default is between 0 and pi for a whole sphere.
+    """
+    return np.arccos(np.cos(min) - np.random.rand(int(n))*(np.cos(min) - np.cos(max)))
 
 
 def Exponential_r(n=1, s=1.0):
-    """Radial exponential distribution with scale height s. Draws n numbers."""
+    """Radial exponential distribution with scale height s. Draws n numbers.
+    For both spherical and cylindrical distribution.
+    """
     r_vals = np.logspace(-3, 4, 1000)                                                               # short to medium tail (max radius 10**4!)
     N_vals_exp = cdf_Exponential(r_vals, s)
     return np.interp(np.random.rand(int(n)), N_vals_exp, r_vals)
 
 
-def Normal_r(n=1, s=1.0):
-    """Radial normal (gaussian) distribution with scale height s. Draws n numbers."""
+def Normal_r(n=1, s=1.0, spher=True):
+    """Radial normal (gaussian) distribution with scale height s. Draws n numbers.
+    For either spherical or cylindrical distribution (keyword spher).
+    """
     r_vals = np.logspace(-3, 4, 1000)                                                               # quite short tail (max radius 10**4!)
-    N_vals_norm = cdf_Normal(r_vals, s)
+    N_vals_norm = cdf_Normal(r_vals, s, spher=spher)
     return np.interp(np.random.rand(int(n)), N_vals_norm, r_vals)
 
 
-def SquaredCauchy_r(n=1, s=1.0):
+def SquaredCauchy_r(n=1, s=1.0, spher=True):
     """Radial squared Cauchy distribution (Schuster with m=2) with scale height s. 
-    Draws n numbers.
+    Draws n numbers. For either spherical or cylindrical distribution (keyword spher).
     """
     r_vals = np.logspace(-3, 6, 1000)                                                               # very long tail (max radius 10**6!)
-    N_vals = cdf_Squaredcauchy(r_vals, s)
+    N_vals = cdf_Squaredcauchy(r_vals, s, spher=spher)
     return np.interp(np.random.rand(int(n)), N_vals, r_vals)
 
 
-def PearsonVII_r(n=1, s=1.0):
+def PearsonVII_r(n=1, s=1.0, spher=True):
     """Radial Pearson type VII distribution (Schuster with m=2.5) with scale height s. 
-    Draws n numbers.
+    Draws n numbers. For either spherical or cylindrical distribution (keyword spher).
     """
     r_vals = np.logspace(-3, 4, 1000)                                                               # medium tail (max radius 10**4!)
-    N_vals = cdf_PearsonVII(r_vals, s)
+    N_vals = cdf_PearsonVII(r_vals, s, spher=spher)
     return np.interp(np.random.rand(int(n)), N_vals, r_vals)
 
-# todo: combine rho and r
-def KingGlobular_r(n=1, s=1.0, R=None):
+def KingGlobular_r(n=1, s=1.0, R=None, spher=True):
     """Radial King distribution for globular clusters with scale height s and outter radius R. 
-    Draws n numbers.
+    Draws n numbers. For either spherical or cylindrical distribution (keyword spher).
     """
     if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
     r_vals = np.logspace(-2, np.log10(R), 1000)
-    N_vals = cdf_KingGlobular(r_vals, s, R)
-    return np.interp(np.random.rand(int(n)), N_vals, r_vals)
-    
-# below: distributions for cylindrical coordinates
-
-def Uniform_rho(n=1, min=0, max=1):
-    """Uniformly distributed (cylindrical) radius between min and max."""
-    C = (max**2 - min**2)
-    return (C*np.random.rand(int(n)) + min**2)**(1/2)
-
-
-def Normal_rho(n=1, s=1.0):
-    """Radial normal (gaussian) distribution with scale height s. Draws n numbers."""
-    r_vals = np.logspace(-3, 4, 1000)                                                               # quite short tail (max radius 10**4!)
-    N_vals_norm = cdf_Normal(r_vals, s, form='cylindrical')
-    return np.interp(np.random.rand(int(n)), N_vals_norm, r_vals)
-
-
-def SquaredCauchy_rho(n=1, s=1.0):
-    """Radial squared Cauchy distribution (Schuster with m=2) with scale height s. 
-    Draws n numbers.
-    """
-    r_vals = np.logspace(-3, 6, 1000)                                                               # very long tail (max radius 10**6!)
-    N_vals = cdf_Squaredcauchy(r_vals, s, form='cylindrical')
+    N_vals = cdf_KingGlobular(r_vals, s, R, spher=spher)
     return np.interp(np.random.rand(int(n)), N_vals, r_vals)
 
-
-def PearsonVII_rho(n=1, s=1.0):
-    """Radial Pearson type VII distribution (Schuster with m=2.5) with scale height s. 
-    Draws n numbers.
-    """
-    r_vals = np.logspace(-3, 4, 1000)                                                               # medium tail (max radius 10**4!)
-    N_vals = cdf_PearsonVII(r_vals, s, form='cylindrical')
-    return np.interp(np.random.rand(int(n)), N_vals, r_vals)
-
-
-def KingGlobular_rho(n=1, s=1.0, R=None):
-    """2D Radial King distribution for globular clusters with scale height s and outter radius R. 
-    Draws n numbers.
-    """
-    if (R is None):
-        R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
-    r_vals = np.logspace(-2, np.log10(R), 1000)
-    N_vals = cdf_KingGlobular(r_vals, s, R, form='cylindrical')
-    return np.interp(np.random.rand(int(n)), N_vals, r_vals)
-    
 # below: pdf and cdf distributions for the distributions using interpolation
     
 def pdf_Exponential(r, s=1.0):
     """pdf of radial exponential distribution."""
+    # same for spherical/cylindrical
     rs = r/s
     pdf = rs**2/(2*s)*np.exp(-rs)
     return pdf
@@ -199,110 +164,103 @@ def pdf_Exponential(r, s=1.0):
 
 def cdf_Exponential(r, s=1.0):
     """cdf of radial exponential distribution."""
+    # same for spherical/cylindrical
     rs = r/s
     cdf = 1 - (rs**2/2 + rs + 1)*np.exp(-rs)
     return cdf
 
 
-def pdf_Normal(r, s=1.0, form='spherical'):
-    """pdf of radial normal distribution."""
-    if (form == 'cylindrical'):
+def pdf_Normal(r, s=1.0, spher=True):
+    """pdf of radial normal distribution (spherical or cylindrical)."""
+    if not spher:
         rs = r/s
         pdf = 2*rs/s*np.exp(-rs**2)
     else:
-        # form == 'spherical'
         rs2 = (r/s)**2
         pdf = 4/(np.sqrt(np.pi)*s)*rs2*np.exp(-rs2)
     return pdf
 
 
-def cdf_Normal(r, s=1.0, form='spherical'):
-    """cdf of radial normal distribution."""
-    if (form == 'cylindrical'):
+def cdf_Normal(r, s=1.0, spher=True):
+    """cdf of radial normal distribution (spherical or cylindrical)."""
+    if not spher:
         rs2 = (r/s)**2
         cdf = 1 - np.exp(-rs2)
     else:
-        # form == 'spherical'
         rs = r/s
         cdf = sps.erf(rs) - 2/np.sqrt(np.pi)*rs*np.exp(-rs**2)
     return cdf
 
 
-def pdf_gamma3(r, s=1.0, form='spherical'):
-    """pdf of radial gamma=3 distribution."""
-    if (form == 'cylindrical'):
+def pdf_gamma3(r, s=1.0, spher=True):
+    """pdf of radial gamma=3 distribution (spherical or cylindrical)."""
+    if not spher:
         rs = r/s
         pdf = rs/s*(1 + rs**2)**(-3/2)
     else:
-        # form == 'spherical'
         rs2 = (r/s)**2
         pdf = 4/(np.pi*s)*rs2*(1 + rs2)**(-2)
     return pdf
 
 
-def cdf_gamma3(r, s=1.0, form='spherical'):
-    """cdf of radial gamma=3 distribution."""
-    if (form == 'cylindrical'):
+def cdf_gamma3(r, s=1.0, spher=True):
+    """cdf of radial gamma=3 distribution (spherical or cylindrical)."""
+    if not spher:
         rs2 = (r/s)**2
         cdf = 1- (1 + rs2)**(-1/2)
     else:
-        # form == 'spherical'
         rs = r/s
         cdf = 2/np.pi*(np.arctan(rs) - rs/(1 + rs**2))
     return cdf
 
 
-def pdf_SquaredCauchy(r, s=1.0, form='spherical'):
-    """pdf of radial squared Cauchy distribution."""
-    if (form == 'cylindrical'):
+def pdf_SquaredCauchy(r, s=1.0, spher=True):
+    """pdf of radial squared Cauchy distribution (spherical or cylindrical)."""
+    if not spher:
         rs = r/s
         pdf = 2/s*rs*(1 + rs**2)**(-2)                                                              # the actual observational profile
     else:
-        # form == 'spherical'
         rs2 = (r/s)**2
         pdf = 3/s*rs2*(1 + rs2)**(-5/2)                                                             # the spherical equivalent
     return pdf
 
 
-def cdf_Squaredcauchy(r, s=1.0, form='spherical'):
-    """cdf of radial squared Cauchy distribution."""
-    if (form == 'cylindrical'):
+def cdf_Squaredcauchy(r, s=1.0, spher=True):
+    """cdf of radial squared Cauchy distribution (spherical or cylindrical)."""
+    if not spher:
         rs2 = (r/s)**2
         cdf = rs2*(1 + rs2)**(-1)
     else:
-        # form == 'spherical'
         rs = r/s
         cdf = rs**3*(1 + rs**2)**(-3/2)
     return cdf
 
 
-def pdf_PearsonVII(r, s=1.0, form='spherical'):
-    """pdf of radial Pearson type VII distribution."""
-    if (form == 'cylindrical'):
+def pdf_PearsonVII(r, s=1.0, spher=True):
+    """pdf of radial Pearson type VII distribution (spherical or cylindrical)."""
+    if not spher:
         rs = r/s
         pdf = 3/s*rs*(1 + rs**2)**(-5/2)
     else:
-        # form == 'spherical'
         rs2 = (r/s)**2
         pdf = 16/(np.pi*s)*rs2*(1 + rs2)**(-3)
     return pdf
 
 
-def cdf_PearsonVII(r, s=1.0, form='spherical'):
+def cdf_PearsonVII(r, s=1.0, spher=True):
     """cdf of radial Pearson type VII distribution."""
-    if (form == 'cylindrical'):
+    if not spher:
         rs2 = (r/s)**2
         cdf = 1 - (1 + rs2)**(-3/2)
     else:
-        # form == 'spherical'
         rs = r/s
         rs2 = (r/s)**2
         cdf = 2/np.pi*(rs*((1 + rs2)**(-1) - 2*(1 + rs2)**(-2)) + np.arctan(rs))
     return cdf
 
 
-def pdf_KingGlobular(r, s=1.0, R=None, form='spherical'):
-    """pdf of radial King distribution for Globular clusters."""
+def pdf_KingGlobular(r, s=1.0, R=None, spher=True):
+    """pdf of radial King distribution for Globular clusters (spherical or cylindrical)."""
     if (R is None):
         # typical globular cluster has R/s ~ 30
         R = 30*s
@@ -311,11 +269,10 @@ def pdf_KingGlobular(r, s=1.0, R=None, form='spherical'):
     Rs2 = (R/s)**2
     C2 = (1 + Rs2)**(-1/2)
     
-    if (form == 'cylindrical'):
+    if not spher:
         C = (np.log(1 + Rs2)/2 + 2*C2 - 2 + Rs2/2*C2**2)**(-1)
         pdf = C/s*r/s*(1/(1 + rs2)**(1/2) - C2)**2
     else:
-        # form == 'spherical'
         Rs = R/s
         C3 = (4 - np.pi)/(2*np.pi)*C2**3
         C = (np.arcsinh(Rs)/2 + 2*C2/np.pi*np.arctan(Rs) 
@@ -326,8 +283,8 @@ def pdf_KingGlobular(r, s=1.0, R=None, form='spherical'):
     return pdf
 
 
-def cdf_KingGlobular(r, s=1.0, R=None, form='spherical'):
-    """cdf of radial King distribution for Globular clusters."""
+def cdf_KingGlobular(r, s=1.0, R=None, spher=True):
+    """cdf of radial King distribution for Globular clusters (spherical or cylindrical)."""
     if (R is None):
         # typical globular cluster has R/s ~ 30
         R = 30*s
@@ -339,11 +296,10 @@ def cdf_KingGlobular(r, s=1.0, R=None, form='spherical'):
     Rs2 = (R/s)**2
     C2 = (1 + Rs2)**(-1/2)
     
-    if (form == 'cylindrical'):
+    if not spher:
         C = (np.log(1 + Rs2)/2 + 2*C2 - 2 + Rs2/2*C2**2)**(-1)
         cdf = C*(np.log(1 + rs2)/2 + 2*C2*(1 - (1 + rs2)**(1/2)) + rs2/2*C2**2)  
     else:
-        # form == 'spherical'
         rs = r/s
         Rs = R/s
         C3 = (4 - np.pi)/(2*np.pi)*C2**3

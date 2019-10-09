@@ -1,0 +1,17 @@
+# Photometric data for a list of filters 
+# Includes filter name, alternative reference name, mean wavelength, FWHM in nm, solar magnitude (Vega), the zero point flux (in erg/s/cm^2/Angstrom) (for Vega)
+# Missing alt names should be marked with "-" 
+# Source: https://ui.adsabs.harvard.edu/abs/2018ApJS..236...47W/abstract
+# --------------------------------------------------------------------------------------------------------------------------------------------------------------
+# dtype=[('name', 'U16'), ('alt_name', 'U4'), ('mean', 'f4'), ('width', 'f4'), ('solar_mag', 'f4'), ('zp_flux', 'f4')]
+# name			alt		mean		width		solar_mag		zp_flux
+Bessell_U		U		360			63			5.57			4.146e-09
+Bessell_B		B		439			89			5.46			6.427e-09
+Bessell_V		V		550			84			4.82			3.670e-09
+Bessell_R		R		655			145			4.44			2.191e-09
+Bessell_I		I		800			150			4.11			1.173e-09
+2MASS_J			J		1241		203			3.67			3.179e-10
+2MASS_H			H		1660		261			3.32			1.160e-10
+2MASS_Ks		Ks		2160		279			3.27			4.373e-11
+Bessell_K		K		2168		305			3.27			4.358e-11
+Bessell_L		L		3484		510			3.26			7.334e-12

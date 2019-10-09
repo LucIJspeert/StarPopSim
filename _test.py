@@ -3128,10 +3128,15 @@ sources['y_stddev'] = sources['x_stddev']
 sources['theta'] = [0, 0, 0, 0]
 sources['id'] = [1, 2, 3, 4]
 tshape = (32, 32)
+# image = (make_gaussian_sources_image(tshape, sources) +
+#          make_noise_image(tshape, type='poisson', mean=6.,
+#                           random_state=1) +
+#          make_noise_image(tshape, type='gaussian', mean=0.,
+#                           stddev=2., random_state=1))
 image = (make_gaussian_sources_image(tshape, sources) +
-         make_noise_image(tshape, type='poisson', mean=6.,
+         make_noise_image(tshape, distribution='poisson', mean=6.,
                           random_state=1) +
-         make_noise_image(tshape, type='gaussian', mean=0.,
+         make_noise_image(tshape, distribution='gaussian', mean=0.,
                           stddev=2., random_state=1))
 #
 from matplotlib import rcParams
@@ -3200,10 +3205,15 @@ sources['y_stddev'] = sources['x_stddev']
 sources['theta'] = [0, 0, 0, 0]
 sources['id'] = [1, 2, 3, 4]
 tshape = (4096, 4096)
+# image = (make_gaussian_sources_image(tshape, sources) +
+#          make_noise_image(tshape, type='poisson', mean=6.,
+#                           random_state=1) +
+#          make_noise_image(tshape, type='gaussian', mean=0.,
+#                           stddev=2., random_state=1))
 image = (make_gaussian_sources_image(tshape, sources) +
-         make_noise_image(tshape, type='poisson', mean=6.,
+         make_noise_image(tshape, distribution='poisson', mean=6.,
                           random_state=1) +
-         make_noise_image(tshape, type='gaussian', mean=0.,
+         make_noise_image(tshape, distribution='gaussian', mean=0.,
                           stddev=2., random_state=1))
 #
 from matplotlib import rcParams
@@ -3271,10 +3281,15 @@ sources['y_stddev'] = sources['x_stddev']
 sources['theta'] = np.zeros(n)
 sources['id'] = [i+1 for i in range(n)]
 tshape = (4096, 4096)
+# image = (make_gaussian_sources_image(tshape, sources) +
+#          make_noise_image(tshape, type='poisson', mean=6.,
+#                           random_state=1) +
+#          make_noise_image(tshape, type='gaussian', mean=0.,
+#                           stddev=2., random_state=1))
 image = (make_gaussian_sources_image(tshape, sources) +
-         make_noise_image(tshape, type='poisson', mean=6.,
+         make_noise_image(tshape, distribution='poisson', mean=6.,
                           random_state=1) +
-         make_noise_image(tshape, type='gaussian', mean=0.,
+         make_noise_image(tshape, distribution='gaussian', mean=0.,
                           stddev=2., random_state=1))
 #
 from matplotlib import rcParams
@@ -3370,13 +3385,13 @@ std = bkgrms.calc_background_rms(data=image)
 psf_model = IntegratedGaussianPRF(sigma=sigma_psf)                                                  # Circular Gaussian model integrated over pixels. Because it is integrated, this model is considered a PRF, not a PSF 
 # Detect stars in an image using the DAOFIND (Stetson 1987) algorithm. (uses DAOGroup, DAOStarFinder and MMMBackground)
 photometry = phu.psf.DAOPhotPSFPhotometry(threshold=10*std, 
-                                          fwhm=sigma_psf*sigma_to_fwhm, 
+                                          fwhm=sigma_psf*gaussian_sigma_to_fwhm, 
                                           sharplo=0.0, sharphi=2.0, roundlo=-5.0, roundhi=5.0, 
-                                          crit_separation=2.0*sigma_psf*sigma_to_fwhm, 
-                                          psf_model=psf, 
+                                          crit_separation=2.0*sigma_psf*gaussian_sigma_to_fwhm, 
+                                          psf_model=psf_model, 
                                           fitter=apm.fitting.LevMarLSQFitter(), 
                                           fitshape=(11,11), niters=1, 
-                                          aperture_radius=sigma_psf*sigma_to_fwhm
+                                          aperture_radius=sigma_psf*gaussian_sigma_to_fwhm
                                           )
 result_tab = photometry(image=image)
 residual_image = photometry.get_residual_image()
@@ -3409,10 +3424,15 @@ sources['y_stddev'] = sources['x_stddev']
 sources['theta'] = [0, 0, 0, 0]
 sources['id'] = [1, 2, 3, 4]
 tshape = (4096, 4096)
+# image = (make_gaussian_sources_image(tshape, sources) +
+#          make_noise_image(tshape, type='poisson', mean=6.,
+#                           random_state=1) +
+#          make_noise_image(tshape, type='gaussian', mean=0.,
+#                           stddev=2., random_state=1))
 image = (make_gaussian_sources_image(tshape, sources) +
-         make_noise_image(tshape, type='poisson', mean=6.,
+         make_noise_image(tshape, distribution='poisson', mean=6.,
                           random_state=1) +
-         make_noise_image(tshape, type='gaussian', mean=0.,
+         make_noise_image(tshape, distribution='gaussian', mean=0.,
                           stddev=2., random_state=1))
 #
 from matplotlib import rcParams
@@ -3488,9 +3508,9 @@ image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', fi
 fh.PlotFits('img_test_save', scale='lin', grid=False)
 ## make the epsf
 # identify the stars and their initial positions
-img_data = fh.GetData('img_test_save')
+img_data = fh.GetData('psf_image_H.fits')
 
-peaks_tbl = phu.find_peaks(img_data, threshold=135000., box_size=11)
+peaks_tbl = phu.find_peaks(img_data, threshold=131050., box_size=11)
                            
 peaks_tbl['peak_value'].info.format = '%.8g'  # for consistent table output
 print(peaks_tbl)
@@ -3498,7 +3518,7 @@ print(peaks_tbl)
 peaks_tbl['x_peak'] = src.x_pix
 peaks_tbl['y_peak'] = src.y_pix
 # plot detected stars
-positions = (peaks_tbl['x_peak'], peaks_tbl['y_peak'])
+positions = [(x,y) for x,y in zip(peaks_tbl['x_peak'], peaks_tbl['y_peak'])]
 apertures = phu.CircularAperture(positions, r=5.)
 
 norm = apy.visualization.simple_norm(img_data, 'sqrt', percent=99.9)
@@ -3521,7 +3541,7 @@ img_data -= median_val                                                          
 
 nddata = apy.nddata.NDData(data=img_data)
 
-stars = phu.psf.extract_stars(nddata, stars_tbl, size=170)
+stars = phu.psf.extract_stars(nddata, stars_tbl, size=61)
 # show some of the cutouts
 # nrows = 1
 # ncols = 5
@@ -3534,8 +3554,8 @@ stars = phu.psf.extract_stars(nddata, stars_tbl, size=170)
 fig, ax = plt.subplots(figsize=(5, 5), squeeze=True)
 norm = apy.visualization.simple_norm(stars[0], 'log', percent=99.)
 ax.imshow(stars[0], norm=norm, origin='lower', cmap='viridis')
-    
 plt.show()
+##
 # initialize an EPSFBuilder instance with desired parameters and input the cutouts
 epsf_builder = phu.EPSFBuilder(oversampling=4, maxiters=5, progress_bar=False)
 epsf, fitted_stars = epsf_builder(stars)
@@ -3549,7 +3569,7 @@ plt.show()
 import pickle
 import os
 
-with open(os.path.join('objects', 'epsf-scao-fv.pkl'), 'wb') as output:
+with open(os.path.join('objects', 'epsf-scao.pkl'), 'wb') as output:
     pickle.dump(epsf, output, -1)
 
 
@@ -3580,7 +3600,7 @@ with open(os.path.join('objects', 'epsf-scao.pkl'), 'rb') as input:
     epsf = pickle.load(input)
     
 # get the test image
-image_name = 'img_test_save' # 'grid-5.000-5.903-2.069'
+image_name = 'grid-5.000-5.903-0.345-H'
 fh.PlotFits(image_name, scale='sqrt', grid=False)
 img_data = fh.GetData(image_name)
 
@@ -3589,8 +3609,8 @@ sigma_psf = 4.0
 sigma_to_fwhm = apy.stats.gaussian_sigma_to_fwhm
 bkgrms = phu.background.MADStdBackgroundRMS()
 std = bkgrms.calc_background_rms(data=img_data)
-psf = epsf                                                                                          # phu.psf.IntegratedGaussianPRF(sigma=sigma_psf)
-
+# psf = epsf                                                                                          # phu.psf.IntegratedGaussianPRF(sigma=sigma_psf)
+psf = phu.psf.IntegratedGaussianPRF(sigma=sigma_psf)
 photometry = phu.psf.DAOPhotPSFPhotometry(threshold=40*std, 
                                           fwhm=sigma_psf*sigma_to_fwhm, 
                                           sharplo=0.0, sharphi=2.0, roundlo=-1.5, roundhi=1.5, 
@@ -4087,14 +4107,154 @@ imgsaver(par_grid[99])
 
 
 
+## NS cooling
+def T1(t, M, R, log_g, s, q):
+    G_newt = 274.0                  # Msun^-1 Rsun^2 m s-2
+    c_light = 299792458.0           # m/s       speed of light 
+    temp = (10**6*73*10**log_g/10**14)**(1/4) * ((s/q)/(np.exp(6*s*t) - 1))**(1/12) * (1 - 2*G_newt*M/(R*c_light**2))**(1/4)
+    return temp
+    
+def T2(t):
+    return 2*10**(32/5)*t**(-2/5)
+
+R = 1.58*10**-5
+M = 1.4
+log_g = conv.RadiusToGravity(R, M)
+time = np.logspace(1, 8, 1000)
+
+T_1 = T1(time, M, R, log_g, 2e-6, 10**-50)
+T_2 = T2(time)
+T_3 = T1(time, M, R, log_g, 2e-6, 10**-53)
+T_4 = T1(time, M, R, log_g, 2e-6, 10**-55)
+
+fig, ax = plt.subplots(figsize=(5, 5), squeeze=True)
+ax.plot(np.log10(time), np.log10(T_1))
+ax.plot(np.log10(time), np.log10(T_2))
+ax.plot(np.log10(time), np.log10(T_3))
+ax.plot(np.log10(time), np.log10(T_4))
+# ax.set_ylim(5.5, 6.6)
+plt.show()
 
 
+## calculating lum/mag with BB radiation
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+import conversions as conv
+
+c_light = 299792458.0           # m/s       speed of light 
+h_plank = 6.62607004*10**-34    # J s       Planck constant
+k_B = 1.38064852*10**-23        # J/K       Boltzmann constant
+R_sun = 6.9551*10**8            # m         solar radius
+L_sun = 3.828*10**26            # W         solar luminosity
+parsec = 3.08567758*10**16      # m         parsec
+
+def PlanckBB(nu, T, var='freq'):
+    """Planck distribution of Black Body radiation. If var='wavl', use wavelength instead (in m).
+    Units are either W/sr^1/m^2/Hz^1 or W/sr^1/m^3 (for freq/wavl).
+    """
+    if (var == 'wavl'):
+        lam = nu
+        spec = (2*h_plank*c_light**2/lam**5)/(np.e**((h_plank*c_light)/(lam*k_B*T)) - 1)
+    else:
+        spec = (2*h_plank*nu**3/c_light**2)/(np.e**((h_plank*nu)/(k_B*T)) - 1)                      # else assume freq
+        
+    return spec
+
+
+file_name = os.path.join('tables', 'photometric_filters.dat')
+column_type = [('name', 'U20'), 
+               ('alt_name', 'U4'), 
+               ('mean', 'f4'), 
+               ('width', 'f4'), 
+               ('solar_mag', 'f4'), 
+               ('zp_flux', 'f4')]
+phot_dat = np.loadtxt(file_name, dtype=column_type)
+phot_dat = phot_dat[:8]
+phot_dat['mean'] = phot_dat['mean']*1e-9
+phot_dat['width'] = phot_dat['width']*1e-9
+phot_dat['zp_flux'] = phot_dat['zp_flux']*1e7
+
+lam_arr = np.linspace(0.1, 8, 1000)*1e-6
+
+fig, ax = plt.subplots(figsize=(5, 5), squeeze=True)
+ax.plot(lam_arr, PlanckBB(lam_arr, 7000, var='wavl'))
+ax.plot(lam_arr, PlanckBB(lam_arr, 5770, var='wavl'))
+ax.plot(lam_arr, PlanckBB(lam_arr, 5000, var='wavl'))
+ax.plot(lam_arr, PlanckBB(lam_arr, 4000, var='wavl'))
+ax.plot(lam_arr, PlanckBB(lam_arr, 3000, var='wavl'))
+ax.plot([phot_dat['mean']-phot_dat['width'], phot_dat['mean']+phot_dat['width']], 
+        [PlanckBB(phot_dat['mean'], 5770, var='wavl'),PlanckBB(phot_dat['mean'], 5770, var='wavl')])
+ax.plot(np.linspace(phot_dat['mean']-phot_dat['width'], phot_dat['mean']+phot_dat['width'], 10), 
+        PlanckBB(np.linspace(phot_dat['mean']-phot_dat['width'], phot_dat['mean']+phot_dat['width'], 10), 5770, var='wavl'))
+ax.set_xlabel('wavelength (m)')
+ax.set_ylabel('spectral radiance (W sr^-1 m^-3)')
+plt.show()
+
+integral = np.trapz(PlanckBB(lam_arr, 5770, var='wavl'), x=lam_arr)                                 # W/sr^1/m^2
+intensity = np.pi*integral                                                                          # W/m^2
+luminosity = intensity*4*np.pi*(R_sun)**2                                                           # W
+magnitude = conv.LumToMag(luminosity/L_sun)
+print('M_bol sun: ', magnitude) 
+
+integral = PlanckBB(phot_dat['mean'], 5770, var='wavl')*phot_dat['width']                                  # W/sr^1/m^2
+intensity = np.pi*integral                                                                          # W/m^2
+luminosity = intensity*4*np.pi*(R_sun)**2                                                           # W
+magnitude = conv.LumToMag(luminosity/L_sun)
+print(', '.join(['{0}= {1}'.format(name, num) for name,num in zip(phot_dat['alt_name'], magnitude)]))
+print('')
+
+lam_arr = np.linspace(phot_dat['mean']-phot_dat['width']/2, phot_dat['mean']+phot_dat['width']/2, 10).T
+# lam_arr = lam_arr[0]
+temps = np.array([5000, 5300, 5770, 6000])
+integral = np.trapz(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*len(np.shape(lam_arr))), var='wavl'), x=lam_arr, axis=-1)      # W/sr^1/m^2
+intensity = np.pi*integral                                                                          # W/m^2
+luminosity = intensity*4*np.pi*(np.array([1,2,1,1]).reshape((4,) + (1,)*(len(phot_dat['mean']) > 1))*R_sun)**2                                                           # W
+magnitude = conv.LumToMag(luminosity/L_sun)
+print(magnitude)
+# print(', '.join(['{0}= {1}'.format(name, num) for name,num in zip(phot_dat['alt_name'], magnitude)]))
+
+temps = np.array([5770])
+spec_radiance = np.mean(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*len(np.shape(lam_arr))), var='wavl'), axis=-1)     # W/sr^1/m^3
+spec_flux = np.pi*spec_radiance                                                                     # W/m^3
+# translation to 10 pc
+integrated = spec_flux*(np.array([1,2,1,1]).reshape((4,) + (1,)*(len(phot_dat['mean']) > 1))*R_sun)**2
+calibrated = integrated/(10*parsec)**2
+magnitude = - 2.5*np.log10(calibrated/phot_dat['zp_flux'])
+print(magnitude)
+
+# try integrated, then divided by filter width [does not change it much]
+temps = np.array([5770])
+spec_radiance = np.trapz(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*len(np.shape(lam_arr))), var='wavl'), x=lam_arr, axis=-1)/phot_dat['width']     # W/sr^1/m^3
+spec_flux = np.pi*spec_radiance                                                                     # W/m^3
+# translation to 10 pc
+integrated = spec_flux*(np.array([1,2,1,1]).reshape((4,) + (1,)*(len(phot_dat['mean']) > 1))*R_sun)**2
+calibrated = integrated/(10*parsec)**2
+magnitude = - 2.5*np.log10(calibrated/phot_dat['zp_flux'])
+print(magnitude)
+
+## test magnitude redshift
+import os
+
+astobj = obg.StarCluster(N_stars=1000, age=10, metal=0.0014, distance=5*10**10)
+no_rs = astobj.ApparentMagnitudes(add_redshift=False)
+with_rs = astobj.ApparentMagnitudes(add_redshift=True)
+
+phot_data = utils.OpenPhotometricData(columns=['alt_name', 'mean'])
+filters = utils.SupportedFilters()
+mask = [name in filters for name in phot_data['alt_name']]
+##
+nr = 5
+fig, ax = plt.subplots(figsize=(5, 5), squeeze=True)
+ax.plot(phot_data['mean'][mask], no_rs[nr])
+ax.plot(phot_data['mean'][mask], with_rs[nr])
+ax.invert_yaxis()
+plt.show()
 
 
 ##
 import numpy as np
 import matplotlib.pyplot as plt
-import simcado as sim
 import objectgenerator as obg
 import fitshandler as fh
 import visualizer as vis
@@ -4102,6 +4262,8 @@ import formulas as form
 import distributions as dist
 import conversions as conv
 import imagegenerator as img
+import utils
+import simcado as sim
 
 
 # cd documents\documenten_radboud_university\masterstage\StarPopSim
