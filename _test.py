@@ -4252,6 +4252,38 @@ ax.invert_yaxis()
 plt.show()
 
 
+## star formation history
+def StarFormHistory(max_age, log_t, sfr='exp', t0=1e10, tau=1e15):
+    """Finds the relative number of stars to give a certain age up to maximum given age, 
+    using a certain Star Formation Rate.
+    log_t provides the available times in the isochrone file.
+    """
+    if (max_age > 12):                                                                              # determine if logarithm or not
+        max_age = np.log10(max_age)
+    
+    uni_log_t = np.unique(log_t)
+    log_t_use = uni_log_t[uni_log_t <= max_age]                                                     # log t's to use 
+    
+    if (sfr == 'exp'):
+        t_use = 10**log_t_use                                                                       # Age of each SSP
+        time = t0 - t_use                                                                           # Time since t0
+        psi = np.exp(-time/tau)                                                                     # Star formation rates (relative)
+        rel_num = psi/np.sum(psi)                                                                   # relative number in each generation
+    #TODO: make this work + also return the ages for each number in rel_num
+    return rel_num, t_use
+
+log_t = np.unique(OpenIsochronesFile(0.014, columns=['log_age']))
+sfh1, t1 = StarFormHistory(10**7, log_t, sfr='exp', t0=1e10, tau=1e15)
+sfh2, t2 = StarFormHistory(10**8, log_t, sfr='exp', t0=1e10, tau=1e15)
+sfh3, t3 = StarFormHistory(10**6, log_t, sfr='exp', t0=1e10, tau=1e15)
+fig, ax = plt.subplots(figsize=(5, 5), squeeze=True)
+# ax.plot(t1, (sfh1))
+ax.plot(t2, np.cumsum(sfh2))        # something is not right: I expect it to increase from oldest age to youngest
+# ax.plot(t3, (sfh3))
+plt.show()
+
+
+
 ##
 import numpy as np
 import matplotlib.pyplot as plt

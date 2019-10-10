@@ -61,7 +61,7 @@ class AstObject:
         if (imf_par is None):
             imf_par = imf_defaults
         if (sf_hist is None):
-            sf_hist = ['none']
+            sf_hist = [None]
         
         self.N_stars = N_stars                                                                      # number of stars
         self.M_tot_init = M_tot_init                                                                # total initial mass in Msun
@@ -98,8 +98,11 @@ class AstObject:
         self.compact_mode = cp_mode                                                                 # (compact mode) mode of compacting. num=number limited, mag=magnitude limited
         self.mag_limit = mag_lim                                                                    # (compact mode) limiting magnitude, used only for compact mode
         self.fraction_generated = 1                                                                 # (compact mode) part of the total number of stars that has actually been generated for each population
-        self._gen_imf_param = np.array([])                                                          # the imf parameters to use for each population (limits imposed by compacting)
-        self._gen_pop_number = np.array([])                                                         # actually generated number of stars per population (for compact mode)
+        
+        # private
+        self.gen_imf_param = np.array([])                                                           # the actual imf parameters to use for each population (limits imposed by compacting)
+        self.gen_pop_number = np.array([])                                                          # actually generated number of stars per population (for compact mode)
+        self.gen_ages                                                                               # the actual ages to be generated for each population (for sfhist)
         
         self.CheckInput()                                                                           # check user input
         # the stars are not yet generated. This can be done manually.
@@ -270,14 +273,6 @@ class AstObject:
                 raise RuntimeError('objectgenerator//GenerateStars: population compacted to <10, '
                                    'try not compacting or generating a higher number of stars.')
         
-        # assign the right values for generation
-        if self.compact:
-            self._gen_pop_number = np.rint(self.pop_number*self.fraction_generated).astype(int)
-            self._gen_imf_param = mass_limit
-        else:
-            self._gen_pop_number = self.pop_number
-            self._gen_imf_param = self.imf_param
-        
         return
     
     def CheckRadialDistribution(self):
@@ -391,10 +386,23 @@ class AstObject:
     
     def GenerateStars(self):
         """Generate the masses and positions of the stars."""
+        # assign the right values for generation (start of generating sequence)
+        if self.compact:
+            self.gen_pop_number = np.rint(self.pop_number*self.fraction_generated).astype(int)
+            self.gen_imf_param = mass_limit
+        else:
+            self.gen_pop_number = self.pop_number
+            self.gen_imf_param = self.imf_param
+            
+        if not np.all(self.sfhist == None):
+            self.gen_ages = StarFormHistory()
+        else:
+            self.gen_ages = self.ages
+        
         # generate the positions, masses   
-        for i, pop_num in enumerate(self._gen_pop_number):
+        for i, pop_num in enumerate(self.gen_pop_number):
             coords_i = Spherical(pop_num)
-            M_init_i, M_diff_i = StarMasses(pop_num, 0, imf=self._gen_imf_param[i])
+            M_init_i, M_diff_i = StarMasses(pop_num, 0, imf=self.gen_imf_param[i])
             self.coords = np.append(self.coords, coords_i, axis=0)                           
             self.M_init = np.append(self.M_init, M_init_i)
             self.M_diff += M_diff_i                                                                 # StarMasses already gives diff in Mass (=estimate since no mass was given)
@@ -409,7 +417,6 @@ class AstObject:
         
         # the filter names of the corresponding default set of supported magnitudes
         self.mag_names = utils.SupportedFilters()
-        
         return
         
     def AddFieldStars(self, n=10, fov=53, sky_coords=None):
@@ -529,7 +536,7 @@ class AstObject:
         elif (len(np.unique(self.inclination)) == 1):
             self.coords = conv.RotateXZ(self.coords, self.inclination[0])
         else:
-            index = np.cumsum(np.append([0], self._gen_pop_number))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_pop_number))                                  # indices defining the different populations
             for i, incl_i in enumerate(self.inclination):
                 ind_1, i_2 = index[i], index[i+1]
                 self.coords[ind_1:ind_2] = conv.RotateXZ(self.coords[ind_1:ind_2], incl_i)
@@ -589,7 +596,7 @@ class AstObject:
         elif (axes_shape[0] == 1):
             self.coords = self.coords*axes/np.prod(axes)**(1/3)                                     # convert to ellipsoid (keeps volume conserved)
         else:
-            index = np.cumsum(np.append([0], self._gen_pop_number))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_pop_number))                                  # indices defining the different populations
             for i, axes_i in enumerate(self.ellipse_axes):
                 ind_1, ind_2 = index[i], index[i+1]
                 self.coords[ind_1:ind_2] = self.coords[ind_1:ind_2]*axes_i/np.prod(axes_i)**(1/3)
@@ -609,7 +616,7 @@ class AstObject:
             M_cur = self.current_masses
         else:
             M_cur = np.array([])
-            index = np.cumsum(np.append([0], self._gen_pop_number))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_pop_number))                                  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
@@ -637,7 +644,7 @@ class AstObject:
             R_cur = self.stellar_radii
         else:
             R_cur = np.array([])
-            index = np.cumsum(np.append([0], self._gen_pop_number))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_pop_number))                                  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
@@ -668,7 +675,7 @@ class AstObject:
             log_L = self.log_luminosities
         else:
             log_L = np.array([])
-            index = np.cumsum(np.append([0], self._gen_pop_number))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_pop_number))                                  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
@@ -701,7 +708,7 @@ class AstObject:
             log_Te = self.log_temperatures
         else:
             log_Te = np.array([])
-            index = np.cumsum(np.append([0], self._gen_pop_number))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_pop_number))                                  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
@@ -738,7 +745,7 @@ class AstObject:
                 abs_mag = abs_mag.flatten()                                                         # correct for 2D array
         else:
             abs_mag = np.empty((0,) + (len(filters),)*(len(filters) != 1))
-            index = np.cumsum(np.append([0], self._gen_pop_number))                                 # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_pop_number))                                  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
@@ -826,7 +833,7 @@ class AstObject:
             remnants = self.remnants
         else:
             remnants = np.array([], dtype=bool)
-            index = np.cumsum(np.append([0], self._gen_pop_number))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_pop_number))                                  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 iso_M_ini = utils.StellarIsochrone(age, self.metal[i], columns=['M_initial'])
@@ -859,6 +866,10 @@ class AstObject:
             radii = conv.ParsecToArcsec(radii, self.d_ang)
         
         return radii
+    
+    def OrbitalVelocities():
+        """"""
+        # todo: make this
     
     def HalfMassRadius(self, unit='pc', spher=False):
         """Returns the (spherical or cylindrical) half mass radius in pc/as."""
@@ -1082,10 +1093,23 @@ class StarCluster(AstObject):
         
     def GenerateStars(self):
         """Generate the masses and positions of the stars for the cluster."""
+        # assign the right values for generation (start of generating sequence)
+        if self.compact:
+            self.gen_pop_number = np.rint(self.pop_number*self.fraction_generated).astype(int)
+            self.gen_imf_param = mass_limit
+        else:
+            self.gen_pop_number = self.pop_number
+            self.gen_imf_param = self.imf_param
+            
+        if not np.all(self.sfhist == None):
+            self.gen_ages = StarFormHistory()
+        else:
+            self.gen_ages = self.ages
+        
         # generate the positions, masses   
-        for i, pop_num in enumerate(self._gen_pop_number):
+        for i, pop_num in enumerate(self.gen_pop_number):
             coords_i = Spherical(pop_num, dist_type=self.r_dist_type[i], **self.r_dist_param[i])
-            M_init_i, M_diff_i = StarMasses(pop_num, 0, imf=self._gen_imf_param[i])
+            M_init_i, M_diff_i = StarMasses(pop_num, 0, imf=self.gen_imf_param[i])
             self.coords = np.append(self.coords, coords_i, axis=0)                           
             self.M_init = np.append(self.M_init, M_init_i)
             self.M_diff += M_diff_i                                                                 # StarMasses already gives diff in Mass (=estimate since no mass was given)
@@ -1100,7 +1124,6 @@ class StarCluster(AstObject):
         
         # the filter names of the corresponding default set of supported magnitudes
         self.mag_names = utils.SupportedFilters()
-        
         return
 
 
@@ -1141,11 +1164,24 @@ class EllipticalGalaxy(AstObject):
 
     def GenerateStars(self):
         """Generate the masses and positions of the stars for the elliptical galaxy."""
+        # assign the right values for generation (start of generating sequence)
+        if self.compact:
+            self.gen_pop_number = np.rint(self.pop_number*self.fraction_generated).astype(int)
+            self.gen_imf_param = mass_limit
+        else:
+            self.gen_pop_number = self.pop_number
+            self.gen_imf_param = self.imf_param
+            
+        if not np.all(self.sfhist == None):
+            self.gen_ages = StarFormHistory()
+        else:
+            self.gen_ages = self.ages
+        
         # generate the positions, masses   
-        for i, pop_num in enumerate(self._gen_pop_number):
+        for i, pop_num in enumerate(self.gen_pop_number):
             coords_i = Spherical(pop_num, dist_type=self.r_dist_type[i], **self.r_dist_param[i])
             coords_i = Ellipsify(coords_i, self.ellipse_axes[i])
-            M_init_i, M_diff_i = StarMasses(pop_num, 0, imf=self._gen_imf_param[i])
+            M_init_i, M_diff_i = StarMasses(pop_num, 0, imf=self.gen_imf_param[i])
             self.coords = np.append(self.coords, coords_i, axis=0)                           
             self.M_init = np.append(self.M_init, M_init_i)
             self.M_diff += M_diff_i                                                                 # StarMasses already gives diff in Mass (=estimate since no mass was given)
@@ -1192,10 +1228,23 @@ class SpiralGalaxy(AstObject):
         
     def GenerateStars(self):
         """Generate the masses and positions of the stars for the spiral galaxy."""
+        # assign the right values for generation (start of generating sequence)
+        if self.compact:
+            self.gen_pop_number = np.rint(self.pop_number*self.fraction_generated).astype(int)
+            self.gen_imf_param = mass_limit
+        else:
+            self.gen_pop_number = self.pop_number
+            self.gen_imf_param = self.imf_param
+            
+        if not np.all(self.sfhist == None):
+            self.gen_ages = StarFormHistory()
+        else:
+            self.gen_ages = self.ages
+        
         # generate the positions, masses   
-        for i, pop_num in enumerate(self._gen_pop_number):
+        for i, pop_num in enumerate(self.gen_pop_number):
             coords_i = Spiral(pop_num)
-            M_init_i, M_diff_i = StarMasses(pop_num, 0, imf=self._gen_imf_param[i])
+            M_init_i, M_diff_i = StarMasses(pop_num, 0, imf=self.gen_imf_param[i])
             self.coords = np.append(self.coords, coords_i, axis=0)                           
             self.M_init = np.append(self.M_init, M_init_i)
             self.M_diff += M_diff_i                                                                 # StarMasses already gives diff in Mass (=estimate since no mass was given)
@@ -1348,9 +1397,8 @@ def FindSpectralType(T_eff, Lum, Mass):
     
     indices[dists == np.inf] = np.where(type_selection == 'DC9')[0][0]                              # correct for missing neighbours
     
-    #TODO: WD are taken care of this way, but what to do with NS/BH? 
+    # WD are taken care of this way, but what to do with NS/BH? 
     # (now they would probably get WD spectra)
-    
     return indices, type_selection
 
 
