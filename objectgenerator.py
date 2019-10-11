@@ -393,9 +393,10 @@ class AstObject:
         else:
             self.gen_pop_number = self.pop_number
             self.gen_imf_param = self.imf_param
-            
+        # todo: implement last bits of sfh [make some tau variable?]
         if not np.all(self.sfhist == None):
-            self.gen_ages = StarFormHistory()
+            self.gen_ages = StarFormHistory(self.ages, sfr=self.sfhist, Z=self.metal, tau=...)
+            self.gen_pop_number
         else:
             self.gen_ages = self.ages
         
@@ -1100,9 +1101,9 @@ class StarCluster(AstObject):
         else:
             self.gen_pop_number = self.pop_number
             self.gen_imf_param = self.imf_param
-            
+        # todo: implement last bits of sfh
         if not np.all(self.sfhist == None):
-            self.gen_ages = StarFormHistory()
+            self.gen_ages = StarFormHistory(self.ages, Z=self.metal, )
         else:
             self.gen_ages = self.ages
         
@@ -1335,21 +1336,57 @@ def StarMasses(N_stars=0, M_tot=0, imf=[0.08, 150]):
     return M_init, M_diff
 
 
-def StarFormHistory(max_age, log_t, sfr='exp', t0=1e10, tau_star=1e15):
-    """Finds the relative number of stars to give a certain age up to maximum given age, 
-    using a certain Star Formation Rate.
-    log_t provides the available times in the isochrone file.
+def StarFormHistory(max_age, min_age=0, sfr='exp', Z=0.014, tau=1e10):
+    """Finds the relative number of stars to give each (logarithmic) age step up to a 
+    maximum given age (starting from a minimum age if desired).
+    The star formation rate (sfr) can be 'exp' or 'lin-exp'.
+    tau is the decay timescale of the star formation (in yr).
     """
-    uni_log_t = np.unique(log_t)
-    log_t_use = uni_log_t[uni_log_t <= max_age]                                                     # log t's to use 
+    if np.all(max_age > 12):                                                                        # determine if logarithm or not
+        max_age = np.log10(max_age)
+    if np.all(min_age > 12):
+        max_age = np.log10(max_age)
     
-    if (sfr == 'exp'):
-        t_use = 10**log_t_use                                                                       # Age of each SSP
-        tau = t0 - t_use                                                                            # Time since t0
-        psi = np.exp(-tau/tau_star)                                                                 # Star formation rates (relative)
+    if hasattr(max_age, '__len__'):
+        # if more that one age given, fix other qtt's and solve recursively
+        if not hasattr(min_age, '__len__'):
+            min_age = np.full_like(max_age, min_age)
+        if not hasattr(Z, '__len__'):
+            Z = np.full_like(max_age, Z)
+        if isinstance(sfr, str):
+            sfr = np.full_like(max_age, sfr, dtype='U10')
+        if not hasattr(tau, '__len__'):
+            tau = np.full_like(max_age, tau)
+        
+        rel_num = np.array([])
+        log_ages_used = np.array([])
+        r_temp, a_temp = StarFormHistory(max_age[0], min_age=min_age[0], Z=Z[0], sfr=sfr[0], 
+                                         tau=tau[0])
+        rel_num = np.append(rel_num, r_temp)
+        log_ages_used = np.append(log_ages_used, a_temp)
+        if (len(max_age) > 1):
+            r_temp, a_temp = StarFormHistory(max_age[1:], min_age=min_age[1:], Z=Z[1:], 
+                                             sfr=sfr[1:], tau=tau[1:])
+            rel_num = np.append(rel_num, r_temp)
+            log_ages_used = np.append(log_ages_used, a_temp)
+    else:
+        # here is the actual functionality
+        log_ages = np.unique(utils.OpenIsochronesFile(Z, columns=['log_age']))                      # avaiable ages
+        uni_log_ages = np.unique(log_ages)
+        log_ages_used = uni_log_ages[(uni_log_ages <= max_age) & (uni_log_ages >= min_age)]         # log t's to use (between min/max ages)
+        ages_used = 10**log_ages_used                                                               # age of each SSP
+    
+        if (sfr == 'exp'):
+            psi = np.exp((ages_used - min_age)/tau)                                                 # Star formation rates (relative)
+        elif(sfr == 'lin-exp'):
+            t0 = 10**np.max(uni_log_ages)                                                           # represents the start of time
+            psi = (t0 - ages_used - min_age)/tau*np.exp((ages_used - min_age)/tau)                  # Star formation rates (relative)
+        else:
+            # for when None is given
+            log_ages_used = max_age
+            psi = 1
         rel_num = psi/np.sum(psi)                                                                   # relative number in each generation
-    #TODO: make this work + also return the ages for each number in rel_num
-    return rel_num  
+    return rel_num, log_ages_used
 
 
 def FindSpectralType(T_eff, Lum, Mass):
