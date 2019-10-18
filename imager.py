@@ -4,6 +4,7 @@
 """This module provides a function (Image) that takes user input for making an astronomical image
 as well as an interactive function (DynamicImage) that leads the user through all the options.
 """
+#todo: [warning: due to changes in <obg> some functions this module will not work as intended]
 import argparse
 import os
 import numpy as np

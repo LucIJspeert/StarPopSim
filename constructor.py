@@ -4,6 +4,7 @@
 """This module provides the argsparse for user input for making an astronomical object 
 as well as an interactive function (DynamicConstruct) that leads the user through all the options.
 """
+#todo: [warning: due to changes in <obg> this module is no longer up to dat and will not work as intended]
 import argparse
 import fnmatch
 import inspect
