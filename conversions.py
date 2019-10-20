@@ -18,7 +18,7 @@ rad_as = 648000/np.pi           # radians to arcseconds
 as_rad = np.pi/648000           # arcseconds to radians
 
 # global defaults
-imf_defaults = [0.08, 150]      # lower bound, upper bound on mass
+default_imf_par = [0.08, 150]   # M_sun     lower bound, upper bound on mass
 
 
 def PolToCart(r, theta):
@@ -87,7 +87,7 @@ def DModulusToParsec(mod):
     return 10**(mod/5 + 1)
 
 
-def MtotToNstars(M, imf=imf_defaults):
+def MtotToNstars(M, imf=default_imf_par):
     """Converts from mass in a cluster (one stellar population) 
     to number of objects using the implemented IMF.
     """
@@ -100,7 +100,7 @@ def MtotToNstars(M, imf=imf_defaults):
     return np.rint(M/M_mean).astype(np.int64)
 
 
-def NstarsToMtot(N, imf=imf_defaults):
+def NstarsToMtot(N, imf=default_imf_par):
     """Converts from number of objects in a cluster (one stellar population) 
     to total mass using the implemented IMF.
     """

@@ -10,10 +10,10 @@ import scipy.special as sps
 
 
 # global defaults
-imf_defaults = [0.08, 150]      # lower bound, upper bound on mass
+default_imf_par = [0.08, 150]   # M_sun     lower bound, upper bound on mass
 
 
-def pdf_KroupaIMF(M, imf=imf_defaults):
+def pdf_KroupaIMF(M, imf=default_imf_par):
     """(Forward) Initial Mass Function (=probability density function), 
     normalized to 1 probability.
     Modified Salpeter IMF; actually Kroupa IMF above 0.08 solar mass.
@@ -27,7 +27,7 @@ def pdf_KroupaIMF(M, imf=imf_defaults):
     return (M < M_mid)*C_L*M**(-1.35) + (M >= M_mid)*C_U*M**(-2.35)
 
 
-def KroupaIMF(n=1, imf=imf_defaults):
+def KroupaIMF(n=1, imf=default_imf_par):
     """Generate masses distributed like the Kroupa Initial Mass Function. 
     Spits out n masses between lower and upper bound in 'imf'.
     """

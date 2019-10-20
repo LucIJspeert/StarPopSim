@@ -30,9 +30,9 @@ om_m = 0.315                    # frac      omega matter
 om_l = 0.685                    # frac      omega lambda ('dark energy')
 
 # global defaults
-imf_defaults = [0.08, 150]      # M_sun; lower bound, upper bound on mass
-NS_mass = 1.2                   # M_sun; lower mass bound for NSs
-BH_mass = 2.0                   # M_sun; lower mass bound for BHs
+default_imf_par = [0.08, 150]   # M_sun     lower bound, upper bound on mass
+NS_mass = 1.2                   # M_sun     lower mass bound for NSs
+BH_mass = 2.0                   # M_sun     lower mass bound for BHs
 
 
 def Distance(points, position=[0,0,0]):
@@ -231,7 +231,7 @@ def AbsoluteMag(mag, dist, ext=0):
     return mag - 5*np.log10(dist/10) - ext                                                          # dist in pc!
 
 
-def MassFraction(mass_limits, imf=imf_defaults):
+def MassFraction(mass_limits, imf=default_imf_par):
     """Returns the fraction of stars in a population above and below certain mass_limits (Msol)."""
     M_L, M_U = imf
     M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
@@ -251,7 +251,7 @@ def MassFraction(mass_limits, imf=imf_defaults):
     return f
 
 
-def MassLimit(frac, M_max=None, imf=imf_defaults):
+def MassLimit(frac, M_max=None, imf=default_imf_par):
     """Returns the lower mass limit to get a certain fraction of stars generated."""
     M_L, M_U = imf
     M_mid = 0.5  

@@ -35,9 +35,9 @@ as_rad = np.pi/648000           # arcseconds to radians
 
 # global defaults
 rdist_default = 'Normal'        # see distributions module for a full list of options
-imf_defaults = [0.08, 150]      # lower bound, upper bound on mass
+default_imf_par = [0.08, 150]   # M_sun     lower bound, upper bound on mass
 default_mag_lim = 32            # magnitude limit for compact mode
-limiting_number = 10**7         # used in compact mode as maximum number of stars
+limiting_number = 10**7         # maximum number of stars for compact mode 
 
 
 class Stars:
@@ -56,10 +56,19 @@ class Stars:
         metal (numpy.ndarray of float): 1D array of metallicities for each stellar population.
         rel_num (numpy.ndarray of float, optional): the relative number of stars to put 
             in each stellar population.
-        sfh (list of str, optional): types of star formation history to use per stellar population.
+        sfh (numpy.ndarray of str and None, optional): types of star formation history to use per 
+            stellar population.
         imf_par (numpy.ndarray of float, optional): 2D array of two parameters per 
             stellar population. First parameter is lowest mass, second is highest mass to make.
-        compact_mode (str or None): 
+        r_dist ():
+        r_dist_par ():
+        incl ():
+        ellipse_axes ():
+        spiral_arms ():
+        spiral_bulge ():
+        spiral_bar ():
+        compact_mode (str or None): generate only a fraction of the total number of stars.
+            choose from 'num' or 'mag' for number or magnitude limited. 
     
     Attributes:
         
@@ -68,68 +77,69 @@ class Stars:
         
     """    
     def __init__(self, N_stars=0, M_tot_init=0, ages=None, metal=None, rel_num=None, sfh=None, 
-                 imf_par=None, compact=False, cp_mode='num', mag_lim=None, **kwargs
-                 ):
+                 imf_par=None, incl=None, r_dist=None, r_dist_par=None, ellipse_axes=None,
+                 spiral_arms=0, spiral_bulge=0, spiral_bar=0, compact_mode=None, **kwargs):
         
-        if (ages is None):
-            ages = np.array([])
-        if (metal is None):
-            metal = np.array([])
-        if (rel_num is None):
-            rel_num = [1]
-        if (imf_par is None):
-            imf_par = imf_defaults
-        if (sfh is None):
-            sfh = [None]
-        
-        self.N_stars = N_stars                                                                      # number of stars
-        self.M_tot_init = M_tot_init                                                                # total initial mass in Msun
-        self.ages = ages                                                                            # ages of the populations (=max age if SFH is used)
-        self.metal = metal                                                                          # metallicity (of each population)
-        self.rel_number = rel_num                                                                   # relative number of stars in each population (equal if left empty)
-        
-        # optional parameters
-        self.imf_param = imf_par                                                                    # lower bound, knee position, upper bound for the IMF masses
-        self.sfhist = sfh                                                                           # star formation history type
+        if not incl:
+            incl = np.zeros_like(ages)
+        if not r_dist:
+            r_dist = [rdist_default for i in range(len(ages))]
+        if not r_dist_par:
+            r_dist_par = [{s: 1.0} for i in range(len(ages))]
+        if not ellipse_axes:
+            ellipse_axes = np.ones([len(ages), 3])
+        # cast input to right formats, and perform some checks
+        n_pop = utils.NumberOfPopulations(ages, metal, rel_num)                                     # find the intended number of populations
+        self.ages = utils.CastAges(ages, n_pop)                                                     # ages of the populations (=max age if SFH is used)
+        self.metal = utils.CastMetallicities(metal, n_pop)                                          # metallicities of the populations
+        self.rel_number = utils.CastRelNumber(rel_num, n_pop)                                       # relative number of stars in each population (converted to fractions)
+        self.imf_param = utils.CastIMFParameters(imf_par, n_pop, fill_value=default_imf_par)        # lower bound, upper bound for the IMF masses
+        self.imf_param = utils.CheckLowestIMFMass(self.imf_param, self.ages, self.metal)
+        self.N_stars = utils.CheckNStars(N_stars, M_tot_init, self.rel_number, self.imf_param)      # total number of stars
+        self.M_tot_init = M_tot_init                                                                # total initial mass in Msun (can initially be zero)
+        self.sfhist = utils.CastSFHistory(sfh, n_pop)                                               # star formation history type
+        # shape parameters
+        self.inclination = incl                                                                     # inclination of the stars per population
+        self.r_dist_type = r_dist                                                                   # type of radial distribution
+        self.r_dist_param = r_dist_par                                                              # the further spatial distribution parameters (dictionary)
+        self.ellipse_axes = ellipse_axes                                                            # relative axis size for ellipsoidal shapes 
+        self.spiral_arms = spiral_arms                                                              # number of spiral arms
+        self.spiral_bulge = spiral_bulge                                                            # relative proportion of central bulge
+        self.spiral_bar = spiral_bar                                                                # relative proportion of central bar
         
         # properties that are derived/generated
-        self.pop_number = np.array([])                                                              # number of stars in each population
+        self.pop_number = np.rint(self.rel_number*self.N_stars).astype(int)                         # number of stars in each population
+        self.pop_number = utils.FixTotal(self.pop_number, self.N_stars)
         self.coords = np.empty([0,3])                                                               # spatial coordinates
         self.M_init = np.array([])                                                                  # the masses of the stars
         self.M_diff = 0                                                                             # mass difference between given and generated (total) mass (if given)
-        
-        self.spec_names = np.array([])                                                              # corresponding spectral type names
-        self.mag_names = np.array([])                                                               # names of the filters corresponding to the magnitudes
+        self.mag_names = utils.SupportedFilters()                                                   # the filter names of the corresponding default set of supported magnitudes
+        self.spec_names = np.array([])                                                              # spectral type names corresponding to the numbers in spectral_types
         
         # compact mode parameters
-        self.compact = compact  	                                                                # (compact mode) if True, generates only high mass stars based on limiting mag
-        self.compact_mode = cp_mode                                                                 # (compact mode) mode of compacting. num=number limited, mag=magnitude limited
-        self.mag_limit = mag_lim                                                                    # (compact mode) limiting magnitude, used only for compact mode
-        self.fraction_generated = 1                                                                 # (compact mode) part of the total number of stars that has actually been generated for each population
+        self.compact_mode = compact_mode                                                            # (compact mode) generate only the higher mass stars. num=number limited, mag=magnitude limited
+        self.fraction_generated = np.ones_like(self.pop_number, dtype=float)                        # (compact mode) part of the total number of stars that has actually been generated per population
         
         # semi-private
-        self.gen_imf_param = np.array([])                                                           # the actual imf parameters to use for each population (limits imposed by compacting)
-        self.gen_pop_number = np.array([])                                                          # actually generated number of stars per population (for compact mode)
-        self.gen_ages                                                                               # the actual ages to be generated for each population (for sfhist)
+        self.gen_imf_param = self.imf_param                                                         # the actual imf parameters to use for each population (limits imposed by compacting)
+        self.gen_pop_number = self.pop_number                                                       # actually generated number of stars per population (for compact mode)
+        self.gen_ages = self.ages                                                                   # the actual ages to be generated for each population (for sfhist)
         
+        self.GenerateStars()                                                                        # actually generate the stars
         super().__init__(**kwargs)                                                                  # inheritance
         return
         
     def GenerateStars(self):
         """Generate the masses and positions of the stars."""
         # assign the right values for generation (start of generating sequence)
-        if self.compact:
+        if self.compact_mode:
+            # todo: fix this, needs functions instead of the not-yet-declared vars 
             self.gen_pop_number = np.rint(self.pop_number*self.fraction_generated).astype(int)
             self.gen_imf_param = mass_limit
-        else:
-            self.gen_pop_number = self.pop_number
-            self.gen_imf_param = self.imf_param
         # todo: implement last bits of sfh [make some tau variable?]
         if not np.all(self.sfhist == None):
             self.gen_ages = StarFormHistory(self.ages, sfr=self.sfhist, Z=self.metal, tau=...)
             self.gen_pop_number
-        else:
-            self.gen_ages = self.ages
         
         # generate the positions, masses   
         for i, pop_num in enumerate(self.gen_pop_number):
@@ -146,9 +156,6 @@ class Stars:
         else:
             self.M_diff = mass_generated - self.M_tot_init                                          # if negative: too little mass generated, else too much
             self.M_tot_init = mass_generated                                                        # set to actual initial mass
-        
-        # the filter names of the corresponding default set of supported magnitudes
-        self.mag_names = utils.SupportedFilters()
         return
         
     def AddInclination(self, incl):
@@ -744,283 +751,7 @@ class AstronomicalObject():
         self.d_ang = form.DAngular(self.redshift)                                                   # angular distance (in pc)
         self.extinction = extinct                                                                   # extinction between source and observer
         
-        # self.CheckInput()                                                                           # check user input [do something with this]
         super().__init__(**kwargs)                                                                  # inheritance
-        return
-    
-    def CheckInput(self):
-        """Checks the given input for compatibility."""
-        # check metallicity and age and make sure they are arrays
-        if hasattr(self.ages, '__len__'):
-            self.ages = np.array(self.ages)
-        else:
-            self.ages = np.array([self.ages])
-            
-        if hasattr(self.metal, '__len__'):
-            self.metal = np.array(self.metal)
-        else:
-            self.metal = np.array([self.metal])
-        
-        # much used qtt's
-        num_ages = len(self.ages)
-        num_metal = len(self.metal)
-        
-        # check (ages and metallicity) for empty input and compatible length
-        if (num_ages == 0):
-            raise ValueError('objectgenerator//CheckInput: No age was defined.')
-        elif (num_metal == 0):
-            raise ValueError('objectgenerator//CheckInput: No metallicity was defined.')
-        elif (num_ages != num_metal):                                                               # make sure they have the right length
-            if (num_ages == 1):
-                self.ages = self.ages[0]*np.ones(num_metal)
-            elif (num_metal == 1):
-                self.metal = self.metal[0]*np.ones(num_ages)
-            else:
-                warnings.warn(('objectgenerator//CheckInput: age and metallicity have '
-                               'incompatible length {0} and {1}. Discarding excess.'
-                               ).format(num_ages, num_metal), SyntaxWarning)
-                new_len = min(num_ages, num_metal)
-                self.ages = self.ages[:new_len]
-                self.metal = self.metal[:new_len]
-                
-            num_ages = len(self.ages)                                                               # update length
-            num_metal = len(self.metal)                                                             # update length
-        num_pop = num_ages                                                                          # define number of stellar populations
-        
-        # check input for rel_num [must go before usage of num_pop, after ages and metallicity]
-        if hasattr(self.rel_number, '__len__'):
-            self.rel_number = np.array(self.rel_number)
-        else:
-            self.rel_number = np.ones(num_pop)                                                      # any single number will result in equal amounts
-        
-        relnum_len = len(self.rel_number)
-        
-        if ((relnum_len > num_pop) & (num_pop != 1)):
-            warnings.warn(('objectgenerator//CheckInput: too many relative numbers given. '
-                           'Discarding excess.'), SyntaxWarning)
-            self.rel_number = self.rel_number[:num_pop]
-        elif ((relnum_len > num_pop) & (num_pop == 1)):
-            self.ages = np.array([self.ages[0] for i in range(relnum_len)])                         # in this case, add populations of the same age
-            self.metal = np.array([self.metal[0] for i in range(relnum_len)])                       #  and metallicity
-            num_ages = len(self.ages)                                                               # update length
-            num_metal = len(self.metal)                                                             # update length
-            num_pop = num_ages                                                                      # [very important] update number of populations
-        elif (relnum_len != num_pop):
-            self.rel_number = np.ones(num_pop)
-        
-        rel_frac = self.rel_number/np.sum(self.rel_number)                                          # fraction of the total in each population
-        
-        # check format of imf_param
-        if hasattr(self.imf_param, '__len__'):
-            self.imf_param = np.array(self.imf_param)
-        else:
-            warnings.warn(('objectgenerator//CheckInput: incorrect input type for imf_par, '
-                           'using default (={0}).').format(imf_defaults), SyntaxWarning)
-            self.imf_param = np.array([imf_defaults for i in range(num_pop)]) 
-        
-        imf_shape = np.shape(self.imf_param)
-        imf_par_len = len(imf_defaults)                                                             # how long one set of imf pars is
-        
-        if (len(imf_shape) == 1):
-            if (imf_shape[0] == imf_par_len):
-                self.imf_param = np.array([self.imf_param for i in range(num_pop)])                 # make it a 2D array using same imf for all populations
-            elif (imf_shape[0]%imf_par_len == 0):
-                self.imf_param = np.reshape(self.imf_param, 
-                                            [imf_shape[0]//imf_par_len, imf_par_len])               # make it a 2D array
-            else:
-                raise ValueError('objectgenerator//CheckInput: Wrong number of arguments for '
-                                 'imf_par, must be multiple of {0}.'.format(imf_par_len))
-        
-        imf_shape = np.shape(self.imf_param)                                                        # update shape
-        
-        if (imf_shape[0] > num_pop):
-            warnings.warn(('objectgenerator//CheckInput: Too many arguments for imf_par. '
-                           'Discarding excess.'), SyntaxWarning)
-            self.imf_param = self.imf_param[0:num_pop]
-        elif (imf_shape[0] == 1) & (num_pop > 1):
-            self.imf_param = np.full([num_pop, imf_par_len], self.imf_param[0])                     # fill up imf_par  
-        elif (imf_shape[0] < num_pop):
-            filler = [imf_defaults for i in range(num_pop - imf_shape[0]//imf_par_len)]
-            self.imf_param = np.append(self.imf_param, filler, axis=0)                              # fill missing imf_par with default        
-        
-        # check the minimum available mass in isoc file [must go after imf_param check]
-        max_M_L = 0                                                                                 # maximum lowest mass (to use in IMF)
-        for i in range(num_pop):
-            M_ini = utils.StellarIsochrone(self.ages[i], self.metal[i], columns=['M_initial'])
-            max_M_L = max(max_M_L, np.min(M_ini))
-        
-        imf_max_M_L = np.array([self.imf_param[:,0], np.full(num_pop, max_M_L)])
-        self.imf_param[:,0] =  np.max(imf_max_M_L, axis=0)                                          # check against user input (if that was higher, use that instead)
-        
-        # check input: N_stars or M_tot_init? --> need N_stars [must go after min mass check]
-        if (self.N_stars == 0) & (self.M_tot_init == 0):
-            raise ValueError('objectgenerator//CheckInput: Input mass and number of stars '
-                             'cannot be zero simultaniously. Using N_stars=1000')
-        elif (self.N_stars == 0):                                                                   # a total mass is given
-            pop_num = conv.MtotToNstars(self.M_tot_init*rel_frac, imf=self.imf_param)
-            self.N_stars = np.sum(pop_num)                                                          # estimate of the number of stars to generate
-        else:
-            pop_num = np.rint(rel_frac*self.N_stars).astype(int)                                    # rounded off number
-            self.N_stars = np.rint(np.sum(pop_num)).astype(int)                                     # make sure N_stars is int and rounded off
-        
-        self.pop_number = utils.FixTotal(self.N_stars, pop_num)                                     # make sure the population numbers add up to N_total
-        
-        # check the SFH
-        if isinstance(self.sfhist, str):
-            self.sfhist = np.array([self.sfhist])
-        elif hasattr(self.sfhist, '__len__'):
-            self.sfhist = np.array(self.sfhist)
-        
-        sfh_len = len(self.sfhist)
-        if ((sfh_len == 1) & (num_pop != 1)):
-            self.sfhist = np.full(num_pop, self.sfhist[0])
-        elif (sfh_len < num_pop):
-            raise ValueError('objectgenerator//CheckInput: too few sfh types given.')
-        elif (sfh_len > num_pop):
-            warnings.warn(('objectgenerator//CheckInput: too many sfh types given. '
-                           'Discarding excess.'), SyntaxWarning)
-            self.sfhist = self.sfhist[:num_pop]
-        
-        # check if compact mode is on
-        self.fraction_generated = np.ones_like(self.pop_number, dtype=float)                        # set to ones initially
-        mass_limit = np.copy(self.imf_param[:])                                                     # set to imf params initially
-        
-        if self.compact:
-            if (self.mag_limit is None):
-                self.mag_limit = default_mag_lim                                                    # if not specified, use default
-            
-            for i, pop_num in enumerate(self.pop_number):
-                if (self.compact_mode == 'mag'):
-                    mass_limit[i] = MagnitudeLimited(self.ages[i], self.metal[i], 
-                                                     mag_lim=self.mag_limit, d=self.d_lum, 
-                                                     ext=self.extinction, filter='Ks')
-                else:
-                    mass_limit[i] = NumberLimited(self.N_stars, self.ages[i], 
-                                                  self.metal[i], imf=self.imf_param[i])
-                
-                if (mass_limit[i, 1] > self.imf_param[i, 1]):
-                    mass_limit[i, 1] = self.imf_param[i, 1]                                         # don't increase the upper limit!
-                    
-                if (mass_limit[i, 0] > mass_limit[i, 1]):                                       
-                    raise RuntimeError('objectgenerator//GenerateStars: compacting failed, '
-                                        'mass limit raised above upper mass.')                      # lower limit > upper limit!
-                
-                self.fraction_generated[i] = form.MassFraction(mass_limit[i], 
-                                                               imf=self.imf_param[i])
-        
-            if np.any(self.pop_number*self.fraction_generated < 10):                                # don't want too few stars
-                raise RuntimeError('objectgenerator//GenerateStars: population compacted to <10, '
-                                   'try not compacting or generating a higher number of stars.')
-        
-        return
-    
-    def CheckRadialDistribution(self):
-        """Check the radial distribution input."""
-        # check if the dist type(s) exists and get the function signatures
-        num_pop = len(self.pop_number)
-        dist_list = list(set(fnmatch.filter(dir(dist), '*_r')))
-        
-        if isinstance(self.r_dist_type, str):
-            self.r_dist_type = [self.r_dist_type]                                                   # make sure it is a list of str
-        
-        # check number of dists    
-        n_r_dists = len(self.r_dist_type)
-        if ((n_r_dists == 1) & (num_pop > 1)):
-            self.r_dist_type.extend([self.r_dist_type[0] for i in range(num_pop - n_r_dists)])      # duplicate
-            n_r_dists = len(self.r_dist_type)                                                       # update the number
-        elif (n_r_dists < num_pop):                                                                 
-            self.r_dist_type.extend([rdist_default for i in range(num_pop - n_r_dists)])            # fill up with default
-            n_r_dists = len(self.r_dist_type)                                                       # update the number
-            
-        key_list = []
-        val_list = []
-        r_dist_n_par = []
-        
-        for i in range(n_r_dists):
-            if (self.r_dist_type[i][-2:] != '_r'):
-                self.r_dist_type[i] += '_r'                                                         # add the r to the end for radial version
-            
-            if (self.r_dist_type[i] not in dist_list):
-                warnings.warn(('objectgenerator//CheckInput: Specified distribution <{0}> type '
-                               'does not exist. Using default (={1})'
-                               ).format(self.r_dist_type[i], rdist_default), SyntaxWarning)
-                self.r_dist_type[i] = rdist_default
-                 
-            sig = inspect.signature(eval('dist.' + self.r_dist_type[i]))
-            key_list.append([k for k, v in sig.parameters.items() if k is not 'n'])                 # add the signature keywords to a list
-            val_list.append([v.default for k, v in sig.parameters.items() if k is not 'n'])         # add the signature defaults to a list
-            r_dist_n_par.append(len(key_list[i]))                                                   # the number of parameters for each function
-            
-        # check if dist parameters are correctly specified
-        if isinstance(self.r_dist_param, dict):                                                     # if just one dict, make a list of (one) dict
-            self.r_dist_param = [self.r_dist_param]
-        elif not hasattr(self.r_dist_param, '__len__'):                                             # if just one parameter is given, also make a list of (one) dict
-            self.r_dist_param = [{key_list[0][0]: self.r_dist_param}]
-        elif isinstance(self.r_dist_param, list):
-            param_shape = np.shape(self.r_dist_param)
-            if np.all([isinstance(item, (int, float)) for item in self.r_dist_param]):              # if a 1D list of parameters is given, fill a 2D list that has the correct form
-                temp_par_list = [[]]
-                track_index = np.cumsum(r_dist_n_par)
-                j = 0
-                
-                for i in range(param_shape[0]):
-                    if np.any(i == track_index):
-                        temp_par_list.append([self.r_dist_param[i]])                                # append a new sublist
-                        j +=1                                                                       # keep track of number of sublists
-                    else:
-                        temp_par_list[j].append(self.r_dist_param[i])                               # append to current sublist
-                
-                self.r_dist_param = temp_par_list
-            elif np.all([isinstance(item, (int, float)) for item in self.r_dist_param]):            # if list with numbers combined, do not want that, fix!
-                temp_par_list = []
-                
-                for i in range(param_shape[0]):
-                    if isinstance(self.r_dist_param[i], (int, float)):
-                        temp_par_list.append([self.r_dist_param[i]])
-                    else:
-                        temp_par_list.append(self.r_dist_param[i])
-                
-                self.r_dist_param = temp_par_list
-            
-            param_shape = np.shape(self.r_dist_param)                                               # recalculate it
-            
-            if (np.all([isinstance(item, list) for item in self.r_dist_param])):                    # if a 2D list is given (or made above), check further compatibility
-                if (param_shape[0] > n_r_dists):
-                    warnings.warn(('objectgenerator//CheckInput: Too many radial distribution '
-                                   'parameters given. Discarding excess.'), SyntaxWarning)
-                    self.r_dist_param = self.r_dist_param[0:n_r_dists]
-                elif (param_shape[0] < n_r_dists):                                                  # fill up missing length with defaults
-                    filler = [[val_list[param_shape[0] + i]] 
-                              for i in range(n_r_dists - param_shape[0])]
-                    self.r_dist_param += filler
-                
-                for i, param in enumerate(self.r_dist_param):
-                    if (len(param) < r_dist_n_par[i]):
-                        self.r_dist_param[i].extend([item for item in val_list[i][len(param):]])    # not enough parameters for a particular distribution
-                
-                
-                temp_par_dict_list = []                                                             # now it is ready finally for making a dict out of it
-                for i in range(n_r_dists):
-                    temp_par_dict_list.append({key_list[i][k]: self.r_dist_param[i][k] 
-                                               for k in range(r_dist_n_par[i])})
-                    
-                self.r_dist_param = temp_par_dict_list
-                    
-        else:
-            raise TypeError('objectgenerator//CheckInput: Incompatible data type for rdistpar')     # it is something else... burn it with fire!
-            
-        for i, param_dict in enumerate(self.r_dist_param):
-            if not bool(param_dict):                                                                # if dict empty, fill with defaults
-                self.r_dist_param[i] = {key_list[i][k]: val_list[i][k] 
-                                        for k in range(r_dist_n_par[i])}
-        
-        n_r_param = len(self.r_dist_param)
-        if (n_r_param < num_pop):                                                                   # check parameter dict number
-            self.r_dist_param.extend([{key_list[i][k]: val_list[i][k] 
-                                       for k in range(r_dist_n_par[i])} 
-                                       for i in range(n_r_param, num_pop)])
-            n_r_param = len(self.r_dist_type)
-        
         return
     
     def AddFieldStars(self, n=10, fov=53, sky_coords=None):
@@ -1132,8 +863,7 @@ class StarCluster(AstronomicalObject):
     
     def __init__(self, N_stars=0, M_tot_init=0, age=None, metal=None, rel_num=None, distance=10, 
                  d_type='l', imf_par=None, sf_hist=None, extinct=0, r_dist=None, r_dist_par=None, 
-                 **kwargs 
-                 ):
+                 **kwargs):
         
         super().__init__(N_stars=N_stars, M_tot_init=M_tot_init, age=age, metal=metal, 
                          rel_num=rel_num, distance=distance, d_type=d_type, extinct=extinct, 
@@ -1161,8 +891,7 @@ class EllipticalGalaxy(AstronomicalObject):
     
     def __init__(self, N_stars=0, M_tot_init=0, age=None, metal=None, rel_num=None, distance=1000, 
                  d_type='l', imf_par=None, sf_hist=None, extinct=0, incl=None, r_dist=None, 
-                 r_dist_par=None, ellipse_axes=None, **kwargs
-                 ):
+                 r_dist_par=None, ellipse_axes=None, **kwargs):
         
         super().__init__(N_stars=N_stars, M_tot_init=M_tot_init, age=age, metal=metal, 
                          rel_num=rel_num, distance=distance, d_type=d_type, extinct=extinct, 
@@ -1197,8 +926,7 @@ class SpiralGalaxy(AstronomicalObject):
     
     def __init__(self, N_stars=0, M_tot_init=0, age=None, metal=None, rel_num=None, distance=1000, 
                  d_type='l', imf_par=None, sf_hist=None, extinct=0, incl=None, spiral_arms=0, 
-                 spiral_bulge=0, spiral_bar=0, **kwargs
-                 ):
+                 spiral_bulge=0, spiral_bar=0, **kwargs):
         
         super().__init__(N_stars=N_stars, M_tot_init=M_tot_init, age=age, metal=metal, 
                          rel_num=rel_num, distance=distance, d_type=d_type, extinct=extinct, 
@@ -1291,56 +1019,53 @@ def StarMasses(N_stars=0, M_tot=0, imf=[0.08, 150]):
     return M_init, M_diff
 
 
-def StarFormHistory(max_age, min_age=0, sfr='exp', Z=0.014, tau=1e10):
+def StarFormHistory(max_age, min_age=1, sfr='exp', Z=0.014, tau=1e10):
     """Finds the relative number of stars to give each (logarithmic) age step up to a 
     maximum given age (starting from a minimum age if desired).
     The star formation rate (sfr) can be 'exp' or 'lin-exp'.
     tau is the decay timescale of the star formation (in yr).
     """
+    if not hasattr(max_age, '__len__'):
+        max_age = np.array([max_age])
+    else:
+        max_age = np.array(max_age)
+    if not hasattr(min_age, '__len__'):
+        min_age = np.full_like(max_age, min_age)
+    else:
+        min_age = np.array(min_age)
+    if not hasattr(Z, '__len__'):
+        Z = np.full_like(max_age, Z, dtype=float)
+    if isinstance(sfr, str):
+        sfr = np.full_like(max_age, sfr, dtype='U10')
+    if not hasattr(tau, '__len__'):
+        tau = np.full_like(max_age, tau, dtype=float)
+    
     if np.all(max_age > 12):                                                                        # determine if logarithm or not
         max_age = np.log10(max_age)
     if np.all(min_age > 12):
-        max_age = np.log10(max_age)
+        min_age = np.log10(min_age)
     
-    if hasattr(max_age, '__len__'):
-        # if more that one age given, fix other qtt's and solve recursively
-        if not hasattr(min_age, '__len__'):
-            min_age = np.full_like(max_age, min_age)
-        if not hasattr(Z, '__len__'):
-            Z = np.full_like(max_age, Z)
-        if isinstance(sfr, str):
-            sfr = np.full_like(max_age, sfr, dtype='U10')
-        if not hasattr(tau, '__len__'):
-            tau = np.full_like(max_age, tau)
-        
-        rel_num = np.array([])
-        log_ages_used = np.array([])
-        r_temp, a_temp = StarFormHistory(max_age[0], min_age=min_age[0], Z=Z[0], sfr=sfr[0], 
-                                         tau=tau[0])
-        rel_num = np.append(rel_num, r_temp)
-        log_ages_used = np.append(log_ages_used, a_temp)
-        if (len(max_age) > 1):
-            r_temp, a_temp = StarFormHistory(max_age[1:], min_age=min_age[1:], Z=Z[1:], 
-                                             sfr=sfr[1:], tau=tau[1:])
-            rel_num = np.append(rel_num, r_temp)
-            log_ages_used = np.append(log_ages_used, a_temp)
-    else:
-        # here is the actual functionality
-        log_ages = np.unique(utils.OpenIsochronesFile(Z, columns=['log_age']))                      # avaiable ages
+    rel_num = np.array([])
+    log_ages_used = np.array([])
+    for i in range(len(max_age)):
+        log_ages = np.unique(utils.OpenIsochronesFile(Z[i], columns=['log_age']))                   # avaiable ages
         uni_log_ages = np.unique(log_ages)
-        log_ages_used = uni_log_ages[(uni_log_ages <= max_age) & (uni_log_ages >= min_age)]         # log t's to use (between min/max ages)
-        ages_used = 10**log_ages_used                                                               # age of each SSP
+        log_ages_used_i = uni_log_ages[(uni_log_ages <= max_age[i]) & (uni_log_ages >= min_age[i])] # log t's to use (between min/max ages)
+        ages_used = 10**log_ages_used_i                                                             # age of each SSP
     
-        if (sfr == 'exp'):
-            psi = np.exp((ages_used - min_age)/tau)                                                 # Star formation rates (relative)
-        elif(sfr == 'lin-exp'):
+        if (sfr[i] == 'exp'):
+            psi = np.exp((ages_used - 10**min_age[i])/tau[i])                                       # Star formation rates (relative)
+        elif(sfr[i] == 'lin-exp'):
             t0 = 10**np.max(uni_log_ages)                                                           # represents the start of time
-            psi = (t0 - ages_used - min_age)/tau*np.exp((ages_used - min_age)/tau)                  # Star formation rates (relative)
+            psi = ((t0 - ages_used - 10**min_age[i])
+                   /tau[i]*np.exp((ages_used - 10**min_age[i])/tau[i]))                             # Star formation rates (relative)
         else:
             # for when None is given
-            log_ages_used = max_age
+            log_ages_used_i = max_age[i]
             psi = 1
-        rel_num = psi/np.sum(psi)                                                                   # relative number in each generation
+        
+        rel_num = np.append(rel_num, psi/np.sum(psi))                                               # relative number in each generation
+        log_ages_used = np.append(log_ages_used, log_ages_used_i)
     return rel_num, log_ages_used
 
 
@@ -1394,7 +1119,7 @@ def FindSpectralType(T_eff, Lum, Mass):
     return indices, type_selection
 
 
-def NumberLimited(N, age, Z, imf=imf_defaults):
+def NumberLimited(N, age, Z, imf=default_imf_par):
     """Retrieves the lower mass limit for which the number of stars does not exceed 10**7. 
     Will also give an upper mass limit based on the values in the isochrone.
     The intended number of generated stars, age and metallicity are needed.
