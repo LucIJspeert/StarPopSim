@@ -744,8 +744,8 @@ def OneLineCommand(astobj, N, M, IMF, savename):
         command += ' -A ' + str(astobj.extinction)
     if (astobj.inclination != 0).any():
         command += ' -i ' + ' '.join(str(item) for item in astobj.inclination)
-    if np.any(np.array(astobj.r_dist_type) != 'Normal_r'):
-        command += ' -rdist ' + ' '.join(str(item) for item in astobj.r_dist_type)
+    if np.any(np.array(astobj.r_dist_types) != 'Normal_r'):
+        command += ' -rdist ' + ' '.join(str(item) for item in astobj.r_dist_types)
     if np.array([param != {'s': 1.0} for param in astobj.r_dist_param]).any():
         command += ' -rdistpar '
         for param_dict in astobj.r_dist_param:

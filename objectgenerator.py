@@ -19,7 +19,6 @@ import warnings
 import numpy as np
 import scipy.spatial as sps
 import scipy.interpolate as spi
-from inspect import signature
 
 import utils
 import distributions as dist
@@ -34,7 +33,7 @@ as_rad = np.pi/648000           # arcseconds to radians
 
 
 # global defaults
-rdist_default = 'Normal'        # see distributions module for a full list of options
+default_rdist = 'Normal'        # see distributions module for a full list of options
 default_imf_par = [0.08, 150]   # M_sun     lower bound, upper bound on mass
 default_mag_lim = 32            # magnitude limit for compact mode
 limiting_number = 10**7         # maximum number of stars for compact mode 
@@ -80,14 +79,6 @@ class Stars:
                  imf_par=None, incl=None, r_dist=None, r_dist_par=None, ellipse_axes=None,
                  spiral_arms=0, spiral_bulge=0, spiral_bar=0, compact_mode=None, **kwargs):
         
-        if not incl:
-            incl = np.zeros_like(ages)
-        if not r_dist:
-            r_dist = [rdist_default for i in range(len(ages))]
-        if not r_dist_par:
-            r_dist_par = [{s: 1.0} for i in range(len(ages))]
-        if not ellipse_axes:
-            ellipse_axes = np.ones([len(ages), 3])
         # cast input to right formats, and perform some checks
         n_pop = utils.NumberOfPopulations(ages, metal, rel_num)                                     # find the intended number of populations
         self.ages = utils.CastAges(ages, n_pop)                                                     # ages of the populations (=max age if SFH is used)
@@ -99,10 +90,11 @@ class Stars:
         self.M_tot_init = M_tot_init                                                                # total initial mass in Msun (can initially be zero)
         self.sfhist = utils.CastSFHistory(sfh, n_pop)                                               # star formation history type
         # shape parameters
-        self.inclination = incl                                                                     # inclination of the stars per population
-        self.r_dist_type = r_dist                                                                   # type of radial distribution
-        self.r_dist_param = r_dist_par                                                              # the further spatial distribution parameters (dictionary)
-        self.ellipse_axes = ellipse_axes                                                            # relative axis size for ellipsoidal shapes 
+        self.inclination = utils.CastInclination(incl, n_pop)                                       # inclination of the stars per population
+        self.r_dist_types = utils.CastRadialDistType(r_dist, n_pop)                                 # type of radial distribution per population
+        self.r_dist_types = utils.CheckRadialDistType(self.r_dist_types)
+        self.r_dist_param = utils.CastRadialDistParam(r_dist_par, self.r_dist_types, n_pop)         # the further spatial distribution parameters (dictionary per population)
+        self.ellipse_axes = utils.CastEllipseAxes(ellipse_axes, n_pop)                              # relative axis size for ellipsoidal shapes 
         self.spiral_arms = spiral_arms                                                              # number of spiral arms
         self.spiral_bulge = spiral_bulge                                                            # relative proportion of central bulge
         self.spiral_bar = spiral_bar                                                                # relative proportion of central bar
@@ -143,7 +135,7 @@ class Stars:
         
         # generate the positions, masses   
         for i, pop_num in enumerate(self.gen_pop_number):
-            coords_i = Spherical(pop_num, dist_type=self.r_dist_type[i], **self.r_dist_param[i])
+            coords_i = Spherical(pop_num, dist_type=self.r_dist_types[i], **self.r_dist_param[i])
             M_init_i, M_diff_i = StarMasses(pop_num, 0, imf=self.gen_imf_param[i])
             self.coords = np.append(self.coords, coords_i, axis=0)                           
             self.M_init = np.append(self.M_init, M_init_i)
@@ -165,22 +157,8 @@ class Stars:
         This is additive (given angles stack with previous ones).
         """
         # check the input, make sure it is an array of the right size
-        num_pop = len(self.pop_number)
-        
-        if hasattr(incl, '__len__'):
-            incl = np.array(incl)
-            incl_len = len(incl)
-            
-            if (incl_len == 1):
-                incl = np.full(num_pop, incl[0])
-            elif (incl_len < num_pop):
-                raise ValueError('objectgenerator//AddInclination: too few values given.')
-            elif (incl_len > num_pop):
-                warnings.warn(('objectgenerator//AddInclination: too many values given. '
-                               'Discarding excess.'), SyntaxWarning)
-                incl = incl[:num_pop]
-        else:
-            incl = np.full(num_pop, incl)
+        n_pop = len(self.pop_number)
+        incl = utils.CastInclination(incl, n_pop)
         
         # check for existing inclination
         if hasattr(self, 'inclination'):
@@ -189,20 +167,15 @@ class Stars:
             self.inclination = incl
             
         if np.any(self.inclination > 2*np.pi):
-            warnings.warn(('objectgenerator//AddInclination: inclination angle over 2pi detected, '
-                           'make sure to use radians!'))
+            if np.any(incl > 2*np.pi):
+                warnings.warn('objectgenerator//AddInclination: inclination angle over 2pi '
+                              'detected, make sure to use radians!')
             self.inclination = np.mod(self.inclination, 2*np.pi)
         
         # rotate the XZ plane (x axis towards positive z)
-        if np.all(self.inclination == 0):
-            return                                                                                  # don't need to do anything
-        elif (len(np.unique(self.inclination)) == 1):
-            self.coords = conv.RotateXZ(self.coords, self.inclination[0])
-        else:
-            index = np.cumsum(np.append([0], self.gen_pop_number))                                  # indices defining the different populations
-            for i, incl_i in enumerate(self.inclination):
-                ind_1, i_2 = index[i], index[i+1]
-                self.coords[ind_1:ind_2] = conv.RotateXZ(self.coords[ind_1:ind_2], incl_i)
+        if not np.all(self.inclination == 0):
+            indices = np.repeat(np.arange(n_pop), self.pop_number)                                  # population index per star
+            self.coords = conv.RotateXZ(self.coords, self.inclination[indices])
         return
         
     def AddEllipticity(self, axes):
@@ -212,36 +185,9 @@ class Stars:
         This is additive (given axis sizes stack with previous ones).
         """
         # check the input, make sure it is an array of the right size
-        num_pop = len(self.pop_number)
-        
-        if hasattr(axes, '__len__'):
-            axes = np.array(axes)
-        else:
-            axes = np.ones([num_pop, 3])                                                            # any single number will result in unitary scaling
-            
+        n_pop = len(self.pop_number)
+        axes = utils.CastEllipseAxes(axes, n_pop)
         axes_shape = np.shape(axes)
-        if (len(axes_shape) == 1): 
-            if (axes_shape[0] == 3):
-                axes = np.full([num_pop, 3], axes)                                                  # if 1D make 2D, using same axes for all populations
-            elif (axes_shape[0]%3 == 0):
-                axes = np.reshape(axes, [axes_shape[0]//3, 3])                                      # make it a 2D array
-            else:
-                raise ValueError('objectgenerator//AddEllipticity: wrong number of arguments '
-                               'for axes, must be multiple of 3.')
-        
-        axes_shape = np.shape(axes)                                                                 # update shape
-                                       
-        if (axes_shape[0] > num_pop):
-            warnings.warn(('objectgenerator//CheckEllipseAxes: too many arguments for axes. '
-                           'Discarding excess.'), SyntaxWarning)
-            axes = axes[0:num_pop]
-        elif (axes_shape[0] == 1) & (num_pop > 1):
-            axes = np.full([num_pop, 3], axes[0])                                                   # duplicate to right shape  
-        elif (axes_shape[0] < num_pop):
-            filler = np.ones([num_pop - axes_shape[0], 3])
-            axes = np.append(axes, filler, axis=0)                                                  # fill up with defaults
-            
-        axes_shape = np.shape(axes)                                                                 # update shape again
         
         # check for existing ellipse axes
         if hasattr(self, 'ellipse_axes'):
@@ -258,6 +204,10 @@ class Stars:
             for i, axes_i in enumerate(self.ellipse_axes):
                 ind_1, ind_2 = index[i], index[i+1]
                 self.coords[ind_1:ind_2] = self.coords[ind_1:ind_2]*axes_i/np.prod(axes_i)**(1/3)
+        
+        if not (len(np.unique(self.ellipse_axes)) == 1):
+            indices = np.repeat(np.arange(n_pop), self.pop_number)                                  # population index per star
+            self.coords = self.coords*(axes/np.prod(axes)**(1/3))[indices]                          # convert to ellipsoid (keeps volume conserved)
         return
     
     def CurrentMasses(self, realistic_remnants=True):
@@ -871,12 +821,12 @@ class StarCluster(AstronomicalObject):
                          )
         
         if (r_dist is None):
-            r_dist = [rdist_default]
+            r_dist = [default_rdist]
         if (r_dist_par is None):
             r_dist_par = {}
         
         # object specific parameters
-        self.r_dist_type = r_dist                                                                   # type of radial distribution
+        self.r_dist_types = r_dist                                                                  # type of radial distribution
         self.r_dist_param = r_dist_par                                                              # the further spatial distribution parameters (dictionary)
         
         self.CheckRadialDistribution()
@@ -901,14 +851,14 @@ class EllipticalGalaxy(AstronomicalObject):
         if (incl is None):
             incl = [0]
         if (r_dist is None):
-            r_dist = [rdist_default]
+            r_dist = [default_rdist]
         if (r_dist_par is None):
             r_dist_par = {}
         if (ellipse_axes is None):
             ellipse_axes = [1, 1, 1]
         
         # object specific parameters
-        self.r_dist_type = r_dist                                                                   # type of radial distribution
+        self.r_dist_types = r_dist                                                                  # type of radial distribution
         self.r_dist_param = r_dist_par                                                              # the further spatial distribution parameters (dictionary)
         
         self.CheckRadialDistribution()
@@ -947,7 +897,7 @@ class SpiralGalaxy(AstronomicalObject):
         return
 
 
-def Spherical(N_stars, dist_type=rdist_default, **kwargs):
+def Spherical(N_stars, dist_type=default_rdist, **kwargs):
     """Make a spherical distribution of stars using the given radial distribution type.
     Takes additional parameters for the r-distribution function (i.e. scale length s).
     """
@@ -959,12 +909,12 @@ def Spherical(N_stars, dist_type=rdist_default, **kwargs):
                         
     if (dist_type not in dist_list):
         warnings.warn(('objectgenerator//Spherical: Specified distribution type does not exist. '
-                       'Using default (={})').format(rdist_default), SyntaxWarning)
-        dist_type = rdist_default + '_r'
+                       'Using default (={})').format(default_rdist), SyntaxWarning)
+        dist_type = default_rdist + '_r'
 
     # check if right parameters given    
-    sig = signature(eval('dist.' + dist_type))                                                      # parameters of the dist function (includes n)
-    dict = kwargs                                                                                   # need a copy for popping in iteration
+    sig = inspect.signature(eval('dist.' + dist_type))                                              # parameters of the dist function (includes n)
+    dict = kwargs.copy()                                                                                   # need a copy for popping in iteration
     for key in dict:
         if key not in sig.parameters:
             warnings.warn(('objectgenerator//Spherical: Wrong keyword given in distribution '
