@@ -735,16 +735,17 @@ def CastRadialDistType(r_dist, n_pop):
 
 def CheckRadialDistType(r_dist):
     """Check if the dist types exist."""
-    dist_list = list(set(fnmatch.filter(dir(dist), '*_r')))    
+    dist_list = list(set(fnmatch.filter(dir(dist), '*_r')))  
+    r_dist = r_dist.astype(object)                                                                  # to make sure we can increase the string length
     for i in range(len(r_dist)):
         if (not r_dist[i].endswith('_r')):
-            r_dist[i] += '_r'                                                                       # add the r to the end for radial version
+            r_dist[i] = r_dist[i] + '_r'                                                            # add the r to the end for radial version
         
         if (r_dist[i] not in dist_list):
             warnings.warn(('utils//CheckRadialDistType: Specified distribution <{0}> type does '
                            'not exist. Using default (=<{1}>)').format(r_dist[i], default_rdist), 
                            SyntaxWarning)
-            r_dist[i] = default_rdist
+            r_dist[i] = default_rdist + '_r'
     return r_dist
 
 

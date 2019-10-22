@@ -39,7 +39,7 @@ default_mag_lim = 32            # magnitude limit for compact mode
 limiting_number = 10**7         # maximum number of stars for compact mode 
 
 
-class Stars:
+class Stars(object):
     """Generates populations of stars and contains all the information about them.
     Also functions that can be performed on the stars are defined here.
     
@@ -906,15 +906,15 @@ def Spherical(N_stars, dist_type=default_rdist, **kwargs):
         dist_type += '_r'                                                                           # add the r to the end for radial version
         
     dist_list = list(set(fnmatch.filter(dir(dist), '*_r')))
-                        
+    
     if (dist_type not in dist_list):
         warnings.warn(('objectgenerator//Spherical: Specified distribution type does not exist. '
                        'Using default (={})').format(default_rdist), SyntaxWarning)
         dist_type = default_rdist + '_r'
-
+    
     # check if right parameters given    
     sig = inspect.signature(eval('dist.' + dist_type))                                              # parameters of the dist function (includes n)
-    dict = kwargs.copy()                                                                                   # need a copy for popping in iteration
+    dict = kwargs.copy()                                                                            # need a copy for popping in iteration
     for key in dict:
         if key not in sig.parameters:
             warnings.warn(('objectgenerator//Spherical: Wrong keyword given in distribution '
