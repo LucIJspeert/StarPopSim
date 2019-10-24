@@ -76,8 +76,8 @@ class Stars(object):
         
     """    
     def __init__(self, N_stars=0, M_tot_init=0, ages=None, metal=None, rel_num=None, sfh=None, 
-                 imf_par=None, incl=None, r_dist=None, r_dist_par=None, ellipse_axes=None,
-                 spiral_arms=0, spiral_bulge=0, spiral_bar=0, compact_mode=None, **kwargs):
+                 min_ages=None, tau_sfh=None, imf_par=None, incl=None, r_dist=None, r_dist_par=None, 
+                 ellipse_axes=None, spiral_arms=0, spiral_bulge=0, spiral_bar=0, compact_mode=None):
         
         # cast input to right formats, and perform some checks
         n_pop = utils.NumberOfPopulations(ages, metal, rel_num)                                     # find the intended number of populations
@@ -88,7 +88,9 @@ class Stars(object):
         self.imf_param = utils.CheckLowestIMFMass(self.imf_param, self.ages, self.metal)
         self.N_stars = utils.CheckNStars(N_stars, M_tot_init, self.rel_number, self.imf_param)      # total number of stars
         self.M_tot_init = M_tot_init                                                                # total initial mass in Msun (can initially be zero)
-        self.sfhist = utils.CastSFHistory(sfh, n_pop)                                               # star formation history type
+        self.sfhist = utils.CastSFHistory(sfh, n_pop)                                               # star formation history types
+        self.min_ages = min_ages                                                                        # minimum ages to use in star formation histories
+        self.tau_sfh = tau_sfh                                                                          # characteristic timescales for star formation
         # shape parameters
         self.inclination = utils.CastInclination(incl, n_pop)                                       # inclination of the stars per population
         self.r_dist_types = utils.CastRadialDistType(r_dist, n_pop)                                 # type of radial distribution per population
@@ -118,20 +120,68 @@ class Stars(object):
         self.gen_ages = self.ages                                                                   # the actual ages to be generated for each population (for sfhist)
         
         self.GenerateStars()                                                                        # actually generate the stars
-        super().__init__(**kwargs)                                                                  # inheritance
         return
+    
+    def __repr__(self):
+        repr = (f'Stars(N_stars={self.N_stars!r}, M_tot_init={self.M_tot_init!r}, '
+                f'ages={self.ages!r}, metal={self.metal!r}, rel_num={self.rel_number!r}, '
+                f'sfh={self.sfhist!r}, min_ages={self.min_ages!r}, tau_sfh={self.tau_sfh!r}, '
+                f'imf_par={self.imf_param!r}, incl={self.inclination!r}, '
+                f'r_dist={self.r_dist_types!r}, r_dist_par={self.r_dist_param!r}, '
+                f'ellipse_axes={self.ellipse_axes!r}, spiral_arms={self.spiral_arms!r}, '
+                f'spiral_bulge={self.spiral_bulge!r}, spiral_bar={self.spiral_bar!r}, '
+                f'compact_mode={self.compact_mode!r})')
+        return repr
+    
+    def __str__(self):
+        string = 'N_stars '
+        return string
         
+    def __add__(self, other):
+        pass
+    
     def GenerateStars(self):
         """Generate the masses and positions of the stars."""
         # assign the right values for generation (start of generating sequence)
         if self.compact_mode:
-            # todo: fix this, needs functions instead of the not-yet-declared vars 
+            # todo: fix this, needs functions instead of the not-yet-declared vars (and more)
             self.gen_pop_number = np.rint(self.pop_number*self.fraction_generated).astype(int)
             self.gen_imf_param = mass_limit
-        # todo: implement last bits of sfh [make some tau variable?]
+            '''
+            # check if compact mode is on
+            self.fraction_generated = np.ones_like(self.pop_number, dtype=float)                        # set to ones initially
+            mass_limit = np.copy(self.imf_param[:])                                                     # set to imf params initially
+            
+            if self.compact_mode:
+                if (self.mag_limit is None):
+                    self.mag_limit = default_mag_lim                                                    # if not specified, use default
+                
+                for i, pop_num in enumerate(self.pop_number):
+                    if (self.compact_mode == 'mag'):
+                        mass_limit[i] = MagnitudeLimited(self.ages[i], self.metal[i], 
+                                                            mag_lim=self.mag_limit, d=self.d_lum, 
+                                                            ext=self.extinction, filter='Ks')
+                    else:
+                        mass_limit[i] = NumberLimited(self.N_stars, self.ages[i], 
+                                                        self.metal[i], imf=self.imf_param[i])
+                    
+                    if (mass_limit[i, 1] > self.imf_param[i, 1]):
+                        mass_limit[i, 1] = self.imf_param[i, 1]                                         # don't increase the upper limit!
+                    
+                    self.fraction_generated[i] = form.MassFraction(mass_limit[i], 
+                                                                    imf=self.imf_param[i])
+                if np.any(mass_limit[:, 0] > mass_limit[:, 1]):                                       
+                    raise RuntimeError('objectgenerator//GenerateStars: compacting failed, '
+                                        'mass limit raised above upper mass.')                              # lower limit > upper limit!
+                elif np.any(self.pop_number*self.fraction_generated < 10):                                  # don't want too few stars
+                    raise RuntimeError('objectgenerator//GenerateStars: population compacted to <10, '
+                                        'try not compacting or generating a higher number of stars.')
+            '''
         if not np.all(self.sfhist == None):
-            self.gen_ages = StarFormHistory(self.ages, sfr=self.sfhist, Z=self.metal, tau=...)
-            self.gen_pop_number
+            rel_num, ages = StarFormHistory(self.gen_ages, min_age=self.min_ages, sfr=self.sfhist, 
+                                               Z=self.metal, tau=self.tau_sfh)
+            self.gen_pop_number = np.rint(rel_num*self.N_stars).astype(int)
+            self.gen_ages = ages
         
         # generate the positions, masses   
         for i, pop_num in enumerate(self.gen_pop_number):
@@ -646,8 +696,8 @@ class Stars(object):
 
 class Gas():
     """"""
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)                                                                  # inheritance
+    def __init__(self):
+        pass
     
     def AddInclination(self, incl):
         """Put the object at an inclination w.r.t. the observer, in radians. 
@@ -666,8 +716,8 @@ class Gas():
     
 class Dust():
     """"""
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)                                                                  # inheritance
+    def __init__(self):
+        pass
     
     def AddInclination(self, incl):
         """Put the object at an inclination w.r.t. the observer, in radians. 
@@ -686,7 +736,24 @@ class Dust():
 
 class AstronomicalObject():
     """Base class for astronomical objects like clusters and galaxies.
-    Contains the basic information and functionality.
+    Contains the basic information and functionality. It is also a composite of the different
+    component classes: Stars, Gas and Dust.
+    
+    Note:
+        takes in all the kwargs necessary for the component classes
+        
+    Args:
+        distance
+        d_type
+        extinct
+        **kwargs: the kwargs are used in initiation of the component classes
+    
+    Attributes:
+        AddFieldStars
+        AddBackGround
+        AddNGS
+        SaveTo
+        LoadFrom
     """
     def __init__(self, distance=10, d_type='l', extinct=0, **kwargs):
         
@@ -700,6 +767,22 @@ class AstronomicalObject():
         
         self.d_ang = form.DAngular(self.redshift)                                                   # angular distance (in pc)
         self.extinction = extinct                                                                   # extinction between source and observer
+        
+        # initialise the component classes (pop the right kwargs per object)
+        stars_args = [k for k, v in inspect.signature(Stars).parameters.items()]
+        stars_dict = {k: kwargs.pop(k) for k in dict(kwargs) if k in stars_args}
+        if stars_dict:
+            self.stars = Stars(**stars_dict)                                                        # the stellar component
+        
+        gas_args = [k for k, v in inspect.signature(Gas).parameters.items()]
+        gas_dict = {k: kwargs.pop(k) for k in dict(kwargs) if k in gas_args}
+        if gas_dict:
+            self.gas = Gas(**gas_dict)                                                              # the gaseous component
+        
+        dust_args = [k for k, v in inspect.signature(Dust).parameters.items()]
+        dust_dict = {k: kwargs.pop(k) for k in dict(kwargs) if k in dust_args}
+        if dust_dict:
+            self.dust = Dust(**dust_dict)                                                           # the dusty component
         
         super().__init__(**kwargs)                                                                  # inheritance
         return
@@ -809,91 +892,44 @@ class AstronomicalObject():
 
 class StarCluster(AstronomicalObject):
     """For generating star clusters."""
-    structure = 'star cluster'                                                                      # type of object
+    # structure = 'star cluster'                                                                      # type of object
     
-    def __init__(self, N_stars=0, M_tot_init=0, age=None, metal=None, rel_num=None, distance=10, 
-                 d_type='l', imf_par=None, sf_hist=None, extinct=0, r_dist=None, r_dist_par=None, 
+    def __init__(self, N_stars=0, M_tot_init=0, ages=None, metal=None, rel_num=None, distance=10, 
+                 d_type='l', imf_par=None, sfh=None, extinct=0, r_dist=None, r_dist_par=None, 
                  **kwargs):
         
-        super().__init__(N_stars=N_stars, M_tot_init=M_tot_init, age=age, metal=metal, 
-                         rel_num=rel_num, distance=distance, d_type=d_type, extinct=extinct, 
-                         sf_hist=sf_hist, imf_par=imf_par, **kwargs 
-                         )
-        
-        if (r_dist is None):
-            r_dist = [default_rdist]
-        if (r_dist_par is None):
-            r_dist_par = {}
-        
-        # object specific parameters
-        self.r_dist_types = r_dist                                                                  # type of radial distribution
-        self.r_dist_param = r_dist_par                                                              # the further spatial distribution parameters (dictionary)
-        
-        self.CheckRadialDistribution()
-        self.GenerateStars()                                                                        # actually generate the stars
-        super().__init__(**kwargs)                                                                  # inheritance
+        super().__init__(N_stars=N_stars, M_tot_init=M_tot_init, ages=ages, metal=metal, 
+                         rel_num=rel_num, distance=distance, d_type=d_type, imf_par=imf_par, 
+                         extinct=extinct, sfh=sfh, r_dist=None, r_dist_par=None, **kwargs)
         return
 
 
 class EllipticalGalaxy(AstronomicalObject):
     """For generating elliptical galaxies."""
-    structure = 'elliptical galaxy'                                                                 # type of object
+    # structure = 'elliptical galaxy'                                                                 # type of object
     
-    def __init__(self, N_stars=0, M_tot_init=0, age=None, metal=None, rel_num=None, distance=1000, 
-                 d_type='l', imf_par=None, sf_hist=None, extinct=0, incl=None, r_dist=None, 
+    def __init__(self, N_stars=0, M_tot_init=0, ages=None, metal=None, rel_num=None, distance=1000, 
+                 d_type='l', imf_par=None, sfh=None, extinct=0, incl=None, r_dist=None, 
                  r_dist_par=None, ellipse_axes=None, **kwargs):
         
-        super().__init__(N_stars=N_stars, M_tot_init=M_tot_init, age=age, metal=metal, 
-                         rel_num=rel_num, distance=distance, d_type=d_type, extinct=extinct, 
-                         sf_hist=sf_hist, imf_par=imf_par, **kwargs
-                         )
-        
-        if (incl is None):
-            incl = [0]
-        if (r_dist is None):
-            r_dist = [default_rdist]
-        if (r_dist_par is None):
-            r_dist_par = {}
-        if (ellipse_axes is None):
-            ellipse_axes = [1, 1, 1]
-        
-        # object specific parameters
-        self.r_dist_types = r_dist                                                                  # type of radial distribution
-        self.r_dist_param = r_dist_par                                                              # the further spatial distribution parameters (dictionary)
-        
-        self.CheckRadialDistribution()
-        self.GenerateStars()                                                                        # actually generate the stars
-        self.AddEllipticity(ellipse_axes)
-        self.AddInclination(incl)
-        
-        super().__init__(**kwargs)                                                                  # inheritance
+        super().__init__(N_stars=N_stars, M_tot_init=M_tot_init, ages=ages, metal=metal, 
+                         rel_num=rel_num, distance=distance, d_type=d_type, imf_par=imf_par, 
+                         extinct=extinct, sfh=sfh, incl=None, r_dist=None, 
+                         r_dist_par=None, ellipse_axes=None, **kwargs)
         return
 
 
 class SpiralGalaxy(AstronomicalObject):
     """For generating spiral galaxies."""
-    structure = 'spiral galaxy'                                                                     # type of object
+    # structure = 'spiral galaxy'                                                                     # type of object
     
-    def __init__(self, N_stars=0, M_tot_init=0, age=None, metal=None, rel_num=None, distance=1000, 
-                 d_type='l', imf_par=None, sf_hist=None, extinct=0, incl=None, spiral_arms=0, 
+    def __init__(self, N_stars=0, M_tot_init=0, ages=None, metal=None, rel_num=None, distance=1000, 
+                 d_type='l', imf_par=None, sfh=None, extinct=0, incl=None, spiral_arms=0, 
                  spiral_bulge=0, spiral_bar=0, **kwargs):
         
-        super().__init__(N_stars=N_stars, M_tot_init=M_tot_init, age=age, metal=metal, 
+        super().__init__(N_stars=N_stars, M_tot_init=M_tot_init, ages=ages, metal=metal, 
                          rel_num=rel_num, distance=distance, d_type=d_type, extinct=extinct, 
-                         sf_hist=sf_hist, imf_par=imf_par, **kwargs
-                         )
-        
-        if (incl is None):
-            incl = [0]
-        
-        # object specific parameters
-        self.spiral_arms = spiral_arms                                                              # number of spiral arms
-        self.spiral_bulge = spiral_bulge                                                            # relative proportion of central bulge
-        self.spiral_bar = spiral_bar                                                                # relative proportion of central bar
-        
-        self.GenerateStars()                                                                        # actually generate the stars
-        self.AddInclination(incl)
-        super().__init__(**kwargs)                                                                  # inheritance
+                         sfh=sfh, imf_par=imf_par, **kwargs)
         return
 
 
