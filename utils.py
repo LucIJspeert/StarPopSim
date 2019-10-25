@@ -292,8 +292,18 @@ def CheckAnswer(ans, question, options, default, function, *args):
     return ans
 
 
-def NumberOfPopulations(ages, metal, rel_num):
-    """Figures out the intended number of populations from three input parameters."""
+def NumberOfPopulations(N, M_tot, ages, metal):
+    """Figures out the intended number of populations from four input parameters."""
+    if hasattr(N, '__len__'):
+        len_N = len(N)
+    else:
+        len_N = 1
+    
+    if hasattr(M_tot, '__len__'):
+        len_M_tot = len(M_tot)
+    else:
+        len_M_tot = 1
+    
     if hasattr(ages, '__len__'):
         len_ages = len(ages)
     else:
@@ -303,15 +313,10 @@ def NumberOfPopulations(ages, metal, rel_num):
         len_metal = len(metal)
     else:
         len_metal = 1
-        
-    if hasattr(rel_num, '__len__'):
-        len_rel_num = len(rel_num)
-    else:
-        len_rel_num = 1
     
-    len_array = np.array([len_ages, len_metal, len_rel_num])
+    len_array = np.array([len_N, len_M, len_ages, len_metal])
     n_pop = max(len_array)
-    if (sum(len_array == n_pop) < (3 - sum(len_array == 1))):
+    if (sum(len_array == n_pop) < (len(len_array) - sum(len_array == 1))):
         warnings.warn(('utils//NumberOfPopulations: Input of ages, metallicityies or relative '
                        'number did not match 1 or {0}. Unexpected behaviour might '
                        'occur'.format(n_pop)), SyntaxWarning)
@@ -358,15 +363,6 @@ def CastMetallicities(metal, n_pop):
         raise ValueError('utils//CastMetallicities: No metallicity was defined.')
     metal = CastSimpleArray(metal, n_pop, fill_value='last')
     return metal
-
-
-def CastRelNumber(rel_num, n_pop):
-    """Cast input for rel_num into the right format."""
-    if (not rel_num):
-        rel_num = np.ones(n_pop)
-    rel_num = CastSimpleArray(rel_num, n_pop, fill_value='last')
-    rel_frac = rel_num/np.sum(rel_num)                                                              # fraction of the total in each population
-    return rel_frac
 
 
 def CastIMFParameters(imf_par, n_pop, fill_value=default_imf_par):
@@ -418,14 +414,49 @@ def CheckLowestIMFMass(imf_par, ages, metal):
     return imf_par
 
 
-def CheckNStars(N_stars, M_tot_init, rel_frac, imf_par):
-    """Check if we got a value for number of stars, or calculate it."""
-    if (N_stars == 0) & (M_tot_init == 0):
+def CastMTotal(M_tot, n_pop):
+    """Cast input for total initial mass into the right format."""
+    if hasattr(M_tot, '__len__'):
+        M_tot = np.array(M_tot)
+    else:
+        M_tot = np.array([M_tot])
+    
+    len_M_tot = len(M_tot)
+    if ((n_pop > 1) & (len_M_tot == 1)):
+        M_tot = np.full(n_pop, M_tot[0])/n_pop                                                      # the mass is divided equally among the populations
+    elif (len_M_tot < n_pop):
+        M_tot = np.append(M_tot, np.full(n_pop - len_M_tot, M_tot[-1]))                             # extend length (dividing mass among pops)
+        M_tot[len_M_tot:] /= (n_pop - len_M_tot)
+    elif (len_M_tot > n_pop):
+        warnings.warn('utils//CastMTotal: too many values received for M_tot_init', SyntaxWarning)
+        M_tot = M_tot[:n_pop]                                                                       # reduce length
+    return M_tot
+
+
+def CheckNStars(N_stars, M_tot, n_pop, imf_par):
+    """Check if we got values for number of stars, or calculate them."""
+    if ((N_stars == 0) & np.all(M_tot == 0)):
         raise ValueError('objectgenerator//CheckInput: Input mass and number of stars '
                          'cannot be zero simultaniously.')
     elif (N_stars == 0):
-        pop_num = conv.MtotToNstars(M_tot_init*rel_frac, imf=imf_param)
-        self.N_stars = np.sum(pop_num)                                                              # estimate of the number of stars to generate
+        N_stars = conv.MtotToNstars(M_tot, imf=imf_par)                                             # estimate of the number of stars to generate
+    else:
+        if hasattr(N_stars, '__len__'):
+            N_stars = np.array(N_stars)
+        else:
+            N_stars = np.array([N_stars])
+        
+        len_N_stars = len(N_stars)
+        if ((n_pop > 1) & (len_N_stars == 1)):
+            N_stars = np.full(n_pop, N_stars[0])/n_pop                                              # the stars are divided equally among the populations
+        elif (len_N_stars < n_pop):
+            N_stars = np.append(N_stars, np.full(n_pop - len_N_stars, N_stars[-1]))                 # extend length (dividing stars among pops)
+            N_stars[len_N_stars:] /= (n_pop - len_N_stars)
+        elif (len_N_stars > n_pop):
+            warnings.warn('utils//CheckNStars: too many values received for N_stars', SyntaxWarning)
+            N_stars = N_stars[:n_pop]                                                               # reduce length
+    
+    N_stars = FixTotal(np.rint(N_stars).astype(int), np.sum(N_stars))                               # make sure it is int, and adds up nicely  
     return N_stars
 
 

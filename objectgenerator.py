@@ -75,8 +75,8 @@ class Stars(object):
     Returns:
         
     """    
-    def __init__(self, N_stars=0, M_tot_init=0, ages=None, metal=None, rel_num=None, sfh=None, 
-                 min_ages=None, tau_sfh=None, imf_par=None, incl=None, r_dist=None, r_dist_par=None, 
+    def __init__(self, N_stars=0, M_tot_init=0, ages=None, metal=None, imf_par=None, sfh=None, 
+                 min_ages=None, tau_sfh=None, incl=None, r_dist=None, r_dist_par=None, 
                  ellipse_axes=None, spiral_arms=None, spiral_bulge=None, spiral_bar=None, 
                  compact_mode=None):
         
@@ -84,11 +84,10 @@ class Stars(object):
         n_pop = utils.NumberOfPopulations(ages, metal, rel_num)                                     # find the intended number of populations
         self.ages = utils.CastAges(ages, n_pop)                                                     # ages of the populations (=max age if SFH is used)
         self.metal = utils.CastMetallicities(metal, n_pop)                                          # metallicities of the populations
-        self.rel_number = utils.CastRelNumber(rel_num, n_pop)                                       # relative number of stars in each population (converted to fractions)
         self.imf_param = utils.CastIMFParameters(imf_par, n_pop, fill_value=default_imf_par)        # lower bound, upper bound for the IMF masses
         self.imf_param = utils.CheckLowestIMFMass(self.imf_param, self.ages, self.metal)
-        self.N_stars = utils.CheckNStars(N_stars, M_tot_init, self.rel_number, self.imf_param)      # total number of stars
-        self.M_tot_init = M_tot_init                                                                # total initial mass in Msun (can initially be zero)
+        self.M_tot_init = utils.CastMTotal(M_tot_init, n_pop)                                       # total initial mass in Msun (can initially be zero)
+        self.N_stars = utils.CastNStars(N_stars, self.M_tot_init, n_pop, self.imf_param)            # total number of stars
         self.sfhist = utils.CastSFHistory(sfh, n_pop)                                               # star formation history types
         self.min_ages = min_ages                                # minimum ages to use in star formation histories
         self.tau_sfh = tau_sfh                                  # characteristic timescales for star formation
@@ -103,9 +102,7 @@ class Stars(object):
         self.spiral_bar = spiral_bar                            # relative proportion of central bar (per population)
         
         # properties that are derived/generated
-        self.pop_number = np.rint(self.rel_number*self.N_stars).astype(int)                         # number of stars in each population
-        self.pop_number = utils.FixTotal(self.pop_number, self.N_stars)
-        self.pop_origin = np.zeros([n_pop, 3])                                                      # origin of the stellar distribution (for each population)
+        self.origin = np.zeros([n_pop, 3])                                                          # origin of the stellar distribution (for each population)
         self.coords = np.empty([0,3])                                                               # spatial coordinates of the stars
         self.M_init = np.array([])                                                                  # the masses of the stars
         self.M_diff = np.zeros(n_pop)                                                               # mass difference between given and generated mass (when N_stars=0)
@@ -118,7 +115,8 @@ class Stars(object):
         
         # semi-private
         self.gen_imf_param = self.imf_param                                                         # the actual imf parameters to use for each population (limits imposed by compacting)
-        self.gen_pop_number = self.pop_number                                                       # actually generated number of stars per population (for compact mode/sfhist)
+        self.gen_pop_number = self.N_stars                                                       # actually generated number of stars per population (for compact mode/sfhist)
+        # todo: replace pop_number by N_stars
         self.gen_ages = self.ages                                                                   # the actual ages to be generated for each population (for sfhist)
         
         self.GenerateStars()                                                                        # actually generate the stars
@@ -127,8 +125,8 @@ class Stars(object):
     def __repr__(self):
         """Unambiguous representation of what this object is."""
         repr = (f'Stars(N_stars={self.N_stars!r}, M_tot_init={self.M_tot_init!r}, '
-                f'ages={self.ages!r}, metal={self.metal!r}, rel_num={self.rel_number!r}, '
-                f'sfh={self.sfhist!r}, min_ages={self.min_ages!r}, tau_sfh={self.tau_sfh!r}, '
+                f'ages={self.ages!r}, metal={self.metal!r}, sfh={self.sfhist!r}, 
+                f'min_ages={self.min_ages!r}, tau_sfh={self.tau_sfh!r}, '
                 f'imf_par={self.imf_param!r}, incl={self.inclination!r}, '
                 f'r_dist={self.r_dist_types!r}, r_dist_par={self.r_dist_param!r}, '
                 f'ellipse_axes={self.ellipse_axes!r}, spiral_arms={self.spiral_arms!r}, '
@@ -143,7 +141,6 @@ class Stars(object):
         string += f'M_tot_init:     {np.round(self.M_tot_init, 1)!s}\n'
         string += f'ages:           {self.ages!s}\n'
         string += f'metal:          {self.metal!s}\n'
-        string += f'rel_num:        {self.rel_number!s}\n'
         string += f'sfh:            {self.sfhist!s}\n'
         string += f'min_ages:       {self.min_ages!s}\n'
         string += f'tau_sfh:        {self.tau_sfh!s}\n'
