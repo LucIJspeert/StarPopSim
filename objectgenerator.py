@@ -77,7 +77,8 @@ class Stars(object):
     """    
     def __init__(self, N_stars=0, M_tot_init=0, ages=None, metal=None, rel_num=None, sfh=None, 
                  min_ages=None, tau_sfh=None, imf_par=None, incl=None, r_dist=None, r_dist_par=None, 
-                 ellipse_axes=None, spiral_arms=0, spiral_bulge=0, spiral_bar=0, compact_mode=None):
+                 ellipse_axes=None, spiral_arms=None, spiral_bulge=None, spiral_bar=None, 
+                 compact_mode=None):
         
         # cast input to right formats, and perform some checks
         n_pop = utils.NumberOfPopulations(ages, metal, rel_num)                                     # find the intended number of populations
@@ -89,40 +90,42 @@ class Stars(object):
         self.N_stars = utils.CheckNStars(N_stars, M_tot_init, self.rel_number, self.imf_param)      # total number of stars
         self.M_tot_init = M_tot_init                                                                # total initial mass in Msun (can initially be zero)
         self.sfhist = utils.CastSFHistory(sfh, n_pop)                                               # star formation history types
-        self.min_ages = min_ages                                                                        # minimum ages to use in star formation histories
-        self.tau_sfh = tau_sfh                                                                          # characteristic timescales for star formation
+        self.min_ages = min_ages                                # minimum ages to use in star formation histories
+        self.tau_sfh = tau_sfh                                  # characteristic timescales for star formation
         # shape parameters
         self.inclination = utils.CastInclination(incl, n_pop)                                       # inclination of the stars per population
         self.r_dist_types = utils.CastRadialDistType(r_dist, n_pop)                                 # type of radial distribution per population
         self.r_dist_types = utils.CheckRadialDistType(self.r_dist_types)
         self.r_dist_param = utils.CastRadialDistParam(r_dist_par, self.r_dist_types, n_pop)         # the further spatial distribution parameters (dictionary per population)
         self.ellipse_axes = utils.CastEllipseAxes(ellipse_axes, n_pop)                              # relative axis size for ellipsoidal shapes 
-        self.spiral_arms = spiral_arms                                                              # number of spiral arms
-        self.spiral_bulge = spiral_bulge                                                            # relative proportion of central bulge
-        self.spiral_bar = spiral_bar                                                                # relative proportion of central bar
+        self.spiral_arms = spiral_arms                          # number of spiral arms (per population)
+        self.spiral_bulge = spiral_bulge                        # relative proportion of central bulge (per population)
+        self.spiral_bar = spiral_bar                            # relative proportion of central bar (per population)
         
         # properties that are derived/generated
         self.pop_number = np.rint(self.rel_number*self.N_stars).astype(int)                         # number of stars in each population
         self.pop_number = utils.FixTotal(self.pop_number, self.N_stars)
-        self.coords = np.empty([0,3])                                                               # spatial coordinates
+        self.pop_origin = np.zeros([n_pop, 3])                                                      # origin of the stellar distribution (for each population)
+        self.coords = np.empty([0,3])                                                               # spatial coordinates of the stars
         self.M_init = np.array([])                                                                  # the masses of the stars
-        self.M_diff = 0                                                                             # mass difference between given and generated (total) mass (if given)
+        self.M_diff = np.zeros(n_pop)                                                               # mass difference between given and generated mass (when N_stars=0)
         self.mag_names = utils.SupportedFilters()                                                   # the filter names of the corresponding default set of supported magnitudes
         self.spec_names = np.array([])                                                              # spectral type names corresponding to the numbers in spectral_types
         
         # compact mode parameters
         self.compact_mode = compact_mode                                                            # (compact mode) generate only the higher mass stars. num=number limited, mag=magnitude limited
-        self.fraction_generated = np.ones_like(self.pop_number, dtype=float)                        # (compact mode) part of the total number of stars that has actually been generated per population
+        self.fraction_generated = np.ones(n_pop)                                                    # (compact mode) part of the total number of stars that has actually been generated per population
         
         # semi-private
         self.gen_imf_param = self.imf_param                                                         # the actual imf parameters to use for each population (limits imposed by compacting)
-        self.gen_pop_number = self.pop_number                                                       # actually generated number of stars per population (for compact mode)
+        self.gen_pop_number = self.pop_number                                                       # actually generated number of stars per population (for compact mode/sfhist)
         self.gen_ages = self.ages                                                                   # the actual ages to be generated for each population (for sfhist)
         
         self.GenerateStars()                                                                        # actually generate the stars
         return
     
     def __repr__(self):
+        """Unambiguous representation of what this object is."""
         repr = (f'Stars(N_stars={self.N_stars!r}, M_tot_init={self.M_tot_init!r}, '
                 f'ages={self.ages!r}, metal={self.metal!r}, rel_num={self.rel_number!r}, '
                 f'sfh={self.sfhist!r}, min_ages={self.min_ages!r}, tau_sfh={self.tau_sfh!r}, '
@@ -134,11 +137,107 @@ class Stars(object):
         return repr
     
     def __str__(self):
-        string = 'N_stars '
+        """Nice to read representation of what this object is"""
+        string = 'Stars object with parameters:\n'
+        string += f'N_stars:        {self.N_stars!s}\n'
+        string += f'M_tot_init:     {np.round(self.M_tot_init, 1)!s}\n'
+        string += f'ages:           {self.ages!s}\n'
+        string += f'metal:          {self.metal!s}\n'
+        string += f'rel_num:        {self.rel_number!s}\n'
+        string += f'sfh:            {self.sfhist!s}\n'
+        string += f'min_ages:       {self.min_ages!s}\n'
+        string += f'tau_sfh:        {self.tau_sfh!s}\n'
+        string += f'imf_par:        {[list(item) for item in self.imf_param]!s}\n'
+        string += f'incl:           {self.inclination!s}\n'
+        string += f'r_dist:         {self.r_dist_types!s}\n'
+        string += f'r_dist_par:     {self.r_dist_param!s}\n'
+        string += f'ellipse_axes:   {[list(item) for item in self.ellipse_axes]!s}\n'
+        string += f'spiral_arms:    {self.spiral_arms!s}\n'
+        string += f'spiral_bulge:   {self.spiral_bulge!s}\n'
+        string += f'spiral_bar:     {self.spiral_bar!s}\n'
+        string += f'compact_mode:   {self.compact_mode!s}\n'
         return string
         
     def __add__(self, other):
-        pass
+        """Need to add and/or append all the properties."""
+        self.N_stars += other.N_stars
+        self.M_tot_init += other.M_tot_init
+        self.ages = np.append(self.ages, other.ages)
+        self.metal = np.append(self.metal, other.metal)
+        self.rel_number = np.append(self.rel_number, other.rel_number)
+        self.sfhist = np.append(self.sfhist, other.sfhist)
+        self.min_ages = np.append(self.min_ages, other.min_ages)
+        self.tau_sfh = np.append(self.tau_sfh, other.tau_sfh)
+        self.imf_param = np.append(self.imf_param, other.imf_param, axis=0)
+        self.inclination = np.append(self.inclination, other.inclination)
+        self.r_dist_types = np.append(self.r_dist_types, other.r_dist_types)
+        self.r_dist_param = np.append(self.r_dist_param, other.r_dist_param)
+        self.ellipse_axes = np.append(self.ellipse_axes, other.ellipse_axes, axis=0)
+        self.spiral_arms = np.append(self.spiral_arms, other.spiral_arms)
+        self.spiral_bulge = np.append(self.spiral_bulge, other.spiral_bulge)
+        self.spiral_bar = np.append(self.spiral_bar, other.spiral_bar)
+        self.compact_mode = np.append(self.compact_mode, other.compact_mode)
+        # non-user defined:
+        self.pop_number = np.append(self.pop_number, other.pop_number)
+        self.pop_origin = np.append(self.pop_origin, other.pop_origin)
+        self.coords = np.append(self.coords, other.coords)
+        self.M_init = np.append(self.M_init, other.M_init)
+        self.M_diff = np.append(self.M_diff, other.M_diff)
+        self.fraction_generated = np.append(self.fraction_generated, other.fraction_generated)
+        self.gen_imf_param = np.append(self.gen_imf_param, other.gen_imf_param, axis=0)
+        self.gen_pop_number = np.append(self.gen_pop_number, other.gen_pop_number)
+        self.gen_ages = np.append(self.gen_ages, other.gen_ages)
+        # check if both have performance mode attributes (if not, deletes attributes from self)
+        if (hasattr(self, 'current_masses') & hasattr(other, 'current_masses')):
+            self.current_masses = np.append(self.current_masses, other.current_masses)
+        elif hasattr(self, 'current_masses'):
+            del self.current_masses
+            
+        if (hasattr(self, 'stellar_radii') & hasattr(other, 'stellar_radii')):
+            self.stellar_radii = np.append(self.stellar_radii, other.stellar_radii)
+        elif hasattr(self, 'stellar_radii'):
+            del self.stellar_radii
+        
+        if (hasattr(self, 'log_luminosities') & hasattr(other, 'log_luminosities')):
+            self.log_luminosities = np.append(self.log_luminosities, other.log_luminosities)
+        elif hasattr(self, 'log_luminosities'):
+            del self.log_luminosities
+        
+        if (hasattr(self, 'log_temperatures') & hasattr(other, 'log_temperatures')):
+            self.log_temperatures = np.append(self.log_temperatures, other.log_temperatures)
+        elif hasattr(self, 'log_temperatures'):
+            del self.log_temperatures
+        
+        if (hasattr(self, 'absolute_magnitudes') & hasattr(other, 'absolute_magnitudes') &
+            np.all(self.mag_names == other.mag_names)):
+            self.absolute_magnitudes = np.append(self.absolute_magnitudes, 
+                                                 other.absolute_magnitudes)
+        elif hasattr(self, 'absolute_magnitudes'):
+            del self.absolute_magnitudes
+        
+        if (hasattr(self, 'apparent_magniutdes') & hasattr(other, 'apparent_magniutdes') &
+            np.all(self.mag_names == other.mag_names)):
+            self.apparent_magniutdes = np.append(self.apparent_magniutdes, 
+                                                 other.apparent_magniutdes)
+        elif hasattr(self, 'apparent_magniutdes'):
+            del self.apparent_magniutdes
+        self.mag_names = np.unique(np.append(self.mag_names, other.mag_names))
+        
+        if (hasattr(self, 'spectral_types') & hasattr(other, 'spectral_types') &
+            np.all(self.spec_names == other.spec_names)):
+            self.spectral_types = np.append(self.spectral_types, other.spectral_types)
+        elif hasattr(self, 'spectral_types'):
+            del self.spectral_types
+        self.spec_names = np.unique(np.append(self.spec_names, other.spec_names))
+        
+        return self
+        
+    # def __radd__(self, other):
+    #     """Reverse add (for when adding doesn't work. e.g. in sum(a,b,c))."""
+    #     if other == 0:
+    #         return self
+    #     else:
+    #         return self.__add__(other)
     
     def GenerateStars(self):
         """Generate the masses and positions of the stars."""
@@ -259,6 +358,10 @@ class Stars(object):
             indices = np.repeat(np.arange(n_pop), self.pop_number)                                  # population index per star
             self.coords = self.coords*(axes/np.prod(axes)**(1/3))[indices]                          # convert to ellipsoid (keeps volume conserved)
         return
+        
+    def AddTranslation():
+        """Translate the origin of the stellar distribution (per population)."""
+        # todo: make this
     
     def CurrentMasses(self, realistic_remnants=True):
         """Gives the current masses of the stars in Msun.
@@ -699,6 +802,15 @@ class Gas():
     def __init__(self):
         pass
     
+    def __repr__(self):
+        pass
+    
+    def __str__(self):
+        pass
+    
+    def __add__(self):
+        pass
+    
     def AddInclination(self, incl):
         """Put the object at an inclination w.r.t. the observer, in radians. 
         The given angle is measured from the x-axis towards the z-axis (which is the l.o.s.).
@@ -717,6 +829,15 @@ class Gas():
 class Dust():
     """"""
     def __init__(self):
+        pass
+    
+    def __repr__(self):
+        pass
+    
+    def __str__(self):
+        pass
+    
+    def __add__(self):
         pass
     
     def AddInclination(self, incl):
@@ -786,6 +907,15 @@ class AstronomicalObject():
         
         super().__init__(**kwargs)                                                                  # inheritance
         return
+    
+    def __repr__(self):
+        pass
+    
+    def __str__(self):
+        pass
+    
+    def __add__(self):
+        pass
     
     def AddFieldStars(self, n=10, fov=53, sky_coords=None):
         """Adds (Milky Way) field stars to the object in the given f.o.v (in as).
@@ -891,45 +1021,26 @@ class AstronomicalObject():
 
 
 class StarCluster(AstronomicalObject):
-    """For generating star clusters."""
-    # structure = 'star cluster'                                                                      # type of object
-    
-    def __init__(self, N_stars=0, M_tot_init=0, ages=None, metal=None, rel_num=None, distance=10, 
-                 d_type='l', imf_par=None, sfh=None, extinct=0, r_dist=None, r_dist_par=None, 
-                 **kwargs):
+    """For generating star clusters."""    
+    def __init__(**kwargs):
         
-        super().__init__(N_stars=N_stars, M_tot_init=M_tot_init, ages=ages, metal=metal, 
-                         rel_num=rel_num, distance=distance, d_type=d_type, imf_par=imf_par, 
-                         extinct=extinct, sfh=sfh, r_dist=None, r_dist_par=None, **kwargs)
+        super().__init__(**kwargs)
         return
 
 
 class EllipticalGalaxy(AstronomicalObject):
-    """For generating elliptical galaxies."""
-    # structure = 'elliptical galaxy'                                                                 # type of object
-    
-    def __init__(self, N_stars=0, M_tot_init=0, ages=None, metal=None, rel_num=None, distance=1000, 
-                 d_type='l', imf_par=None, sfh=None, extinct=0, incl=None, r_dist=None, 
-                 r_dist_par=None, ellipse_axes=None, **kwargs):
+    """For generating elliptical galaxies."""    
+    def __init__(**kwargs):
         
-        super().__init__(N_stars=N_stars, M_tot_init=M_tot_init, ages=ages, metal=metal, 
-                         rel_num=rel_num, distance=distance, d_type=d_type, imf_par=imf_par, 
-                         extinct=extinct, sfh=sfh, incl=None, r_dist=None, 
-                         r_dist_par=None, ellipse_axes=None, **kwargs)
+        super().__init__(**kwargs)
         return
 
 
 class SpiralGalaxy(AstronomicalObject):
-    """For generating spiral galaxies."""
-    # structure = 'spiral galaxy'                                                                     # type of object
-    
-    def __init__(self, N_stars=0, M_tot_init=0, ages=None, metal=None, rel_num=None, distance=1000, 
-                 d_type='l', imf_par=None, sfh=None, extinct=0, incl=None, spiral_arms=0, 
-                 spiral_bulge=0, spiral_bar=0, **kwargs):
+    """For generating spiral galaxies."""    
+    def __init__(**kwargs):
         
-        super().__init__(N_stars=N_stars, M_tot_init=M_tot_init, ages=ages, metal=metal, 
-                         rel_num=rel_num, distance=distance, d_type=d_type, extinct=extinct, 
-                         sfh=sfh, imf_par=imf_par, **kwargs)
+        super().__init__(**kwargs)
         return
 
 
