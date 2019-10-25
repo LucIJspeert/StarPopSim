@@ -46,27 +46,27 @@ class Stars(object):
     Note:
         N_stars and M_tot_init cannot be zero simultaneously.
         ages and metal are both not optional parameters (they might look like they are).
+        'array' here means numpy.ndarray, while lists (or even single entries) are also accepted
     
     Args:
-        N_stars (int): the total number of stars to make.
-        M_tot_init (float): the total mass in stars to produce (in solar masses).
-        ages (numpy.ndarray of float): 1D array of ages for each stellar population 
-            (in linear or 10log yr).
-        metal (numpy.ndarray of float): 1D array of metallicities for each stellar population.
-        rel_num (numpy.ndarray of float, optional): the relative number of stars to put 
-            in each stellar population.
-        sfh (numpy.ndarray of str and None, optional): types of star formation history to use per 
-            stellar population.
-        imf_par (numpy.ndarray of float, optional): 2D array of two parameters per 
-            stellar population. First parameter is lowest mass, second is highest mass to make.
-        r_dist ():
-        r_dist_par ():
-        incl ():
-        ellipse_axes ():
+        N_stars (array of int): the total number of stars to make per stellar population.
+        M_tot_init (array of float): the total mass in stars to produce per population (in Msol).
+        ages (array of float): stellar age for each population (in linear or 10log yr).
+        metal (array of float): metallicity for each population.
+        rel_num (array of float, optional): the relative number of stars to put 
+            in each population.
+        sfh (array of str and None, optional): type of star formation history to use per population.
+        imf_par (array of float, optional): 2D array of two parameters per stellar population. 
+            First parameter is lowest mass, second is highest mass to make.
+        r_dist (array of str): type of radial distribution to use per population.
+        r_dist_par (array of dict): parameter values for the radial distributions specified.
+        incl (array of float): inclination values per population (in radians)
+        ellipse_axes (array of float): 2D array of one set of axes per population.
+            Relative (x,y,z)-sizes to stretch the distributions; volume is kept constant.
         spiral_arms ():
         spiral_bulge ():
         spiral_bar ():
-        compact_mode (str or None): generate only a fraction of the total number of stars.
+        compact_mode (array of str and None): generate only a fraction of the total number of stars.
             choose from 'num' or 'mag' for number or magnitude limited. 
     
     Attributes:
