@@ -9,6 +9,7 @@ import numpy as np
 import fnmatch
 import inspect
 import distributions as dist
+import conversions as conv
 
 
 # global defaults
@@ -83,16 +84,15 @@ def OpenPhotometricData(columns=None, filters=None):
         used_types = [column_types[i] for i in use_i]
         if (len(columns) == 1):
             reduce = True
-            single_column = columns[0]
-        columns = use_i
     else:
+        use_i = None
         used_types = column_types
 
-    phot_dat = np.loadtxt(file_name, dtype=used_types, usecols=columns)
+    phot_dat = np.loadtxt(file_name, dtype=used_types, usecols=use_i)
 
     # select the filters
     if filters is not None:
-        filter_names = np.loadtxt(file_name, dtype=column_types[:2], usecols=[0,1])
+        filter_names = np.loadtxt(file_name, dtype=column_types[:2], usecols=[0, 1])
         mask_filters = np.sum([((filter_names['name'] == name) | (filter_names['alt_name'] == name))
                                for name in filters], dtype=bool, axis=0)
         phot_dat = phot_dat[mask_filters]
@@ -105,7 +105,7 @@ def OpenPhotometricData(columns=None, filters=None):
     if ('zp_flux' in np.array(used_types)[:, 0]):
         phot_dat['zp_flux'] = phot_dat['zp_flux']*1e7                                               # convert to W/m^3
     if reduce:
-        phot_dat = phot_dat[single_column]                                                          # get rid of the array structure
+        phot_dat = phot_dat[columns[0]]                                                             # get rid of the array structure
     return phot_dat
 
 
@@ -127,7 +127,7 @@ def SelectAge(age, Z):
     if lim_min or lim_max:                                                                          # check the age limits
         warnings.warn(('objectgenerator//OpenIsochrone: Specified age exceeds limit for this'
                        'isochrones file. Using limit value (log_age={1}).').format(Z,
-                       lim_min*log_t_min + lim_max*log_t_max), RuntimeWarning)
+                      lim_min*log_t_min + lim_max*log_t_max), RuntimeWarning)
         log_age = lim_min*log_t_min + lim_max*log_t_max
 
     t_steps = uni_log_t[1:] - uni_log_t[:-1]                                                        # determine the age steps in the isoc files (step sizes may vary)
@@ -271,6 +271,59 @@ def WhileAsk(question, options, add_opt=None, function='', check='str', help_arg
     return ans
 
 
+def AskHelp(function, add_args):
+    """Shows the help on a particular function."""
+    # todo: [this is obviously not the thing to put here... remove later]
+    if (function == 'StructureType'):
+        print(' |  [WIP] Only clusters can be made at the moment.')
+    elif (function == 'PopulationAmount'):
+        print(' |  Amount of stellar populations to generate '
+              '(each having different age/metallicity).')
+        print(' |  If making a spiral galaxy, this is the amount of populations '
+              'in the disk only (separate from the bulge and bar).')
+    elif (function == 'PopAges'):
+        print(' |  Values above 100 are taken to be in years. '
+              'Values below 11 are taken to be log(years).')
+    elif (function == 'PopMetallicity'):
+        print(' |  Check the isochrone files for available metallicities.')
+    elif (function == 'OptionalParam'):
+        print(' |  Change parameters like the mass boundaries for the IMF, '
+              'radial distribution type and more.')
+    elif (function == 'IMFParam'):
+        print(' |  The Kroupa IMF above 0.08 solar mass is used by default.')
+        print(' |  This uses a low mass slope of -1.35 and a high mass slope of -2.35 '
+              '(as Salpeter IMF).')
+        print(' |  The lower bound is 0.08 M_sol, position of the knee is 0.5 M_sol, '
+              'upper bound is at 150 M_sol.')
+    elif (function == 'SFHType'):
+        print(' |  A fixed (given) age is used by default.')
+        print(' |  A period of star formation can be included: this effectively gives '
+              'the stars a certain age distribution.')
+        print(' |  The Star Formation History type is just the form of this distribution.')
+        print(' |  The given ages will be used as maximum ages in this case. Choose from: '
+              '[{0}]'.format(add_args))
+    elif (function == 'RadialDistribution'):
+        print(' |  A normal (gaussian) radial distribution is used by default.')
+        print(' |  For more information on the available radial distributions, '
+              'see the documentation.')
+        print(' |  Radial distributions can be added to the module <distributions> '
+              '(use the right format!).')
+        print(' |  List of available distributions: [{0}]'.format(add_args))
+    elif (function == 'RadialParameters'):
+        print(' |  Parameters for the function: {0}'.format(add_args[0]))
+        print(' |  The parameters and their default values are: {0}'.format(add_args[1]))
+    elif (function == 'EllipseAxes'):
+        print(' |  The axes are scaled relatively to eachother so that the volume '
+              'of the ellipsiod stays constant.')
+    elif (function == 'SaveFileName'):
+        print(' |  The default savename is astobj_default_save. Enter a name without '
+              'file extention (.pkl)')
+    else:
+        print(' |  No help available for this function at this stage.')
+
+    return
+
+
 def CheckAnswer(ans, question, options, default, function, *args):
     """Helper function of WhileAsk."""
     if ((ans == '') & (default != '')):
@@ -282,7 +335,7 @@ def CheckAnswer(ans, question, options, default, function, *args):
         else:
             ans = input(question + ' ' + options + ': ')
     elif (ans.lower() in ['quit', 'q']):
-        raise KeyboardInterrupt #SystemExit                                                         # exit if wanted
+        raise KeyboardInterrupt  # SystemExit                                                       # exit if wanted
     else:
         if (options == ''):
             ans = input(question + ': ')
@@ -300,9 +353,9 @@ def NumberOfPopulations(N, M_tot, ages, metal):
         len_N = 1
     
     if hasattr(M_tot, '__len__'):
-        len_M_tot = len(M_tot)
+        len_M = len(M_tot)
     else:
-        len_M_tot = 1
+        len_M = 1
     
     if hasattr(ages, '__len__'):
         len_ages = len(ages)
@@ -365,8 +418,11 @@ def CastMetallicities(metal, n_pop):
     return metal
 
 
-def CastIMFParameters(imf_par, n_pop, fill_value=default_imf_par):
+def CastIMFParameters(imf_par, n_pop, fill_value='default'):
     """Cast input for IMF parameters into the right format."""
+    if (fill_value == 'default'):
+        fill_value = default_imf_par
+
     if not imf_par:
         imf_par = np.full([n_pop, len(fill_value)], fill_value)
     elif hasattr(imf_par, '__len__'):
@@ -388,7 +444,7 @@ def CastIMFParameters(imf_par, n_pop, fill_value=default_imf_par):
         imf_par = np.append(imf_par, extension, axis=0)                                             # extend length
     elif (len(shape_imf_par) == 1):
         warnings.warn(('utils//CastIMFParameters: incorrect input for imf_par, '
-                        'using default (={0}).').format(fill_value), SyntaxWarning)
+                       'using default (={0}).').format(fill_value), SyntaxWarning)
         imf_par = np.full([n_pop, len(fill_value)], fill_value)                                     # cannot be interpreted
         # otherwise (below): assume a 2D shape with correct inner axis length 
     elif ((n_pop > 1) & (shape_imf_par[0] == 1)):
@@ -398,7 +454,7 @@ def CastIMFParameters(imf_par, n_pop, fill_value=default_imf_par):
         imf_par = np.append(imf_par, extension, axis=0)                                             # extend length
     elif (shape_imf_par[0] > n_pop):
         warnings.warn(('utils//CastIMFParameters: Too many arguments for imf_par. '
-                        'Excess discarded.'), SyntaxWarning)
+                       'Excess discarded.'), SyntaxWarning)
         imf_par = imf_par[:n_pop]                                                                   # reduce length
     return imf_par
 
@@ -499,7 +555,7 @@ def CheckRadialDistType(r_dist):
         if (r_dist[i] not in dist_list):
             warnings.warn(('utils//CheckRadialDistType: Specified distribution <{0}> type does '
                            'not exist. Using default (=<{1}>)').format(r_dist[i], default_rdist), 
-                           SyntaxWarning)
+                          SyntaxWarning)
             r_dist[i] = default_rdist + '_r'
     return r_dist
 

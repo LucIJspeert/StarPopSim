@@ -7,6 +7,7 @@ It is assumed that the fits data is in a folder called 'images',
 positioned within the working directory.
 """
 import os
+import warnings
 
 import numpy as np
 import matplotlib.pyplot as plt

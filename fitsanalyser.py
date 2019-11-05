@@ -10,6 +10,7 @@ import os
 import pickle
 
 import numpy as np
+import scipy.spatial as sps
 import matplotlib.pyplot as plt
 import astropy as apy
 import astropy.modeling as asm
