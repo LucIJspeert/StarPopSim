@@ -81,12 +81,12 @@ class Stars(object):
                  compact_mode=None):
         
         # cast input to right formats, and perform some checks
-        n_pop = utils.NumberOfPopulations(ages, metal, rel_num)                                     # find the intended number of populations
-        self.ages = utils.CastAges(ages, n_pop)                                                     # ages of the populations (=max age if SFH is used)
-        self.metal = utils.CastMetallicities(metal, n_pop)                                          # metallicities of the populations
-        self.imf_param = utils.CastIMFParameters(imf_par, n_pop, fill_value=default_imf_par)        # lower bound, upper bound for the IMF masses
-        self.imf_param = utils.CheckLowestIMFMass(self.imf_param, self.ages, self.metal)
-        self.M_tot_init = utils.CastMTotal(M_tot_init, n_pop)                                       # total initial mass in Msun (can initially be zero)
+        n_pop = utils.check_number_of_populations(ages, metal, rel_num)                                     # find the intended number of populations
+        self.ages = utils.cast_ages(ages, n_pop)                                                     # ages of the populations (=max age if SFH is used)
+        self.metal = utils.cast_metallicities(metal, n_pop)                                          # metallicities of the populations
+        self.imf_param = utils.cast_imf_parameters(imf_par, n_pop, fill_value=default_imf_par)        # lower bound, upper bound for the IMF masses
+        self.imf_param = utils.check_lowest_imf_mass(self.imf_param, self.ages, self.metal)
+        self.M_tot_init = utils.cast_m_total(M_tot_init, n_pop)                                       # total initial mass in Msun (can initially be zero)
         self.N_stars = utils.CastNStars(N_stars, self.M_tot_init, n_pop, self.imf_param)            # total number of stars
         self.sfhist = utils.CastSFHistory(sfh, n_pop)                                               # star formation history types
         self.min_ages = min_ages                                # minimum ages to use in star formation histories
@@ -106,7 +106,7 @@ class Stars(object):
         self.coords = np.empty([0,3])                                                               # spatial coordinates of the stars
         self.M_init = np.array([])                                                                  # the masses of the stars
         self.M_diff = np.zeros(n_pop)                                                               # mass difference between given and generated mass (when N_stars=0)
-        self.mag_names = utils.SupportedFilters()                                                   # the filter names of the corresponding default set of supported magnitudes
+        self.mag_names = utils.get_supported_filters()                                                   # the filter names of the corresponding default set of supported magnitudes
         self.spec_names = np.array([])                                                              # spectral type names corresponding to the numbers in spectral_types
         
         # compact mode parameters
@@ -373,8 +373,8 @@ class Stars(object):
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
-                iso_M_ini, iso_M_act = utils.StellarIsochrone(age, self.metal[i], 
-                                                              columns=['M_initial', 'M_current'])   # get the isochrone values
+                iso_M_ini, iso_M_act = utils.stellar_isochrone(age, self.metal[i],
+                                                               columns=['M_initial', 'M_current'])   # get the isochrone values
                 M_init_i = self.M_init[index[i]:index[i+1]]
                 M_cur_i = np.interp(M_init_i, iso_M_ini, iso_M_act, right=0)                        # (right) return 0 for stars heavier than available in isoc file (dead stars)
                 
@@ -401,8 +401,8 @@ class Stars(object):
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
-                iso_M_ini, iso_log_g = utils.StellarIsochrone(age, self.metal[i], 
-                                                              columns=['M_initial', 'log_g'])       # get the isochrone values
+                iso_M_ini, iso_log_g = utils.stellar_isochrone(age, self.metal[i],
+                                                               columns=['M_initial', 'log_g'])       # get the isochrone values
                 iso_R_cur = conv.GravityToRadius(iso_log_g, iso_M_ini)
                 M_init_i = self.M_init[index[i]:index[i+1]]
                 R_cur_i = np.interp(M_init_i, iso_M_ini, iso_R_cur, right=0)                        # (right) return 0 for stars heavier than available in isoc file (dead stars)
@@ -432,8 +432,8 @@ class Stars(object):
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
-                iso_M_ini, iso_log_L = utils.StellarIsochrone(age, self.metal[i], 
-                                                              columns=['M_initial', 'log_L'])       # get the isochrone values
+                iso_M_ini, iso_log_L = utils.stellar_isochrone(age, self.metal[i],
+                                                               columns=['M_initial', 'log_L'])       # get the isochrone values
                 M_init_i = self.M_init[index[i]:index[i+1]]
                 log_L_i = np.interp(M_init_i, iso_M_ini, iso_log_L, right=-9)                       # (right) return -9 --> L = 10**-9 Lsun (for stars heavier than available)
                 
@@ -465,8 +465,8 @@ class Stars(object):
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
-                iso_M_ini, iso_log_Te = utils.StellarIsochrone(age, self.metal[i], 
-                                                               columns=['M_initial', 'log_Te'])     # get the isochrone values
+                iso_M_ini, iso_log_Te = utils.stellar_isochrone(age, self.metal[i],
+                                                                columns=['M_initial', 'log_Te'])     # get the isochrone values
                 M_init_i = self.M_init[index[i]:index[i+1]]
                 log_Te_i = np.interp(M_init_i, iso_M_ini, iso_log_Te, right=1)                      # (right) return 1 --> Te = 10 K (for stars heavier than available)
                 
@@ -493,7 +493,7 @@ class Stars(object):
             filters = self.mag_names
         
         if hasattr(self, 'absolute_magnitudes'):
-            abs_mag = self.absolute_magnitudes[:, utils.GetFilterMask(filters)]
+            abs_mag = self.absolute_magnitudes[:, utils.get_filter_mask(filters)]
             if (len(filters) == 1):
                 abs_mag = abs_mag.flatten()                                                         # correct for 2D array
         else:
@@ -502,8 +502,8 @@ class Stars(object):
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
-                iso_M_ini = utils.StellarIsochrone(age, self.metal[i], columns=['M_initial']) 
-                iso_mag = utils.StellarIsochrone(age, self.metal[i], columns=filters).T             # get the isochrone values
+                iso_M_ini = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial'])
+                iso_mag = utils.stellar_isochrone(age, self.metal[i], columns=filters).T             # get the isochrone values
                 
                 M_init_i = self.M_init[index[i]:index[i+1]]                                         # select the masses of one population
                 interper = spi.interp1d(iso_M_ini, iso_mag, bounds_error=False, 
@@ -532,7 +532,7 @@ class Stars(object):
             filters = self.mag_names
         
         if hasattr(self, 'apparent_magnitudes'):
-            app_mag = self.apparent_magnitudes[:, utils.GetFilterMask(filters)]
+            app_mag = self.apparent_magnitudes[:, utils.get_filter_mask(filters)]
             if (len(filters) == 1):
                 abs_mag = abs_mag.flatten()                                                         # correct for 2D array
         else:
@@ -545,7 +545,7 @@ class Stars(object):
             
             # add redshift (rough approach)
             if add_redshift:
-                filter_means = utils.OpenPhotometricData(columns=['mean'], filters=filters)
+                filter_means = utils.open_photometric_data(columns=['mean'], filters=filters)
                 shifted_filters = (1 + self.redshift)*filter_means
                 R_cur = self.StellarRadii(realistic_remnants=True)
                 T_eff = 10**self.LogTemperatures(realistic_remnants=True)
@@ -590,7 +590,7 @@ class Stars(object):
             index = np.cumsum(np.append([0], self.gen_pop_number))                                  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
-                iso_M_ini = utils.StellarIsochrone(age, self.metal[i], columns=['M_initial'])
+                iso_M_ini = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial'])
                 max_mass = np.max(iso_M_ini)                                                        # maximum initial mass in isoc file
                 remnants_i = (self.M_init[index[i]:index[i+1]] > max_mass)
                 remnants = np.append(remnants, remnants_i)
@@ -1142,7 +1142,7 @@ def StarFormHistory(max_age, min_age=1, sfr='exp', Z=0.014, tau=1e10):
     rel_num = np.array([])
     log_ages_used = np.array([])
     for i in range(len(max_age)):
-        log_ages = np.unique(utils.OpenIsochronesFile(Z[i], columns=['log_age']))                   # avaiable ages
+        log_ages = np.unique(utils.open_isochrones_file(Z[i], columns=['log_age']))                   # avaiable ages
         uni_log_ages = np.unique(log_ages)
         log_ages_used_i = uni_log_ages[(uni_log_ages <= max_age[i]) & (uni_log_ages >= min_age[i])] # log t's to use (between min/max ages)
         ages_used = 10**log_ages_used_i                                                             # age of each SSP
@@ -1220,7 +1220,7 @@ def NumberLimited(N, age, Z, imf=default_imf_par):
     """
     fraction = np.clip(limiting_number/N, 0, 1)                                                     # fraction of the total number of stars to generate
     
-    M_ini = utils.StellarIsochrone(age, Z, columns=['M_initial'])                                   # get the isochrone values
+    M_ini = utils.stellar_isochrone(age, Z, columns=['M_initial'])                                   # get the isochrone values
     mass_lim_high = M_ini[-1]                                                                       # highest value in the isochrone
     
     mass_lim_low = form.MassLimit(fraction, M_max=mass_lim_high, imf=imf)
@@ -1237,8 +1237,8 @@ def MagnitudeLimited(age, Z, mag_lim=default_mag_lim, d=10, ext=0, filter='Ks'):
     distance, age, metallicity and extinction of the population of stars are needed.
     A filter must be specified in which the given limiting magnitude is measured.
     """
-    iso_M_ini = utils.StellarIsochrone(age, Z, columns=['M_initial'])                               # get the isochrone values
-    mag_vals = utils.StellarIsochrone(age, Z, columns=[filter])
+    iso_M_ini = utils.stellar_isochrone(age, Z, columns=['M_initial'])                               # get the isochrone values
+    mag_vals = utils.stellar_isochrone(age, Z, columns=[filter])
 
     abs_mag_lim = form.AbsoluteMag(mag_lim, d, ext=ext)                                             # calculate the limiting absolute magnitude
     mask = (mag_vals < abs_mag_lim + 0.1)                                                           # take all mag_vals below the limit
@@ -1256,7 +1256,7 @@ def MagnitudeLimited(age, Z, mag_lim=default_mag_lim, d=10, ext=0, filter='Ks'):
 
 def RemnantsSinglePop(M_init, age, Z):
     """Gives the positions of the remnants in a single population (as a boolean mask)."""
-    iso_M_ini = utils.StellarIsochrone(age, Z, columns=['M_initial'])
+    iso_M_ini = utils.stellar_isochrone(age, Z, columns=['M_initial'])
     max_mass = np.max(iso_M_ini)                                                                    # maximum initial mass in isoc file
     return (M_init > max_mass)
 

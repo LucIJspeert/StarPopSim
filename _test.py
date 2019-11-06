@@ -4288,7 +4288,7 @@ def StarFormHistory(max_age, min_age=0, Z=0.014, sfr='exp', tau=1e10):
             log_ages_used = np.append(log_ages_used, a_temp)
     else:
         # here is the actual functionality
-        log_ages = np.unique(utils.OpenIsochronesFile(Z, columns=['log_age']))                      # avaiable ages
+        log_ages = np.unique(utils.open_isochrones_file(Z, columns=['log_age']))                      # avaiable ages
         uni_log_ages = np.unique(log_ages)
         log_ages_used = uni_log_ages[(uni_log_ages <= max_age) & (uni_log_ages >= min_age)]         # log t's to use (between min/max ages)
         ages_used = 10**log_ages_used                                                               # age of each SSP

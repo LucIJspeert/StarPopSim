@@ -136,7 +136,7 @@ def LoadAstObj(astobj_name=''):
         else:
             default = ''
         
-        file_name = utils.WhileAsk('Which astronomical object file do you want to load?', 
+        file_name = utils.while_ask('Which astronomical object file do you want to load?',
                              '{}'.format(default), add_opt=fnames_list, function='LoadAstObj')
     
     astobj = obg.AstObject.LoadFrom(file_name)
@@ -145,14 +145,14 @@ def LoadAstObj(astobj_name=''):
 
 def ExposureTime():
     """Asks how long the exposure time must be."""
-    exp_str = utils.WhileAsk('Exposure time for the observation (seconds)', 
+    exp_str = utils.while_ask('Exposure time for the observation (seconds)',
                        '[{}]'.format(default_exp), function='ExposureTime', check='int')
     return int(exp_str)
 
 
 def NIterations():
     """Asks how many iterations to make."""
-    ndit_str = utils.WhileAsk('Number of exposures to make:', '[1]', function='NIterations', check='int')
+    ndit_str = utils.while_ask('Number of exposures to make:', '[1]', function='NIterations', check='int')
     
     if (ndit_str != '1'):
         print(' |  [Note: the number of iterations doesn\'t seem to do anything '
@@ -166,7 +166,7 @@ def Filter(filters):
     """Asks what astronomical filter to use."""
     filter_default = '/'.join(filters)
     filter_default = filter_default.replace(default_filter, '[' + default_filter + ']')
-    filter = utils.WhileAsk('Filter to use:', filter_default, function='Filter', help_arg=filters)
+    filter = utils.while_ask('Filter to use:', filter_default, function='Filter', help_arg=filters)
     return filter
 
 
@@ -174,7 +174,7 @@ def FieldOfView():
     """Asks what view mode the telescope should be set to."""
     options = 'wide/zoom'.replace(default_fov, '[' + default_fov + ']')
     
-    fov = utils.WhileAsk('View mode:', options, add_opt=['w', 'z'], function='FieldOfView')
+    fov = utils.while_ask('View mode:', options, add_opt=['w', 'z'], function='FieldOfView')
     
     if (fov.lower() == 'w'):
         fov = 'wide'
@@ -188,7 +188,7 @@ def ChipConfig():
     """Asks what detector layout to use."""
     options = 'full/centre/small'.replace(default_chip, '[' + default_chip + ']')
     
-    chip = utils.WhileAsk('Detector layout:', options, add_opt=['f', 'c', 's'], function='ChipConfig')
+    chip = utils.while_ask('Detector layout:', options, add_opt=['f', 'c', 's'], function='ChipConfig')
     
     if (chip.lower() == 'f'):
         chip = 'full'
@@ -204,8 +204,8 @@ def AdaptiveOptics():
     """Asks what AO mode to use."""
     options = 'scao/mcao/ltao'.replace(default_ao, '[' + default_ao + ']')
     
-    ao = utils.WhileAsk('Adaptive optics mode:', options, add_opt=['sc', 'mc', 'lt'], 
-                  function='AdaptiveOptics')
+    ao = utils.while_ask('Adaptive optics mode:', options, add_opt=['sc', 'mc', 'lt'],
+                         function='AdaptiveOptics')
     
     if (ao.lower() == 'sc'):
         ao = 'scao'
@@ -222,18 +222,18 @@ def SaveFileName():
     file_name = default_image_file_name
     
     print('The image will be saved under the name ' + file_name)
-    change = utils.WhileAsk(' |  Save image with a different filename?', 'y/[n]', 
-                      add_opt=['yes', 'no'], function='SaveFileName')
+    change = utils.while_ask(' |  Save image with a different filename?', 'y/[n]',
+                             add_opt=['yes', 'no'], function='SaveFileName')
     
     if (change.lower() in ['y', 'yes']):
-        file_name = utils.WhileAsk(' |  Give the new name', '', function='SaveFileName')
+        file_name = utils.while_ask(' |  Give the new name', '', function='SaveFileName')
         
     return file_name
 
 
 def ShowImage(image_name):
     """Asks if you want the image displayed."""
-    show = utils.WhileAsk('Display the image?', '[y]/n', add_opt=['yes', 'no'], function='ShowImage')
+    show = utils.while_ask('Display the image?', '[y]/n', add_opt=['yes', 'no'], function='ShowImage')
     
     if (show in ['y', 'yes']):
         fh.PlotFits(image_name)

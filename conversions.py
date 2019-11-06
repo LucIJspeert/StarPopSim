@@ -140,7 +140,7 @@ def LumToMag(lum):
 def FluxToMag(flux, filters=None):
     """Converts spectral flux density (in W/m^3) to magnitude in certain filters."""
     if filters is not None:
-        zero_point_flux = utils.OpenPhotometricData(columns=['zp_flux'], filters=filters)
+        zero_point_flux = utils.open_photometric_data(columns=['zp_flux'], filters=filters)
         mag = -2.5*np.log10(flux/zero_point_flux)
     else:
         # just convert raw input

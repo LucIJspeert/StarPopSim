@@ -13,43 +13,48 @@ import conversions as conv
 
 
 # global defaults
-prop_names = np.array(['log_age', 'M_initial', 'M_current', 'log_L', 'log_Te', 'log_g', 'phase'])   # names of stellar properties
-default_isoc_file = 'isoc_Z0.014.dat'                                                               # for reference (make sure this one exists!)
+# names of stellar properties:
+prop_names = np.array(['log_age', 'M_initial', 'M_current', 'log_L', 'log_Te', 'log_g', 'phase'])
+# for reference (make sure this one exists!)
+default_isoc_file = 'isoc_Z0.014.dat'
 default_imf_par = [0.08, 150]   # M_sun     lower bound, upper bound on mass
 default_rdist = 'Normal'        # see distributions module for a full list of options
 
 
-def OpenIsochronesFile(Z, columns=None):
+def open_isochrones_file(Z, columns=None):
     """Opens the isochrones file and gives the right columns.
     columns: list of column names (see code_names), None will give all columns.
     """
     # check the file name (actual opening lateron)
-    file_name = ('isoc_Z{1:1.{0}f}.dat').format(-int(np.floor(np.log10(Z)))+1, Z)
+    decimals = -int(np.floor(np.log10(Z))) + 1
+    file_name = f'isoc_Z{Z:1.{decimals}f}.dat'
     file_name = os.path.join('tables', file_name)
 
-    if not os.path.isfile(file_name):                                                               # check wether file for Z exists
-        file_name = ('isoc_Z{1:1.{0}f}.dat').format(-int(np.floor(np.log10(Z))), Z)                 # try one digit less
+    # check wether file for Z exists
+    if not os.path.isfile(file_name):
+        # try one digit less
+        file_name = f'isoc_Z{Z:1.{decimals - 1}f}.dat'
         file_name = os.path.join('tables', file_name)
         if not os.path.isfile(file_name):
-            raise FileNotFoundError(('objectgenerator//OpenIsochronesFile: file {0} not found. '
-                                    'Try a different metallicity.').format(file_name))
+            raise FileNotFoundError(f'File {file_name} not found. Try a different metallicity.')
 
     # mapping the names used in the code to the isoc file column names
-    alt_filter_names = SupportedFilters(alt_names=True)
-    full_filter_names = SupportedFilters(alt_names=False)
-    code_names, isoc_names = np.loadtxt(os.path.join('tables', 'column_names.dat'),
-                                        dtype=str, unpack=True)
+    alt_filter_names = get_supported_filters(alt_names=True)
+    full_filter_names = get_supported_filters(alt_names=False)
+    code_names, isoc_names = np.loadtxt(os.path.join('tables', 'column_names.dat'), dtype=str, unpack=True)
     all_code_names = np.append(code_names, alt_filter_names)
 
+    # define the filter names that can be used in terms of the isochrone filter names
     name_dict = {code: iso for code, iso in zip(alt_filter_names, full_filter_names)}
-    name_dict.update({iso: iso for iso in full_filter_names})                                       # can also use the full names
+    name_dict.update({iso: iso for iso in full_filter_names})
     name_dict.update({code: iso for code, iso in zip(code_names, isoc_names)})
-    name_dict.update({iso: iso for iso in isoc_names})                                              # can use isoc names directly
+    name_dict.update({iso: iso for iso in isoc_names})
 
+    # find the column names in the isoc file
     with open(file_name) as file:
         for line in file:
             if line.startswith('#'):
-                header = np.array(line.replace('#', '').split())                                    # find the column names in the isoc file
+                header = np.array(line.replace('#', '').split())
             else:
                 break
 
@@ -58,13 +63,14 @@ def OpenIsochronesFile(Z, columns=None):
     if columns is None:
         cols_to_use = [col_dict[name_dict[name]] for name in all_code_names]
     else:
-        cols_to_use = [col_dict[name_dict[name]] for name in columns]                               # use the given column names
+        # use the given column names
+        cols_to_use = [col_dict[name_dict[name]] for name in columns]
 
     data = np.loadtxt(file_name, usecols=cols_to_use, unpack=True)
     return data
 
 
-def OpenPhotometricData(columns=None, filters=None):
+def open_photometric_data(columns=None, filters=None):
     """Gives the data in the file photometric_filters.dat as a structured array.
     Columns can be specified if less of the data is wanted (array of strings).
     Filters can be specified to get only those rows (array of strings)
@@ -99,52 +105,54 @@ def OpenPhotometricData(columns=None, filters=None):
 
     # some default conversions
     if ('mean' in np.array(used_types)[:, 0]):
-        phot_dat['mean'] = phot_dat['mean']*1e-9                                                    # convert to m
+        phot_dat['mean'] = phot_dat['mean']*1e-9  # convert to m
     if ('width' in np.array(used_types)[:, 0]):
-        phot_dat['width'] = phot_dat['width']*1e-9                                                  # convert to m
+        phot_dat['width'] = phot_dat['width']*1e-9  # convert to m
     if ('zp_flux' in np.array(used_types)[:, 0]):
-        phot_dat['zp_flux'] = phot_dat['zp_flux']*1e7                                               # convert to W/m^3
+        phot_dat['zp_flux'] = phot_dat['zp_flux']*1e7  # convert to W/m^3
     if reduce:
-        phot_dat = phot_dat[columns[0]]                                                             # get rid of the array structure
+        phot_dat = phot_dat[columns[0]]  # get rid of the array structure
     return phot_dat
 
 
-def SelectAge(age, Z):
+def select_age(age, Z):
     """Selects the timestep in the isochrone closest to the given age (lin or log years)."""
-    log_t = OpenIsochronesFile(Z, columns=['log_age'])
+    log_t = open_isochrones_file(Z, columns=['log_age'])
 
-    if (age <= 12):                                                                                 # determine if logarithm or not
-        log_age = age                                                                               # define log_age
+    # determine if logarithm or not (assumes everything <= 12 is a logarithm)
+    if (age <= 12):
+        log_age = age
     else:
-        log_age = np.log10(age)                                                                     # calculate log_age (assuming it is not already log)
+        log_age = np.log10(age)
 
-    log_t_min = np.min(log_t)                                                                       # minimum available age
-    log_t_max = np.max(log_t)                                                                       # maximum available age
-    uni_log_t = np.unique(log_t)                                                                    # unique array of ages
+    log_t_min = np.min(log_t)  # minimum available age
+    log_t_max = np.max(log_t)  # maximum available age
+    uni_log_t = np.unique(log_t)  # unique array of ages
 
     lim_min = (log_age < log_t_min - 0.01)
     lim_max = (log_age > log_t_max + 0.01)
-    if lim_min or lim_max:                                                                          # check the age limits
-        warnings.warn(('objectgenerator//OpenIsochrone: Specified age exceeds limit for this'
-                       'isochrones file. Using limit value (log_age={1}).').format(Z,
-                      lim_min*log_t_min + lim_max*log_t_max), RuntimeWarning)
+    # check if the age limits are exceeded
+    if lim_min or lim_max:
         log_age = lim_min*log_t_min + lim_max*log_t_max
+        warnings.warn(f'Specified age exceeds limit for isochrones file with Z={Z}. Using limit value '
+                      f'(log_age={log_age}).', RuntimeWarning)
 
-    t_steps = uni_log_t[1:] - uni_log_t[:-1]                                                        # determine the age steps in the isoc files (step sizes may vary)
-    a = np.log10((10**(t_steps) + 1)/2)                                                             # half the age step in logarithms
-    b = t_steps - a                                                                                 # a is downward step, b upward
-    a = np.insert(a, 0, 0.01)                                                                       # need step down for first t value
-    b = np.append(b, 0.01)                                                                          # need step up for last t value
-    log_closest = uni_log_t[(uni_log_t > log_age - a) & (uni_log_t <= log_age + b)]                 # the closest available age (to given one)
+    # determine the closest available age (to the given one)
+    t_steps = uni_log_t[1:] - uni_log_t[:-1]  # determine the age steps in the isoc files (step sizes may vary)
+    a = np.log10((10**(t_steps) + 1)/2)  # half the age step in logarithms
+    b = t_steps - a  # a is downward step, b upward
+    a = np.insert(a, 0, 0.01)  # need one extra step down for first t value
+    b = np.append(b, 0.01)  # need one extra step up for last t value
+    log_closest = uni_log_t[(uni_log_t > log_age - a) & (uni_log_t <= log_age + b)]
     return np.where(log_t == log_closest)[0]
 
 
-def StellarIsochrone(age, Z, columns=None):
+def stellar_isochrone(age, Z, columns=None):
     """Gives the isochrone data for a specified age and metallicity (Z).
     columns: list of column names (see code_names), None will give all columns.
     """
-    data = OpenIsochronesFile(Z, columns=columns)
-    where_t = SelectAge(age, Z)
+    data = open_isochrones_file(Z, columns=columns)
+    where_t = select_age(age, Z)
 
     if (len(np.shape(data)) == 1):
         data = data[where_t]
@@ -153,33 +161,35 @@ def StellarIsochrone(age, Z, columns=None):
     return data
 
 
-def SupportedFilters(alt_names=True):
+def get_supported_filters(alt_names=True):
     """Returns the supported filter names corresponding to the (default set of) magnitudes.
     alt_names=False makes the function return the full filter names.
     """
+    # find the column names in the isoc file
     file_name = os.path.join('tables', default_isoc_file)
     with open(file_name) as file:
         for line in file:
             if line.startswith('#'):
-                column_names = np.array(line.replace('#', '').split())                              # find the column names in the isoc file
+                column_names = np.array(line.replace('#', '').split())
             else:
                 break
 
-    filter_data = OpenPhotometricData(columns=['name', 'alt_name'], filters=None)
+    filter_data = open_photometric_data(columns=['name', 'alt_name'], filters=None)
     full_name_set = [name in column_names for name in filter_data['name']]
     alt_name_set = [name in column_names for name in filter_data['alt_name']]
     supported_filters = [a or b for (a, b) in zip(full_name_set, alt_name_set)]
     ordered_set = filter_data['name'][supported_filters]
     if alt_names:
-        with_alt = [(name != '-') for name in filter_data['alt_name'][supported_filters]]            # filters with alt name
+        # replace full names with alternatives where provided
+        with_alt = [(name != '-') for name in filter_data['alt_name'][supported_filters]]
         ordered_set[with_alt] = filter_data['alt_name'][supported_filters][with_alt]
     return ordered_set
 
 
-def GetFilterMask(filters):
+def get_filter_mask(filters):
     """Makes a mask for the data to return the right magnitude set(s)."""
-    alt_names = SupportedFilters(alt_names=True)
-    full_names = SupportedFilters(alt_names=False)
+    alt_names = get_supported_filters(alt_names=True)
+    full_names = get_supported_filters(alt_names=False)
     if filters is None:
         filters = alt_names
     elif isinstance(filters, str):
@@ -188,10 +198,10 @@ def GetFilterMask(filters):
     return np.sum(mask_filters, dtype=bool, axis=0)
 
 
-def FixTotal(nums, tot):
+def fix_total(nums, tot):
     """Check if nums add up to total and fixes it."""
     i = 0
-    while (np.sum(nums) != tot):                                                                    # assure number conservation
+    while (np.sum(nums) != tot):
         i += 1
         sum_nums = np.sum(nums)
         if (sum_nums > tot):
@@ -202,27 +212,29 @@ def FixTotal(nums, tot):
     return nums
 
 
-def IsFloat(value, integer=False):
-    """Just a little thing to check input for being integer or float."""
-    if integer:                                                                                     # check for int instead
+def is_float(value, integer=False):
+    """Just a little thing to check input (string) for being integer or float."""
+    if integer:
+        # check for int instead
         try:
             int(value)
             return True
-        except:
+        except (ValueError, TypeError):
             return False
 
-    if isinstance(value, str):                                                                      # check strings for *'s
+    if isinstance(value, str):
+        # check strings for *'s
         value = value.replace('*10**', 'e')
         value = value.replace('10**', '1e')
 
     try:
         float(value)
         return True
-    except:
+    except (ValueError, TypeError):
         return False
 
 
-def WhileAsk(question, options, add_opt=None, function='', check='str', help_arg=''):
+def while_ask(question, options, add_opt=None, function='', check='str', help_arg=''):
     """Asks a question and checks input in a while loop.
     question: string containing the question to ask
     options: list of options separated by </>; can be an empty string
@@ -236,42 +248,46 @@ def WhileAsk(question, options, add_opt=None, function='', check='str', help_arg
 
     a = 0
     b = 1
-    for i,char in enumerate(options):
+    for i, char in enumerate(options):
         if (char == '['):
             a = i
         elif (char == ']'):
             b = i
 
-    default_val = options[a+1:b]                                                                    # default option is between the [brackets]
+    default_val = options[a+1:b]  # default option is between the [brackets]
 
+    # ask the question
     if (options == ''):
-        ans = input(question + ': ')                                                                # ask the question
+        ans = input(question + ': ')
     else:
-        ans = input(question + ' ' + options + ': ')                                                # ask the question
+        ans = input(question + ' ' + options + ': ')
 
+    # check the answer (this gives the possibility for open questions)
     if (check == 'str'):
-        option_list = options.lower().replace('[', '').replace(']', '').split('/')                  # lower the case, default is between [], options separated by /
-        option_list += [item.lower() for item in add_opt]                                           # add the additional options
+        # lower the case, default is between [], options separated by /
+        option_list = options.lower().replace('[', '').replace(']', '').split('/')
+        # add the additional options
+        option_list += [item.lower() for item in add_opt]
 
         if ((options == '') & len(option_list) == 1):
             while ((ans == '') | (' ' in ans)):
-                ans = CheckAnswer(ans, question, options, default_val, function, help_arg)          # check the answer (this gives the possibility for open questions)
+                ans = check_answer(ans, question, options, default_val, function, help_arg)
         else:
             while (ans.lower() not in option_list):
-                ans = CheckAnswer(ans, question, options, default_val, function, help_arg)          # check the answer
+                ans = check_answer(ans, question, options, default_val, function, help_arg)
 
     elif (check == 'float'):
-        while not IsFloat(ans):
-            ans = CheckAnswer(ans, question, options, default_val, function, help_arg)              # check the answer
+        while not is_float(ans):
+            ans = check_answer(ans, question, options, default_val, function, help_arg)
 
     elif (check == 'int'):
-        while not IsFloat(ans, integer=True):
-            ans = CheckAnswer(ans, question, options, default_val, function, help_arg)              # check the answer
+        while not is_float(ans, integer=True):
+            ans = check_answer(ans, question, options, default_val, function, help_arg)
 
     return ans
 
 
-def AskHelp(function, add_args):
+def ask_help(function, add_args):
     """Shows the help on a particular function."""
     # todo: [this is obviously not the thing to put here... remove later]
     if (function == 'StructureType'):
@@ -324,18 +340,18 @@ def AskHelp(function, add_args):
     return
 
 
-def CheckAnswer(ans, question, options, default, function, *args):
-    """Helper function of WhileAsk."""
+def check_answer(ans, question, options, default, function, *args):
+    """Helper function of while_ask."""
     if ((ans == '') & (default != '')):
         ans = default
     elif (ans in ['help', 'h']):
-        AskHelp(function, *args)                                                                    # call help function
+        ask_help(function, *args)  # call help function
         if (options == ''):
             ans = input(question + ': ')
         else:
             ans = input(question + ' ' + options + ': ')
     elif (ans.lower() in ['quit', 'q']):
-        raise KeyboardInterrupt  # SystemExit                                                       # exit if wanted
+        raise KeyboardInterrupt  # SystemExit  # exit if wanted
     else:
         if (options == ''):
             ans = input(question + ': ')
@@ -345,7 +361,7 @@ def CheckAnswer(ans, question, options, default, function, *args):
     return ans
 
 
-def NumberOfPopulations(N, M_tot, ages, metal):
+def check_number_of_populations(N, M_tot, ages, metal):
     """Figures out the intended number of populations from four input parameters."""
     if hasattr(N, '__len__'):
         len_N = len(N)
@@ -370,13 +386,12 @@ def NumberOfPopulations(N, M_tot, ages, metal):
     len_array = np.array([len_N, len_M, len_ages, len_metal])
     n_pop = max(len_array)
     if (sum(len_array == n_pop) < (len(len_array) - sum(len_array == 1))):
-        warnings.warn(('utils//NumberOfPopulations: Input of ages, metallicityies or relative '
-                       'number did not match 1 or {0}. Unexpected behaviour might '
-                       'occur'.format(n_pop)), SyntaxWarning)
+        warnings.warn(f'Input of ages, metallicityies or relative number did not match 1 or {n_pop}. '
+                      'Unexpected behaviour might occur', SyntaxWarning)
     return n_pop
 
 
-def CastSimpleArray(arr, length, fill_value='last', warning=None):
+def cast_simple_array(arr, length, fill_value='last', warning=None):
     """Cast input for a 1D array into the right format.
     Needs the input as well as the intended lenght of the array.
     Optionally a fill value can be given to fill up missing values, default is last value in arr.
@@ -388,37 +403,39 @@ def CastSimpleArray(arr, length, fill_value='last', warning=None):
         arr = np.array([arr])
     
     if (fill_value == 'last'):
-        fill_value = arr[-1]                                                                        # fill with last value by default
-    
+        # fill with last value by default
+        fill_value = arr[-1]
+
+    # correct the array length
     len_arr = len(arr)
     if ((length > 1) & (len_arr == 1)):
         arr = np.full(length, arr[0])
     elif (len_arr < length):
-        arr = np.append(arr, np.full(length - len_arr, fill_value))                                 # extend length
+        arr = np.append(arr, np.full(length - len_arr, fill_value))
     elif (len_arr > length):
         if warning:
             warnings.warn(warning, SyntaxWarning)
-        arr = arr[:length]                                                                          # reduce length
+        arr = arr[:length]
     return arr
 
 
-def CastAges(ages, n_pop):
+def cast_ages(ages, n_pop):
     """Cast input for ages into the right format."""
     if (not ages):
-        raise ValueError('utils//CastAges: No age was defined.')
-    ages = CastSimpleArray(ages, n_pop, fill_value='last')
+        raise ValueError('No age was defined.')
+    ages = cast_simple_array(ages, n_pop, fill_value='last')
     return ages
 
 
-def CastMetallicities(metal, n_pop):
+def cast_metallicities(metal, n_pop):
     """Cast input for metalicities into the right format."""
     if (not metal):
-        raise ValueError('utils//CastMetallicities: No metallicity was defined.')
-    metal = CastSimpleArray(metal, n_pop, fill_value='last')
+        raise ValueError('No metallicity was defined.')
+    metal = cast_simple_array(metal, n_pop, fill_value='last')
     return metal
 
 
-def CastIMFParameters(imf_par, n_pop, fill_value='default'):
+def cast_imf_parameters(imf_par, n_pop, fill_value='default'):
     """Cast input for IMF parameters into the right format."""
     if (fill_value == 'default'):
         fill_value = default_imf_par
@@ -428,49 +445,48 @@ def CastIMFParameters(imf_par, n_pop, fill_value='default'):
     elif hasattr(imf_par, '__len__'):
         imf_par = np.array(imf_par)
     else:
-        warnings.warn(('utils//CastIMFParameters: incorrect input type for imf_par, '
-                        'using default (={0}).').format(default_imf_par), SyntaxWarning)
-        imf_par = np.full([n_pop, len(fill_value)], fill_value)                                     # cannot be interpreted
+        warnings.warn(f'Incorrect input type for imf_par; using default (={default_imf_par}).', SyntaxWarning)
+        imf_par = np.full([n_pop, len(fill_value)], fill_value)
     
     shape_imf_par = np.shape(imf_par)
     default_len = len(fill_value)
+    # make it a 2D array with right length
     if ((len(shape_imf_par) == 1) & (shape_imf_par[0] == default_len)):
-        imf_par = np.full([n_pop, default_len], imf_par)                                            # make it a 2D array using same imf for all populations
+        imf_par = np.full([n_pop, default_len], imf_par)
     elif ((len(shape_imf_par) == 1) & (shape_imf_par[0]//default_len == n_pop)):
-        imf_par = imf_par.reshape([n_pop, default_len])                                             # make it a 2D array
+        imf_par = imf_par.reshape([n_pop, default_len])
     elif ((len(shape_imf_par) == 1) & (shape_imf_par[0]%default_len == 0)):
-        imf_par = imf_par.reshape([shape_imf_par[0]//default_len, default_len])                     # make it a 2D array
+        imf_par = imf_par.reshape([shape_imf_par[0]//default_len, default_len])
         extension = np.full([n_pop - shape_imf_par[0]//default_len, default_len], imf_par[-1])
-        imf_par = np.append(imf_par, extension, axis=0)                                             # extend length
+        imf_par = np.append(imf_par, extension, axis=0)
     elif (len(shape_imf_par) == 1):
-        warnings.warn(('utils//CastIMFParameters: incorrect input for imf_par, '
-                       'using default (={0}).').format(fill_value), SyntaxWarning)
-        imf_par = np.full([n_pop, len(fill_value)], fill_value)                                     # cannot be interpreted
+        warnings.warn(f'Incorrect input for imf_par; using default (={fill_value}).', SyntaxWarning)
+        imf_par = np.full([n_pop, len(fill_value)], fill_value)
         # otherwise (below): assume a 2D shape with correct inner axis length 
     elif ((n_pop > 1) & (shape_imf_par[0] == 1)):
         imf_par = np.full([n_pop, default_len], imf_par[0])
     elif (shape_imf_par[0] < n_pop):
         extension = np.full([n_pop - shape_imf_par[0], default_len], imf_par[-1])
-        imf_par = np.append(imf_par, extension, axis=0)                                             # extend length
+        imf_par = np.append(imf_par, extension, axis=0)
     elif (shape_imf_par[0] > n_pop):
-        warnings.warn(('utils//CastIMFParameters: Too many arguments for imf_par. '
-                       'Excess discarded.'), SyntaxWarning)
-        imf_par = imf_par[:n_pop]                                                                   # reduce length
+        warnings.warn('Too many arguments for imf_par. Excess discarded.', SyntaxWarning)
+        imf_par = imf_par[:n_pop]
     return imf_par
 
 
-def CheckLowestIMFMass(imf_par, ages, metal):
+def check_lowest_imf_mass(imf_par, ages, metal):
     """Check the minimum available mass in isoc file"""
     # note: must go after imf_par cast (and ages, metal cast)
-    max_lower_mass = np.copy(imf_par[:, 0])                                                          # maximum lowest mass (to use in IMF)
+    max_lower_mass = np.copy(imf_par[:, 0])  # maximum lowest mass (to use in IMF)
     for i in range(len(ages)):
-        M_ini = StellarIsochrone(ages[i], metal[i], columns=['M_initial'])
-        max_lower_mass[i] = max(max_lower_mass[i], np.min(M_ini))                                   # check against user input (if that was higher, use that instead)
+        M_ini = stellar_isochrone(ages[i], metal[i], columns=['M_initial'])
+        # check against user input (if that was higher, use that instead)
+        max_lower_mass[i] = max(max_lower_mass[i], np.min(M_ini))
     imf_par[:, 0] = max_lower_mass
     return imf_par
 
 
-def CastMTotal(M_tot, n_pop):
+def cast_m_total(M_tot, n_pop):
     """Cast input for total initial mass into the right format."""
     if hasattr(M_tot, '__len__'):
         M_tot = np.array(M_tot)
@@ -479,21 +495,22 @@ def CastMTotal(M_tot, n_pop):
     
     len_M_tot = len(M_tot)
     if ((n_pop > 1) & (len_M_tot == 1)):
-        M_tot = np.full(n_pop, M_tot[0])/n_pop                                                      # the mass is divided equally among the populations
+        # the mass is divided equally among the populations
+        M_tot = np.full(n_pop, M_tot[0])/n_pop
     elif (len_M_tot < n_pop):
-        M_tot = np.append(M_tot, np.full(n_pop - len_M_tot, M_tot[-1]))                             # extend length (dividing mass among pops)
+        # extend length (dividing mass among pops)
+        M_tot = np.append(M_tot, np.full(n_pop - len_M_tot, M_tot[-1]))
         M_tot[len_M_tot:] /= (n_pop - len_M_tot)
     elif (len_M_tot > n_pop):
-        warnings.warn('utils//CastMTotal: too many values received for M_tot_init', SyntaxWarning)
-        M_tot = M_tot[:n_pop]                                                                       # reduce length
+        warnings.warn('Too many values received for M_tot_init. Discarded excess', SyntaxWarning)
+        M_tot = M_tot[:n_pop]
     return M_tot
 
 
-def CheckNStars(N_stars, M_tot, n_pop, imf_par):
+def check_n_stars(N_stars, M_tot, n_pop, imf_par):
     """Check if we got values for number of stars, or calculate them."""
     if ((N_stars == 0) & np.all(M_tot == 0)):
-        raise ValueError('objectgenerator//CheckInput: Input mass and number of stars '
-                         'cannot be zero simultaniously.')
+        raise ValueError('Input mass and number of stars cannot be zero simultaneously.')
     elif (N_stars == 0):
         N_stars = conv.MtotToNstars(M_tot, imf=imf_par)                                             # estimate of the number of stars to generate
     else:
@@ -509,10 +526,10 @@ def CheckNStars(N_stars, M_tot, n_pop, imf_par):
             N_stars = np.append(N_stars, np.full(n_pop - len_N_stars, N_stars[-1]))                 # extend length (dividing stars among pops)
             N_stars[len_N_stars:] /= (n_pop - len_N_stars)
         elif (len_N_stars > n_pop):
-            warnings.warn('utils//CheckNStars: too many values received for N_stars', SyntaxWarning)
+            warnings.warn('utils//check_n_stars: too many values received for N_stars', SyntaxWarning)
             N_stars = N_stars[:n_pop]                                                               # reduce length
     
-    N_stars = FixTotal(np.rint(N_stars).astype(int), np.sum(N_stars))                               # make sure it is int, and adds up nicely  
+    N_stars = fix_total(np.rint(N_stars).astype(int), np.sum(N_stars))                               # make sure it is int, and adds up nicely
     return N_stars
 
 
@@ -520,7 +537,7 @@ def CastSFHistory(sfhist, n_pop):
     """Cast input for sf-history into the right format."""
     if not sfhist:
         sfhist = np.full(n_pop, None)
-    sfhist = CastSimpleArray(sfhist, n_pop, fill_value=None, warning='utils//CastSFHistory: '
+    sfhist = cast_simple_array(sfhist, n_pop, fill_value=None, warning='utils//CastSFHistory: '
                              'too many sfh types given. Excess discarded.')
     return sfhist
 
@@ -529,7 +546,7 @@ def CastInclination(incl, n_pop):
     """Cast input for inclination into the right format."""
     if not incl:
         incl = np.zeros(n_pop)
-    incl = CastSimpleArray(incl, n_pop, fill_value=0, warning='utils//CastInclination: too many '
+    incl = cast_simple_array(incl, n_pop, fill_value=0, warning='utils//CastInclination: too many '
                            'incl values given. Excess discarded.')
     return incl
 
@@ -538,8 +555,8 @@ def CastRadialDistType(r_dist, n_pop):
     """Cast input for radial distribution type into the right format."""
     if not r_dist:
         r_dist = np.full(n_pop, default_rdist)
-    r_dist = CastSimpleArray(r_dist, n_pop, fill_value=default_rdist, 
-                             warning='utils//CastRadialDistType: too many radial distribution '
+    r_dist = cast_simple_array(r_dist, n_pop, fill_value=default_rdist,
+                               warning='utils//CastRadialDistType: too many radial distribution '
                              'types given. Excess discarded.')
     return r_dist
     

@@ -71,7 +71,7 @@ def BBMagnitude(T_eff, R, filters, filter_means=None):
     and radius R (in Rsun), in a set of filters (list of names).
     filter means can be specified to shift the filter wavelengths (mimicking redshift).
     """
-    phot_dat = utils.OpenPhotometricData(columns=['mean', 'width'], filters=filters)
+    phot_dat = utils.open_photometric_data(columns=['mean', 'width'], filters=filters)
     if filter_means is not None:
         lam = filter_means
     else:
@@ -281,7 +281,7 @@ def RemnantTime(M_init, age, Z):
     else:
         lin_age = age
     
-    iso_log_t, iso_M_init = utils.OpenIsochronesFile(Z, columns=['log_age', 'M_initial'])
+    iso_log_t, iso_M_init = utils.open_isochrones_file(Z, columns=['log_age', 'M_initial'])
     t_steps = np.unique(iso_log_t)
     max_M_init = np.array([np.max(iso_M_init[iso_log_t == time]) for time in t_steps])
     
