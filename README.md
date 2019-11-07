@@ -13,7 +13,7 @@ At this stage, the implemented instrument simulator is SimCADO. This code simula
 
 ### Reference Material
 
-* Detailed documentation on what StarPopSim can do is found here: [master-thesis-WIP](no-link-yet)
+* Detailed documentation on what StarPopSim can do is found here: [master_thesis](https://theses.ubn.ru.nl/handle/123456789/8044)
 
 * If you want to contribute to better documentation, please send an e-mail to the adress below
 
@@ -126,10 +126,6 @@ If you are (going to be) working on new or improved features, I would love to he
 ## Contact
 
 For questions and suggestions, please contact:
-
-* l.ijspeert(at)student.ru.nl
-
-or, in case the above adress is no longer in use:
 
 * lucijspeert(at)gmail.com
 
