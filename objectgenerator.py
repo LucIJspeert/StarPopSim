@@ -88,13 +88,13 @@ class Stars(object):
         self.imf_param = utils.check_lowest_imf_mass(self.imf_param, self.ages, self.metal)
         self.M_tot_init = utils.cast_m_total(M_tot_init, n_pop)                                       # total initial mass in Msun (can initially be zero)
         self.N_stars = utils.CastNStars(N_stars, self.M_tot_init, n_pop, self.imf_param)            # total number of stars
-        self.sfhist = utils.CastSFHistory(sfh, n_pop)                                               # star formation history types
+        self.sfhist = utils.cast_sfhistory(sfh, n_pop)                                               # star formation history types
         self.min_ages = min_ages                                # minimum ages to use in star formation histories
         self.tau_sfh = tau_sfh                                  # characteristic timescales for star formation
         # shape parameters
-        self.inclination = utils.CastInclination(incl, n_pop)                                       # inclination of the stars per population
-        self.r_dist_types = utils.CastRadialDistType(r_dist, n_pop)                                 # type of radial distribution per population
-        self.r_dist_types = utils.CheckRadialDistType(self.r_dist_types)
+        self.inclination = utils.cast_inclination(incl, n_pop)                                       # inclination of the stars per population
+        self.r_dist_types = utils.cast_radial_dist_type(r_dist, n_pop)                                 # type of radial distribution per population
+        self.r_dist_types = utils.check_radial_dist_type(self.r_dist_types)
         self.r_dist_param = utils.CastRadialDistParam(r_dist_par, self.r_dist_types, n_pop)         # the further spatial distribution parameters (dictionary per population)
         self.ellipse_axes = utils.CastEllipseAxes(ellipse_axes, n_pop)                              # relative axis size for ellipsoidal shapes 
         self.spiral_arms = spiral_arms                          # number of spiral arms (per population)
@@ -304,7 +304,7 @@ class Stars(object):
         """
         # check the input, make sure it is an array of the right size
         n_pop = len(self.pop_number)
-        incl = utils.CastInclination(incl, n_pop)
+        incl = utils.cast_inclination(incl, n_pop)
         
         # check for existing inclination
         if hasattr(self, 'inclination'):

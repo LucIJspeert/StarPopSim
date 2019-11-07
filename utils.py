@@ -512,7 +512,8 @@ def check_n_stars(N_stars, M_tot, n_pop, imf_par):
     if ((N_stars == 0) & np.all(M_tot == 0)):
         raise ValueError('Input mass and number of stars cannot be zero simultaneously.')
     elif (N_stars == 0):
-        N_stars = conv.MtotToNstars(M_tot, imf=imf_par)                                             # estimate of the number of stars to generate
+        # estimate of the number of stars to generate
+        N_stars = conv.MtotToNstars(M_tot, imf=imf_par)
     else:
         if hasattr(N_stars, '__len__'):
             N_stars = np.array(N_stars)
@@ -521,47 +522,47 @@ def check_n_stars(N_stars, M_tot, n_pop, imf_par):
         
         len_N_stars = len(N_stars)
         if ((n_pop > 1) & (len_N_stars == 1)):
-            N_stars = np.full(n_pop, N_stars[0])/n_pop                                              # the stars are divided equally among the populations
+            # the stars are divided equally among the populations
+            N_stars = np.full(n_pop, N_stars[0])/n_pop
         elif (len_N_stars < n_pop):
-            N_stars = np.append(N_stars, np.full(n_pop - len_N_stars, N_stars[-1]))                 # extend length (dividing stars among pops)
+            # extend length (dividing stars among pops)
+            N_stars = np.append(N_stars, np.full(n_pop - len_N_stars, N_stars[-1]))
             N_stars[len_N_stars:] /= (n_pop - len_N_stars)
         elif (len_N_stars > n_pop):
             warnings.warn('utils//check_n_stars: too many values received for N_stars', SyntaxWarning)
-            N_stars = N_stars[:n_pop]                                                               # reduce length
-    
-    N_stars = fix_total(np.rint(N_stars).astype(int), np.sum(N_stars))                               # make sure it is int, and adds up nicely
+            N_stars = N_stars[:n_pop]
+
+    # make sure they are int, and add up nicely
+    N_stars = fix_total(np.rint(N_stars).astype(int), np.sum(N_stars))
     return N_stars
 
 
-def CastSFHistory(sfhist, n_pop):
+def cast_sfhistory(sfhist, n_pop):
     """Cast input for sf-history into the right format."""
     if not sfhist:
         sfhist = np.full(n_pop, None)
-    sfhist = cast_simple_array(sfhist, n_pop, fill_value=None, warning='utils//CastSFHistory: '
-                             'too many sfh types given. Excess discarded.')
+    sfhist = cast_simple_array(sfhist, n_pop, fill_value=None, warning='Too many sfh types given. Excess discarded.')
     return sfhist
 
 
-def CastInclination(incl, n_pop):
+def cast_inclination(incl, n_pop):
     """Cast input for inclination into the right format."""
     if not incl:
         incl = np.zeros(n_pop)
-    incl = cast_simple_array(incl, n_pop, fill_value=0, warning='utils//CastInclination: too many '
-                           'incl values given. Excess discarded.')
+    incl = cast_simple_array(incl, n_pop, fill_value=0, warning='Too many incl values given. Excess discarded.')
     return incl
 
 
-def CastRadialDistType(r_dist, n_pop):
+def cast_radial_dist_type(r_dist, n_pop):
     """Cast input for radial distribution type into the right format."""
     if not r_dist:
         r_dist = np.full(n_pop, default_rdist)
     r_dist = cast_simple_array(r_dist, n_pop, fill_value=default_rdist,
-                               warning='utils//CastRadialDistType: too many radial distribution '
-                             'types given. Excess discarded.')
+                               warning='Too many radial distribution types given. Excess discarded.')
     return r_dist
     
 
-def CheckRadialDistType(r_dist):
+def check_radial_dist_type(r_dist):
     """Check if the dist types exist."""
     dist_list = list(set(fnmatch.filter(dir(dist), '*_r')))  
     r_dist = r_dist.astype(object)                                                                  # to make sure we can increase the string length
@@ -570,7 +571,7 @@ def CheckRadialDistType(r_dist):
             r_dist[i] = r_dist[i] + '_r'                                                            # add the r to the end for radial version
         
         if (r_dist[i] not in dist_list):
-            warnings.warn(('utils//CheckRadialDistType: Specified distribution <{0}> type does '
+            warnings.warn(('utils//check_radial_dist_type: Specified distribution <{0}> type does '
                            'not exist. Using default (=<{1}>)').format(r_dist[i], default_rdist), 
                           SyntaxWarning)
             r_dist[i] = default_rdist + '_r'
