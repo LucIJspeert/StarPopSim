@@ -236,7 +236,7 @@ def ShowImage(image_name):
     show = utils.while_ask('Display the image?', '[y]/n', add_opt=['yes', 'no'], function='ShowImage')
     
     if (show in ['y', 'yes']):
-        fh.PlotFits(image_name)
+        fh.plot_fits(image_name)
     
     return
 

@@ -4,7 +4,6 @@
 """Formulas that are not just conversions (to keep things more organized). 
 Most functions optimized for processing many numbers at once (ndarray).
 """
-import warnings
 import numpy as np
 
 import utils
@@ -24,7 +23,7 @@ L_sun = 3.828*10**26            # W         solar luminosity
 R_sun = 6.9551*10**8            # m         solar radius
 M_ch = 1.456                    # M_sun     Chandrasekhar mass
 H_0 = 67                        # km/s/Mpc  Hubble constant at present epoch
-d_H = c_light*10**3/H_0         # pc        Hubble distance
+d_H = c_light*10**3/H_0         # pc        Hubble distance_3d
 om_r = 9*10**-5                 # frac      omega radiation
 om_m = 0.315                    # frac      omega matter
 om_l = 0.685                    # frac      omega lambda ('dark energy')
@@ -35,19 +34,22 @@ NS_mass = 1.2                   # M_sun     lower mass bound for NSs
 BH_mass = 2.0                   # M_sun     lower mass bound for BHs
 
 
-def Distance(points, position=[0,0,0]):
-    """Calculates the distance between a set of points and a position (default at origin)."""
-    coords = points.transpose()                                                                     # change array to [xs, ys, zs]
-    distance = ((coords[0] - position[0])**2 
-               + (coords[1] - position[1])**2 
-               + (coords[2] - position[2])**2)**(1/2)
-    return distance
+def distance_3d(points, position=None):
+    """Calculates the 3 dimensional distance between a set of points and a position (default at origin)."""
+    if not position:
+        position = [0, 0, 0]
+    # change array to [xs, ys, zs]
+    coords = points.transpose()
+    return ((coords[0] - position[0])**2 + (coords[1] - position[1])**2 + (coords[2] - position[2])**2)**(1/2)
 
 
-def Distance2D(points):
-    """Calculates the 2 dimensional distance to the origin of a point set in the xy plane."""
-    coords = points.transpose()                                                                     # take only x and y coordinates
-    return (coords[0]**2 + coords[1]**2)**(1/2)
+def distance_2d(points, position=None):
+    """Calculates the 2 dimensional distance between a set of points and a position (default at origin)."""
+    if not position:
+        position = [0, 0]
+    # change array to [xs, ys]
+    coords = points.transpose()
+    return ((coords[0] - position[0])**2 + (coords[1] - position[1])**2)**(1/2)
 
 
 def PlanckBB(nu, T, var='freq', allow_overflow=False):
@@ -122,7 +124,7 @@ def LightTravelTime(z, points=1e4):
     # do the actual calculation
     zs = np.logspace(min_log_z, np.log10(z), int(points))
     ys = 1/((1 + zs)*np.sqrt(om_r*(1 + zs)**4 + om_m*(1 + zs)**3 + om_l))
-    integral =  np.trapz(ys, zs, axis=0)
+    integral = np.trapz(ys, zs, axis=0)
     if len_flag:
         time = integral*d_H*parsec/(c_light*year)
     else:
@@ -132,7 +134,7 @@ def LightTravelTime(z, points=1e4):
 
     
 def DComoving(z, points=1e4):
-    """Gives the comoving distance (in pc) given the redshift z.
+    """Gives the comoving distance_3d (in pc) given the redshift z.
     points is the number of steps for integration: higher=more precision, lower=faster.
     """
     min_log_z = -5                                                                                  # default minimum valid (log)redshift
@@ -164,7 +166,7 @@ def DComoving(z, points=1e4):
 
 
 def DLuminosity(z, points=1e4):
-    """Gives the luminosity distance (in pc) to the object given the redshift z.
+    """Gives the luminosity distance_3d (in pc) to the object given the redshift z.
     points is the number of steps for integration: higher=more precision, lower=faster.
     """
     # making sure it works for different types of input
@@ -176,7 +178,7 @@ def DLuminosity(z, points=1e4):
 
 
 def DAngular(z, points=1e4):
-    """Gives the angular diameter distance (in pc) to the object given the redshift z.
+    """Gives the angular diameter distance_3d (in pc) to the object given the redshift z.
     points is the number of steps for integration: higher=more precision, lower=faster.
     """
     # making sure it works for different types of input
@@ -188,14 +190,14 @@ def DAngular(z, points=1e4):
 
 
 def DLToRedshift(dist, points=1e3):
-    """Calculates the redshift assuming luminosity distance (in pc) is given.
+    """Calculates the redshift assuming luminosity distance_3d (in pc) is given.
     Quite slow for arrays (usually not what it would be used for anyway).
     points is the number of steps for which z is calculated.
     """
     # this formula is a 'conversion' strictly speaking
     # but it is not really meant for number crunching 
-    # and it belongs with the other distance formulas
-    num_dist = 10**3                                                                                # precision for distance calculation
+    # and it belongs with the other distance_3d formulas
+    num_dist = 10**3                                                                                # precision for distance_3d calculation
     len_flag = hasattr(dist, '__len__')
     
     # making sure it works for many different types of input
@@ -218,23 +220,26 @@ def DLToRedshift(dist, points=1e3):
 
 
 def ApparentMag(mag, dist, ext=0):
-    """Compute the apparent magnitude for the absolute magnitude plus a distance (in pc!). 
+    """Compute the apparent magnitude for the absolute magnitude plus a distance_3d (in pc!).
     ext is an optional extinction to add (waveband dependent).
     """
     return mag + 5*np.log10(dist/10) + ext                                                          # dist in pc!
 
 
 def AbsoluteMag(mag, dist, ext=0):
-    """Compute the absolute magnitude for the apparant magnitude plus a distance (in pc!).
+    """Compute the absolute magnitude for the apparant magnitude plus a distance_3d (in pc!).
     ext is an optional extinction to subtract (waveband dependent).
     """
     return mag - 5*np.log10(dist/10) - ext                                                          # dist in pc!
 
 
-def MassFraction(mass_limits, imf=default_imf_par):
+def MassFraction(mass_limits, imf=None):
     """Returns the fraction of stars in a population above and below certain mass_limits (Msol)."""
+    if not imf:
+        imf = default_imf_par
     M_L, M_U = imf
-    M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
+    # fixed turnover position (where slope changes)
+    M_mid = 0.5
     M_lim_low, M_lim_high = mass_limits
     
     # same constants as are in the IMF:
@@ -251,8 +256,10 @@ def MassFraction(mass_limits, imf=default_imf_par):
     return f
 
 
-def MassLimit(frac, M_max=None, imf=default_imf_par):
+def MassLimit(frac, M_max=None, imf=None):
     """Returns the lower mass limit to get a certain fraction of stars generated."""
+    if not imf:
+        imf = default_imf_par
     M_L, M_U = imf
     M_mid = 0.5  
     if (M_max is None):

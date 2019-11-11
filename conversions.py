@@ -64,26 +64,26 @@ def RotateXZ(positions, angle):
     
     
 def ParsecToArcsec(x, d):
-    """Convert from distances (x) perpendicular to the distance (d) 
+    """Convert from distances (x) perpendicular to the distance_3d (d)
     (both in parsec, or otherwise the same units) to arcseconds.
     """
     return np.arctan2(x, d)*rad_as
     
     
 def ArcsecToParsec(x, d):
-    """Convert from arcseconds (x) perpendicular to the distance (d) 
+    """Convert from arcseconds (x) perpendicular to the distance_3d (d)
     (in parsec) to distances in parsec.
     """
     return np.tan(x*as_rad)*d
     
     
 def ParsecToDModulus(dist):
-    """Compute the distance modulus given a distance in pc."""
+    """Compute the distance_3d modulus given a distance_3d in pc."""
     return 5*np.log10(dist/10)
     
     
 def DModulusToParsec(mod):
-    """Compute the distance in pc given a distance modulus."""
+    """Compute the distance_3d in pc given a distance_3d modulus."""
     return 10**(mod/5 + 1)
 
 

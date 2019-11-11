@@ -564,61 +564,63 @@ def cast_radial_dist_type(r_dist, n_pop):
 
 def check_radial_dist_type(r_dist):
     """Check if the dist types exist."""
-    dist_list = list(set(fnmatch.filter(dir(dist), '*_r')))  
-    r_dist = r_dist.astype(object)                                                                  # to make sure we can increase the string length
+    dist_list = list(set(fnmatch.filter(dir(dist), '*_r')))
+    # to make sure we can increase the string length
+    r_dist = r_dist.astype(object)
     for i in range(len(r_dist)):
         if (not r_dist[i].endswith('_r')):
-            r_dist[i] = r_dist[i] + '_r'                                                            # add the r to the end for radial version
+            # add the r to the end for radial version of profile
+            r_dist[i] = r_dist[i] + '_r'
         
         if (r_dist[i] not in dist_list):
-            warnings.warn(('utils//check_radial_dist_type: Specified distribution <{0}> type does '
-                           'not exist. Using default (=<{1}>)').format(r_dist[i], default_rdist), 
-                          SyntaxWarning)
-            r_dist[i] = default_rdist + '_r'
+            warnings.warn(f'Specified distribution <{r_dist[i]}> type does not exist. Using default '
+                          f'(=<{default_rdist}>)', SyntaxWarning)
+            r_dist[i] = default_rdist + '_r'*(not default_rdist.endswith('_r'))
     return r_dist
 
 
-def CastRadialDistParam(r_dist_par, r_dist, n_pop):
+def cast_radial_dist_param(r_dist_par, r_dist, n_pop):
     """Cast the radial distribution parameters into the right format.
     Uses parameter names 'n' and 's' in function signatures.
     """
     # get the function signatures for the given distributions
-    func_sigs = [inspect.signature(eval('dist.' + type)) for type in r_dist]
+    func_sigs = [inspect.signature(eval('dist.' + dist_type)) for dist_type in r_dist]
     
     # cast to right form and check if dist parameters are correctly specified
     if not r_dist_par:
-        r_dist_par = np.array([{k: v.default for k, v in sig.parameters.items() if k is not 'n'} 
-                               for sig in func_sigs])                                               # if none given, fill dictionaries with defaults
+        r_dist_par = np.array([{k: v.default for k, v in sig.parameters.items() if k is not 'n'} for sig in func_sigs])
     elif not hasattr(r_dist_par, '__len__'):
-        r_dist_par = np.array([{k: r_dist_par for k, v in sig.parameters.items() if k is not 'n'} 
-                               for sig in func_sigs])                                               # if just one parameter is given, make an array of dict
+        # if just one parameter is given, make an array of dict
+        r_dist_par = np.array([{k: r_dist_par for k, v in sig.parameters.items() if k is not 'n'} for sig in func_sigs])
     elif isinstance(r_dist_par, dict):
-        r_dist_par = np.full(n_pop, r_dist_par)                                                     # if just one dict, make an array of them
+        # if just one dict, make an array of the same ones
+        r_dist_par = np.full(n_pop, r_dist_par)
         
     len_param = len(r_dist_par)
     if ((n_pop > 1) & (len_param == 1)):
         r_dist_par = np.full(n_pop, r_dist_par[0])
     elif (len_param < n_pop):
-        r_dist_par = np.append(r_dist_par, np.full(n_pop - len_param, r_dist_par[-1]))              # extend length
+        r_dist_par = np.append(r_dist_par, np.full(n_pop - len_param, r_dist_par[-1]))
     elif (len_param > n_pop):
-        warnings.warn('utils//CastRadialDistParam: too many radial distribution parameters '
-                      'given. Excess discarded.', SyntaxWarning)
-        r_dist_par = r_dist_par[:n_pop]                                                             # reduce length  
+        warnings.warn('Too many radial distribution parameters given. Excess discarded.', SyntaxWarning)
+        r_dist_par = r_dist_par[:n_pop]
         
     # some final typecasting
     if np.all([isinstance(item, (int, float)) for item in r_dist_par]):
-        r_dist_par = np.array([{'s': par} for par in r_dist_par])                                   # if 1D array of parameters given, fill dictionaries accordingly
+        # if 1D array of parameters given, fill dictionaries accordingly
+        r_dist_par = np.array([{'s': par} for par in r_dist_par])
     elif np.all([(hasattr(item, '__len__') & (not isinstance(item, dict))) for item in r_dist_par]):
         temp_arr = np.array([])
         for item, sig in zip(r_dist_par, func_sigs):
             keys = [k for k, v in sig.parameters.items() if k is not 'n']
             temp_arr = np.append(temp_arr, {keys[i]: par for i, par in enumerate(item)})
-        r_dist_par = temp_arr                                                                       # if a 2D array/list is given, make an array of dict out of 
+        # if a 2D array/list is given, make an array of dict out of
+        r_dist_par = temp_arr
     
     return r_dist_par
 
 
-def CastEllipseAxes(axes, n_pop):
+def cast_ellipse_axes(axes, n_pop):
     """Cast input for radial distribution type into the right format."""
     if hasattr(axes, '__len__'):
         axes = np.array(axes)
@@ -626,21 +628,19 @@ def CastEllipseAxes(axes, n_pop):
         axes = np.ones([n_pop, 3])
     
     shape_axes = np.shape(axes)
-    if ((len(shape_axes) == 1) & (len(axes)%3 == 0)):
+    if ((len(shape_axes) == 1) & (len(axes) % 3 == 0)):
         axes = axes.reshape(len(axes)//3, 3)
     elif (len(shape_axes) == 1):
-        raise ValueError('objectgenerator//AddEllipticity: wrong number of arguments '
-                         'for axes, must be multiple of 3.')
+        raise ValueError('Wrong number of arguments for axes, must be multiple of 3.')
     
     shape_axes = np.shape(axes)
     if ((n_pop > 1) & (shape_axes[0] == 1)):
         axes = np.full([n_pop, 3], axes[0])
     elif (shape_axes[0] < n_pop):
-        axes = np.append(axes, np.full(n_pop - shape_axes[0], axes[-1]), axis=0)                    # extend length
+        axes = np.append(axes, np.full(n_pop - shape_axes[0], axes[-1]), axis=0)
     elif (shape_axes[0] > n_pop):
-        warnings.warn(('utils//CastEllipseAxes: too many arguments for axes. '
-                        'Excess discarded.'), SyntaxWarning)
-        axes = axes[:n_pop]                                                                         # reduce length
+        warnings.warn('Too many arguments for axes. Excess discarded.', SyntaxWarning)
+        axes = axes[:n_pop]
     axes = axes.astype(float)
     return axes
     

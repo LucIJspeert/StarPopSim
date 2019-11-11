@@ -208,7 +208,7 @@ import visualizer as viz
 
 #_thread.start_new_thread(theplot, ())      # doesn't work for plotting
 
-p = mtp.Process(target=viz.Scatter2D, args=(objects,))
+p = mtp.Process(target=viz.scatter_2d, args=(objects,))
 p.start()
 #p.join()
 #p.terminate()
@@ -234,7 +234,7 @@ plt.colorbar()
 plt.show()
 
 ## colours!
-viz.Scatter3D(objects, colour=np.arange(2000, 20000, (20000-2000)/10000))       # old, doesn't work anymore
+viz.scatter_3d(objects, colour=np.arange(2000, 20000, (20000 - 2000) / 10000))       # old, doesn't work anymore
 
 ## convert T_eff to T_col
 # Teff    Tcol
@@ -334,7 +334,7 @@ temps = np.arange(1000, 15000, (15000-1000)/10000, dtype=float)
 
 objects = obg.Ellipsoid(10000, 'Exponential', axes=[1,3,2])
 
-viz.Scatter3D(objects, colour='temperature', T_eff=temps)
+viz.scatter_3d(objects, colour='temperature', T_eff=temps)
 
 
 
@@ -567,7 +567,7 @@ print('Mass of objects is {0:1.2e}% off of given input mass'.format((M_est - M_t
 
 
 
-## ObjGen and HRD, CMD
+## ObjGen and hr_diagram, cm_diagram
 import numpy as np
 import matplotlib.pyplot as plt
 import visualizer as vis
@@ -593,13 +593,13 @@ mag2_obj = np.append(mag_obj[np.where(mag_names == 'I')], mag_obj2[np.where(mag_
 
 magBV_obj = mag1_obj - mag2_obj
 
-vis.HRD(10**logTe_obj, logL_obj)
-vis.CMD(magBV_obj, mag2_obj)
-# vis.HRD(BVmagToTemp(magBV_obj), logL_obj)
+vis.hr_diagram(10 ** logTe_obj, logL_obj)
+vis.cm_diagram(magBV_obj, mag2_obj)
+# vis.hr_diagram(BVmagToTemp(magBV_obj), logL_obj)
 
 ##
 objects = obg.Ellipsoid(20000, 'Exponential', axes=[1,2,1.5])
-viz.Scatter3D(objects, colour='temperature', T_eff=10**logTe_obj)
+viz.scatter_3d(objects, colour='temperature', T_eff=10 ** logTe_obj)
 
 ## wvl/temp to RGB
 import numpy as np
@@ -624,31 +624,31 @@ plt.show()
 ## simple obj, dist=0
 ast_obj = aoc.AstObject(struct='ellipsoid', N_obj=0, M_tot=1000, age=[6.7, 8, 7.5], rel_num=[1], Z=[0.019, 0.004, 0.019], distance=0)
 
-vis.HRD(10**ast_obj.log_Te, ast_obj.log_L)
-vis.CMD(ast_obj.abs_mag[1] - ast_obj.abs_mag[2], ast_obj.abs_mag[2])
-vis.CMD(ast_obj.app_mag[1] - ast_obj.app_mag[2], ast_obj.app_mag[2])
+vis.hr_diagram(10 ** ast_obj.log_Te, ast_obj.log_L)
+vis.cm_diagram(ast_obj.abs_mag[1] - ast_obj.abs_mag[2], ast_obj.abs_mag[2])
+vis.cm_diagram(ast_obj.app_mag[1] - ast_obj.app_mag[2], ast_obj.app_mag[2])
 
 ## dist=10, dist=1000
 ast_obj = aoc.AstObject(struct='ellipsoid', N_obj=0, M_tot=1000, age=[6.7, 8, 7.5], rel_num=[1], Z=[0.019, 0.004, 0.019], distance=10)
 
-vis.HRD(10**ast_obj.log_Te, ast_obj.log_L)
-vis.CMD(ast_obj.abs_mag[1] - ast_obj.abs_mag[2], ast_obj.abs_mag[2])
-vis.CMD(ast_obj.app_mag[1] - ast_obj.app_mag[2], ast_obj.app_mag[2])
+vis.hr_diagram(10 ** ast_obj.log_Te, ast_obj.log_L)
+vis.cm_diagram(ast_obj.abs_mag[1] - ast_obj.abs_mag[2], ast_obj.abs_mag[2])
+vis.cm_diagram(ast_obj.app_mag[1] - ast_obj.app_mag[2], ast_obj.app_mag[2])
 
 ast_obj = aoc.AstObject(struct='ellipsoid', N_obj=0, M_tot=1000, age=[6.7, 8, 7.5], rel_num=[1], Z=[0.019, 0.004, 0.019], distance=100)
 
-vis.HRD(10**ast_obj.log_Te, ast_obj.log_L)
-vis.CMD(ast_obj.abs_mag[1] - ast_obj.abs_mag[2], ast_obj.abs_mag[2])
-vis.CMD(ast_obj.app_mag[1] - ast_obj.app_mag[2], ast_obj.app_mag[2])
+vis.hr_diagram(10 ** ast_obj.log_Te, ast_obj.log_L)
+vis.cm_diagram(ast_obj.abs_mag[1] - ast_obj.abs_mag[2], ast_obj.abs_mag[2])
+vis.cm_diagram(ast_obj.app_mag[1] - ast_obj.app_mag[2], ast_obj.app_mag[2])
 
 ## relative number
 ast_obj = aoc.AstObject(struct='ellipsoid', N_obj=10000, M_tot=0, age=[9, 8, 6.7], rel_num=[5, 3, 1], Z=[0.019, 0.008, 0.004], distance=100)
 
-vis.HRD(10**ast_obj.log_Te, ast_obj.log_L)
+vis.hr_diagram(10 ** ast_obj.log_Te, ast_obj.log_L)
 
 print(ast_obj.TotalLuminosity())
 print(ast_obj.HalfLumRadius())
-print(form.Distance(ast_obj.objects))
+print(form.distance_3d(ast_obj.objects))
 
 
 
@@ -837,11 +837,11 @@ objects2 = obg.Ellipsoid(100000, dist_type='Exponential_r')
 
 # objects2 = obg.Ellipsoid(100000, dist_type='PearsonVII_r')
 
-vis.Scatter2D(objects)
-vis.Scatter2D(objects2)
+vis.scatter_2d(objects)
+vis.scatter_2d(objects2)
 
-vis.Scatter3D(objects)
-vis.Scatter3D(objects2)
+vis.scatter_3d(objects)
+vis.scatter_3d(objects2)
 
 
 ## Tests on radii (Cartesian, cylindrical, spherical)
@@ -859,8 +859,8 @@ def GenRadii(N_obj=1, dist_type='Exponential_r', scale=1.0):
     
     xyz = conv.SpherToCart(r_dist, theta_dist, phi_dist).transpose()
     
-    radii = form.Distance2D(xyz)
-    radii2 = form.Distance(xyz)
+    radii = form.distance_2d(xyz)
+    radii2 = form.distance_3d(xyz)
     
     return radii, radii2
     
@@ -1235,9 +1235,9 @@ def GenSphereProj(n, r_dist=Radius):
     
     xyz = conv.SpherToCart(r, theta, phi).transpose()
     
-    #vis.Scatter2D(xyz)
+    #vis.scatter_2d(xyz)
     
-    radii = form.Distance2D(xyz)
+    radii = form.distance_2d(xyz)
     return radii, r, theta
 
 ## uniform sphere
@@ -1660,7 +1660,7 @@ for i in range(int(n/3-1)):
 
 # sim.run(src, filename='data\my_first_sim.fits', mode='zoom', detector_layout='centre', OBS_EXPTIME=60)
 
-# fh.PlotFits('my_first_sim.fits')
+# fh.plot_fits('my_first_sim.fits')
 
 # Problem resolved: just used the wrong slicing for the coordinates
 
@@ -1682,7 +1682,7 @@ src = sim.source.stars(mags=list(astobj.app_mag[2]), x=x_as, y=y_as, filter_name
 sim.run(src, filename='data\my_first_sim.fits', mode='wide', SCOPE_PSF_FILE='scao', detector_layout='centre', filter_name='Ks', OBS_EXPTIME=2400, OBS_NDIT=1)     # mode=['wide', 'zoom'], detector_layout=['small', 'centre', 'full'] (=FPA_CHIP_LAYOUT)
 
 fh.PlotFits('my_first_sim.fits')
-# fh.PrintHdr('my_first_sim.fits')
+# fh.print_hdr('my_first_sim.fits')
 ##
 astobj = aoc.AstObject(N_obj=100000, age=[8], metal=[0.019], distance=10**6)
 
@@ -2025,7 +2025,7 @@ plt.show()
 
 
 
-## distance measures
+## distance_3d measures
 H0 = 67.                    # km/s/Mpc
 c = 3*10**5                 # km/s
 d_H = c/H0                  # Mpc
@@ -2222,7 +2222,7 @@ plt.show()
 ##
 astobj = obg.AstObject(N_obj=10**6, age=[8], metal=[0.014], distance=10**4)
 
-vis.HRD(10**astobj.log_Te, astobj.log_L)
+vis.hr_diagram(10 ** astobj.log_Te, astobj.log_L)
 
 ## core - half light radius relation
 r_par = np.arange(0.1, 20, 0.3)
@@ -2338,7 +2338,7 @@ magnitudes = np.linspace(15, 18, n)                    # breaks at a magnitude b
 src = sim.source.stars(mags=magnitudes, x=xs, y=ys, filter_name=filter, spec_types=['M0V'])
 
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='scao', filename='img_test_save')
-fh.PlotFits('img_test_save')
+fh.plot_fits('img_test_save')
 
 ##
 filter = 'Ks'
@@ -2357,7 +2357,7 @@ src = sim.source.stars(mags=magnitudes[mask],
                         spec_types=astobj.spec_names[astobj.spec_types][mask])
 
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='scao', filename='img_test_save')
-fh.PlotFits('img_test_save')
+fh.plot_fits('img_test_save')
 
 ##
 # load any astobj
@@ -2396,7 +2396,7 @@ src = sim.source.stars(mags=magnitudes[mask], x=xs[mask], y=ys[mask], filter_nam
 #                 FPA_USE_NOISE = "no",
 #                 FPA_LINEARITY_CURVE = "none" )
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='scao', filename='img_test_save.fits')
-fh.PlotFits('img_test_save.fits')
+fh.plot_fits('img_test_save.fits')
 
 ##
 # import multiprocessing as mp
@@ -2417,7 +2417,7 @@ hdul.writeto('data\\EC_pickles2.fits')
 astobj = obg.AstObject(N_obj=4*10**4, age=[10], metal=[0.0014], distance=10**5, r_dist='KingGlobular', r_dist_par=0.01)
 src = img.MakeSource(astobj, filter='Ks')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter='Ks', ao_mode='scao', filename='img_test_save')
-fh.PlotFits('img_test_save')
+fh.plot_fits('img_test_save')
 
 # float32 turned into float64 --> fixed!!
 
@@ -2635,7 +2635,7 @@ magnitudes = np.linspace(25, 29, n)
 src = sim.source.stars(mags=magnitudes, x=xs, y=ys, filter_name=filter, spec_types=['M0V'])
 
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='scao', filename='img_test_save')
-fh.PlotFits('img_test_save')
+fh.plot_fits('img_test_save')
 
 ## AO tests (comparison)
 import numpy as np
@@ -2657,7 +2657,7 @@ magnitudes = np.linspace(12, 18, n)
 src = sim.source.stars(mags=magnitudes, x=xs, y=ys, filter_name=filter, spec_types=['M0V'])
 
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits', filename='img_test_save')
-fh.PlotFits('img_test_save', scale='lin', grid=False)
+fh.plot_fits('img_test_save', scale='lin', grid=False)
 
 
 ##
@@ -2710,13 +2710,13 @@ for d in dists:
     mask = (mag[-1] < abs_mag + 0.1) #& (mag[-1] > abs_mag - 0.1)
     if not mask.any():
         mask = (mag[-1] == np.min(mag[-1]))
-        print('compacting will not work, distance too large.')
+        print('compacting will not work, distance_3d too large.')
     M_lim.append(M_ini[mask][0])
 
 
 fig, ax = plt.subplots()
 ax.plot(dists, M_lim)
-ax.set_xlabel('distance (pc)')
+ax.set_xlabel('distance_3d (pc)')
 ax.set_ylabel('limiting mass (Msun)')
 # ax.loglog()
 plt.show()
@@ -2736,19 +2736,19 @@ astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**
 astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
-fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
+fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
 # zoom
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom'.format(M, D, r))
-# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom'.format(M, D, r), grid=False)
+# fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom'.format(M, D, r), grid=False)
 ##
 astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, mag_lim=29, compact=True)
 astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r))
-fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r), grid=False)
+fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r), grid=False)
 # zoom
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom-compact'.format(M, D, r))
-# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom-compact'.format(M, D, r), grid=False)
+# fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom-compact'.format(M, D, r), grid=False)
 
 ##
 # D = np.log10(8*10**5)
@@ -2756,10 +2756,10 @@ astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**
 astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r))
-fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r), grid=False)
+fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r), grid=False)
 # zoom
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-zoom-compact'.format(M, D, r))
-# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-zoom-compact'.format(M, D, r), grid=False)
+# fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-zoom-compact'.format(M, D, r), grid=False)
 
 
 
@@ -2801,10 +2801,10 @@ astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**
 astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r))
-fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r), grid=False)
+fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r), grid=False)
 # zoom
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-zoom-compact'.format(M, D, r))
-# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-zoom-compact'.format(M, D, r), grid=False)
+# fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-zoom-compact'.format(M, D, r), grid=False)
 
 ##
 # static mag lim
@@ -2813,10 +2813,10 @@ astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**
 astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r))
-fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r), grid=False)
+fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r), grid=False)
 # zoom
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-zoom-compact'.format(M, D, r))
-# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-zoom-compact'.format(M, D, r), grid=False)
+# fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-zoom-compact'.format(M, D, r), grid=False)
 
 ## masslimit by number
 frac = np.arange(1, 0, -0.001)
@@ -2838,10 +2838,10 @@ astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**
 astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r))
-fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r), grid=False)
+fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r), grid=False)
 # zoom
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(M, D, r))
-# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(M, D, r), grid=False)
+# fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(M, D, r), grid=False)
 
 ##
 N, D, r = np.log10(2*10**8), np.log10(15*10**6), 0.345              # M, D in 10log
@@ -2849,10 +2849,10 @@ astobj = obg.AstObject(N_obj=10**N, age=[10], metal=[0.0014], distance=10**D, r_
 astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r))
-fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r), grid=False)
+fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r), grid=False)
 # zoom
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(N, D, r))
-# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(N, D, r), grid=False)
+# fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(N, D, r), grid=False)
 
 
 
@@ -2947,7 +2947,7 @@ def imgsaver(pars, int=None, ret_int=False):
     else:
         image = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode='scao', filename=img_name, internals=int)
         
-    # fh.SaveFitsPlot(img_name, grid=False)
+    # fh.save_fits_plot(img_name, grid=False)
     
     if ret_int:
         return internals
@@ -2979,7 +2979,7 @@ print(astobj.natural_guide_stars)
 
 ## zoom in for grid-7.004-5.903-2.069
 M, D, r = 7.004,  5.903, 2.069
-fh.PlotFits('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
+fh.plot_fits('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
 
 ## more filters for grid-7.004-5.903-2.069
 M, D, r = 7.004,  5.903, 2.069
@@ -2989,7 +2989,7 @@ filters = ['U', 'B', 'V', 'R', 'I', 'H', 'Ks']
 for fil in filters:
     src = img.MakeSource(astobj, filter=fil)
     image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=fil, ao_mode='scao', filename='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, fil))
-    fh.PlotFits('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, fil), grid=False)
+    fh.plot_fits('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, fil), grid=False)
 
 ## RGB
 # http://docs.astropy.org/en/stable/visualization/rgb.html
@@ -3002,9 +3002,9 @@ import img_scale    # download from https://www.astrobetter.com/wiki/tiki-index.
 
 M, D, r = 7.004,  5.903, 2.069                                                                      # try: I, J, H, Ks
 
-R_data = fh.GetData('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-Ks'.format(M, D, r))
-G_data = fh.GetData('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-H'.format(M, D, r))
-B_data = fh.GetData('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+R_data = fh.get_data('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-Ks'.format(M, D, r))
+G_data = fh.get_data('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-H'.format(M, D, r))
+B_data = fh.get_data('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 ##
 img = np.zeros((R_data.shape[0], R_data.shape[1], 3), dtype=float)
 
@@ -3091,7 +3091,7 @@ def imgsaver(pars, int=None, ret_int=False):
     else:
         image = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, internals=int)
         
-    fh.SaveFitsPlot(img_name, grid=False)
+    fh.save_fits_plot(img_name, grid=False)
     
     if ret_int:
         return internals
@@ -3505,10 +3505,10 @@ filter = 'J'
 src = sim.source.star(mag=16, filter_name=filter, spec_type='M0V')
 
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename='img_test_save') # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
-fh.PlotFits('img_test_save', scale='lin', grid=False)
+fh.plot_fits('img_test_save', scale='lin', grid=False)
 ## make the epsf
 # identify the stars and their initial positions
-img_data = fh.GetData('psf_image_H.fits')
+img_data = fh.get_data('psf_image_H.fits')
 
 peaks_tbl = phu.find_peaks(img_data, threshold=131050., box_size=11)
                            
@@ -3592,8 +3592,8 @@ image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', fi
 
 # show the image
 image_name = 'img_test_save' # 'grid-5.000-5.903-2.069'
-fh.PlotFits(image_name, scale='sqrt', grid=False)
-img_data = fh.GetData(image_name)
+fh.plot_fits(image_name, scale='sqrt', grid=False)
+img_data = fh.get_data(image_name)
 
 ## open the epsf
 with open(os.path.join('objects', 'epsf-scao.pkl'), 'rb') as input:
@@ -3601,8 +3601,8 @@ with open(os.path.join('objects', 'epsf-scao.pkl'), 'rb') as input:
     
 # get the test image
 image_name = 'grid-5.000-5.903-0.345-H'
-fh.PlotFits(image_name, scale='sqrt', grid=False)
-img_data = fh.GetData(image_name)
+fh.plot_fits(image_name, scale='sqrt', grid=False)
+img_data = fh.get_data(image_name)
 
 ## do photometry
 sigma_psf = 4.0
@@ -3644,8 +3644,8 @@ import astropy as apy
 import astropy.modeling as apm
 
 image_name = 'img_test_save' # 'grid-5.000-5.903-2.069'
-fh.PlotFits(image_name, scale='sqrt', grid=False)
-img_data = fh.GetData(image_name)
+fh.plot_fits(image_name, scale='sqrt', grid=False)
+img_data = fh.get_data(image_name)
 
 ## 
 sigma_psf = 2.0
@@ -3685,8 +3685,8 @@ src = sim.source.star_grid(n=36, mag_min=22.6, mag_max=23.2, filter_name=filter,
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename=image_name) # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
 
 # show the image
-fh.PlotFits(image_name, scale='log', grid=False)
-img_data = fh.GetData(image_name)
+fh.plot_fits(image_name, scale='log', grid=False)
+img_data = fh.get_data(image_name)
 
 ## find stars (same as above)
 sigma_psf = 8.2
@@ -3752,7 +3752,7 @@ def EPSFMaker(mag):
     
     image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename='img_test_save_m{0}'.format(mag)) # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
     # identify the stars and their initial positions
-    img_data = fh.GetData('img_test_save_m{0}'.format(mag))
+    img_data = fh.get_data('img_test_save_m{0}'.format(mag))
     peaks_tbl = phu.find_peaks(img_data, threshold=120000., box_size=11)
     peaks_tbl['peak_value'].info.format = '%.8g'  # for consistent table output
     # [alter peak values to exact ones]
@@ -3803,7 +3803,7 @@ import astropy.table as apta
 
 def EPSFMaker(filter):
     # identify the stars and their initial positions
-    img_data = fh.GetData('psf_image_{0}'.format(filter))
+    img_data = fh.get_data('psf_image_{0}'.format(filter))
     peaks_tbl = phu.find_peaks(img_data, threshold=120000., box_size=11)
     peaks_tbl['peak_value'].info.format = '%.8g'  # for consistent table output
     # extract cutouts of the stars using the extract_stars() function
@@ -3869,7 +3869,7 @@ m24: 70000 to -7000
 # get the test image
 filter = 'Ks'
 image_name = 'img_test_save_' + filter
-img_data = fh.GetData(image_name)
+img_data = fh.get_data(image_name)
 
 with open(os.path.join('objects', 'epsf-scao-{0}-m18.pkl'.format(filter)), 'rb') as input:
     epsf = pickle.load(input)
@@ -3920,7 +3920,7 @@ import fitsanalyser as fa
 
 filter = 'Ks'
 image_name = 'grid-5.000-5.903-0.345-' + filter
-img_data = fh.GetData(image_name)
+img_data = fh.get_data(image_name)
 result_tab, result_tab_redux = fa.DoPhotometry(img_data, filter=filter, show=True)
 
 ## build my own itterative photometry
@@ -3944,7 +3944,7 @@ print('start the clock')
 
 filter = 'Ks'
 image_name = 'grid-5.000-5.903-0.345-' + filter
-img_data = fh.GetData(image_name)
+img_data = fh.get_data(image_name)
 
 with open(os.path.join('objects', 'epsf-scao-{0}.pkl'.format(filter)), 'rb') as input:
     epsf = pickle.load(input)
@@ -4023,7 +4023,7 @@ print('End residual image. Elapsed time = {0}'.format(t6 - t5))
 ##
 filter = 'Ks'
 image_name = 'grid-5.000-5.903-0.345-' + filter
-img_data = fh.GetData(image_name)
+img_data = fh.get_data(image_name)
 
 with open(os.path.join('objects', 'epsf-scao-{0}-m18.pkl'.format(filter)), 'rb') as input:
     epsf = pickle.load(input)
@@ -4093,7 +4093,7 @@ def imgsaver(pars, int=None, ret_int=False):
     else:
         image = img.MakeImage(src, exposure=exp, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, internals=int)
         
-    fh.SaveFitsPlot(img_name, grid=False)
+    fh.save_fits_plot(img_name, grid=False)
     
     if ret_int:
         return internals

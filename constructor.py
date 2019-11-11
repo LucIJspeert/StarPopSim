@@ -39,7 +39,7 @@ def DynamicConstruct():
         Z = PopMetallicity(pop_n)                                                                   # get the metallicity for each population
         relN = PopRelativeN(pop_n)                                                                  # get the relative number in each population
         
-        D_z, D_type = Distance()                                                                    # get the distance to the centre of the object (plus type of distance measurement)
+        D_z, D_type = Distance()                                                                    # get the distance_3d to the centre of the object (plus type of distance_3d measurement)
         
         print('')
         opt = OptionalParam()                                                                       # does the user want optional parameters
@@ -305,21 +305,21 @@ def PopRelativeN(pop_n):
 
 
 def Distance():
-    """Asks what distance to the object you want."""
+    """Asks what distance_3d to the object you want."""
     l_opt = ['l', 'lum', 'luminosity']
     z_opt = ['z', 'r', 'red', 'redshift']
     options = l_opt + z_opt
     
-    d_type = utils.while_ask('Use luminosity based distance or redshift?', '[l]/z', add_opt=options,
-                             function='Distance')
+    d_type = utils.while_ask('Use luminosity based distance_3d or redshift?', '[l]/z', add_opt=options,
+                             function='distance_3d')
     
     if (d_type in l_opt):
-        D_str = utils.while_ask('Distance to the object in pc', '[100]', function='Distance',
+        D_str = utils.while_ask('distance_3d to the object in pc', '[100]', function='distance_3d',
                                 check='float')
         D_type = 'l'
         val = float(D_str)
     elif (d_type in z_opt):
-        z_str = utils.while_ask('Redshift of the object', '[0.1]', function='Distance', check='float')
+        z_str = utils.while_ask('Redshift of the object', '[0.1]', function='distance_3d', check='float')
         D_type = 'z'
         val = float(z_str)
     
@@ -794,12 +794,12 @@ if __name__ == '__main__':
                         help='relative number of stars in each population')
     
     parser.add_argument('-D', type=float, required=False, default=1e3,
-                        help='distance to center of object in pc')   
+                        help='distance_3d to center of object in pc')
     
     # optional arguments
     parser.add_argument('-Dtype', type=str, required=False, default='l',
                         choices=['l', 'z'],
-                        help='type of distance; luminosity distance or redshift.')   
+                        help='type of distance_3d; luminosity distance_3d or redshift.')
                         
     parser.add_argument('-IMF', type=float, nargs='+', required=False, default=[0.08, 0.5, 150],
                         help='lower bound, knee position, upper bound for the IMF masses')

@@ -7,13 +7,12 @@ Just for convenience really. And nice plots.
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcol
-from mpl_toolkits.mplot3d import Axes3D
 
 import conversions as conv
 
 
-def Scatter2D(coords, title='Scatter', xlabel='x', ylabel='y',
-              axes='xy', colour='blue', T_eff=None, mag=None, theme=None):
+def scatter_2d(coords, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', T_eff=None, mag=None,
+               theme=None, show=True):
     """Plots a 2D scatter of a 3D object (array) along given axes [xy, yz, zx]. 
     Giving effective temperatures makes the marker colour represent temperature.
     Giving magnitudes makes the marker size and alpha scale with brightness.
@@ -24,15 +23,16 @@ def Scatter2D(coords, title='Scatter', xlabel='x', ylabel='y',
     # determine which axes to put on the horizontal and vertical axis of the plot
     axes_list = np.array([[0, 1], [1, 2], [2, 0]])
     hor_axis, vert_axis = axes_list[np.array(['xy', 'yz', 'zx']) == axes][0]
-    n_obj = len(coords[:,hor_axis])
-    
+
     # colours can be made to match the temperature (using T_eff)
     if (T_eff is not None):
-        colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
-        colour[T_eff <= 10] = [0.2, 0.2, 0.2]                                                       # dead stars
-        colour = mcol.to_rgba_array(colour, 0.5)                                                    # add alpha
+        colour = conv.TemperatureToRGB(T_eff).transpose()
+        # make dead stars grey and add alpha
+        colour[T_eff <= 10] = [0.2, 0.2, 0.2]
+        colour = mcol.to_rgba_array(colour, 0.5)
     elif (theme == 'fits'):
-        colour = np.array([mcol.to_rgba((1,1,1), 0.2)])                                             # set the colours to white
+        # set the colours to white
+        colour = np.array([mcol.to_rgba((1, 1, 1), 0.2)])
     elif (colour == 'blue'):
         colour = np.array([mcol.to_rgba('tab:blue', 0.5)])
     else:
@@ -41,24 +41,22 @@ def Scatter2D(coords, title='Scatter', xlabel='x', ylabel='y',
     # marker sizes and transparancy scaling with mag
     if (mag is not None):
         m_max = np.max(mag)
-        sizes = (0.3 + (m_max - mag)/1.5)**2                                                        # formula for representation of magnitude
+        # formula for representation of magnitude
+        sizes = (0.3 + (m_max - mag)/1.5)**2
         if (theme == 'fits'):
+            # scale alpha with mag
             alpha = (m_max - mag)**3
-            alpha = alpha/np.max(alpha)                                                             # scale alpha with mag
+            alpha = alpha/np.max(alpha)
             colour = np.repeat(colour, len(alpha), axis=0)
-            colour[:,3] = alpha
+            colour[:, 3] = alpha
     else:
-        sizes = 20                                                                                  # default size
+        sizes = 20  # default size
     
     fig, ax = plt.subplots(figsize=[7.0, 5.5])
-    ax.scatter(coords[:,hor_axis], coords[:,vert_axis], marker='.', 
-               linewidths=0.0, c=colour, s=sizes)
+    ax.scatter(coords[:, hor_axis], coords[:, vert_axis], marker='.', linewidths=0.0, c=colour, s=sizes)
     
-    # take the maximum distance from the origin as axis scale
-    if (np.shape(coords[0]) == (2,)):
-        axis_size = max(max(coords[:,0]), max(coords[:,1]))                                       # two dimensional data
-    else:
-        axis_size = max(max(coords[:,0]), max(coords[:,1]), max(coords[:,2]))
+    # take the maximum coordinate distance_3d as axis sizes
+    axis_size = np.max(np.abs(coords))
     ax.set_xlim(-axis_size, axis_size) 
     ax.set_ylim(-axis_size, axis_size)
     ax.set(aspect='equal', adjustable='datalim')
@@ -100,7 +98,7 @@ def Scatter2D(coords, title='Scatter', xlabel='x', ylabel='y',
         s_1 = 12                                                                                    # title/labels
         s_2 = 12                                                                                    # tick params
     
-    if (theme is not None):
+    if theme:
         # set the colours
         fig.patch.set_color(c_3)
         ax.set_facecolor(c_4)
@@ -117,34 +115,35 @@ def Scatter2D(coords, title='Scatter', xlabel='x', ylabel='y',
         if (theme == 'fits'):
             ax.invert_yaxis()
     
-    # set the textsizes
+    # set the text sizes
     ax.title.set_size(s_1)
     ax.xaxis.label.set_size(s_1)
     ax.yaxis.label.set_size(s_1)
     ax.tick_params(labelsize=s_2)
     
     plt.tight_layout()
-    plt.show() 
+    if show:
+        plt.show()
     return
 
 
-def Scatter3D(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z', 
-              colour='blue', T_eff=None, mag=None, theme=None):
+def scatter_3d(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z', colour='blue', T_eff=None, mag=None,
+               theme=None, show=True):
     """Plots a 3D scatter of a 3D object (array).
     colour can be set to 'temperature' to represent the effective temperatures.
     magnitudes can be given to mag to make the marker sizes represent magnitudes.
     Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
-        saveable dark plot, and None for normal light colours.
+        save-able dark plot, and None for normal light colours.
     """
-    n_obj = len(coords[:, 0])
-    
     # colours can be made to match the temperature (using T_eff)
     if (T_eff is not None):
-        colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
-        colour[T_eff <= 10] = [0.2, 0.2, 0.2]                                                       # dead stars
-        colour = mcol.to_rgba_array(colour, 0.5)                                                    # add alpha
+        colour = conv.TemperatureToRGB(T_eff).transpose()
+        # make dead stars grey and add alpha
+        colour[T_eff <= 10] = [0.2, 0.2, 0.2]
+        colour = mcol.to_rgba_array(colour, 0.5)
     elif (theme == 'fits'):
-        colour = np.array([mcol.to_rgba((1,1,1), 0.2)])                                             # set colours to white
+        # set colours to white
+        colour = np.array([mcol.to_rgba((1,1,1), 0.2)])
     elif (colour == 'blue'):
         colour = np.array([mcol.to_rgba('tab:blue', 0.5)])
     else:
@@ -153,21 +152,22 @@ def Scatter3D(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
     # marker sizes and transparancy scaling with mag
     if (mag is not None):
         m_max = np.max(mag)
-        sizes = (0.3 + (m_max - mag)/1.5)**2                                                        # formula for representation of magnitude
+        # formula for representation of magnitude
+        sizes = (0.3 + (m_max - mag)/1.5)**2
         if (theme == 'fits'):
+            # scale alpha with mag
             alpha = (m_max - mag)**3
-            alpha = alpha/np.max(alpha)                                                             # scale alpha with mag
+            alpha = alpha/np.max(alpha)
             colour = np.repeat(colour, len(alpha), axis=0)
             colour[:,3] = alpha
     else:
-        sizes = 20                                                                                  # default size
+        sizes = 20  # default size
     
     fig, ax = plt.subplots(subplot_kw=dict(projection='3d'), figsize=[6.0, 6.0])
-    ax.scatter(coords[:,0], coords[:,1], coords[:,2], 
-               marker='.', linewidths=0.0, c=colour, s=sizes) 
+    ax.scatter(coords[:, 0], coords[:, 1], coords[:, 2], marker='.', linewidths=0.0, c=colour, s=sizes)
     
-    # take the maximum distance from the origin as axis scale
-    axis_size = max(max(coords[:,0]), max(coords[:,1]), max(coords[:,2]))
+    # take the maximum coordinate distance_3d as axis sizes
+    axis_size = np.max(np.abs(coords))
     ax.set_xlim3d(-axis_size, axis_size) 
     ax.set_ylim3d(-axis_size, axis_size)
     ax.set_zlim3d(-axis_size, axis_size)
@@ -180,36 +180,36 @@ def Scatter3D(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
     # The further setup (custom dark theme)
     if (theme == 'dark1'):
         # fancy dark theme
-        c_1 = (0.7,0.7,0.7)
-        c_2 = (0.5,0.5,0.5)
-        c_3 = (0.0,0.0,0.0)
-        c_4 = (0.0,0.0,0.0)
+        c_1 = (0.7, 0.7, 0.7)
+        c_2 = (0.5, 0.5, 0.5)
+        c_3 = (0.0, 0.0, 0.0)
+        c_4 = (0.0, 0.0, 0.0)
         s_1 = 12
         s_2 = 12
     elif (theme == 'dark2'):
         # dark theme for good saving
-        c_1 = (0.7,0.7,0.7)
-        c_2 = (0.5,0.5,0.5)
-        c_3 = (1.0,1.0,1.0)
-        c_4 = (0.0,0.0,0.0)
+        c_1 = (0.7, 0.7, 0.7)
+        c_2 = (0.5, 0.5, 0.5)
+        c_3 = (1.0, 1.0, 1.0)
+        c_4 = (0.0, 0.0, 0.0)
         s_1 = 12
         s_2 = 12
     elif (theme == 'fits'):
         # theme for imitating .fits images
-        c_1 = (0.6,0.6,0.6)
-        c_2 = (0.4,0.4,0.4)
-        c_3 = (0.0,0.0,0.0)
-        c_4 = (0.0,0.0,0.0)
+        c_1 = (0.6, 0.6, 0.6)
+        c_2 = (0.4, 0.4, 0.4)
+        c_3 = (0.0, 0.0, 0.0)
+        c_4 = (0.0, 0.0, 0.0)
         s_1 = 12
         s_2 = 12
     else:
         # defaults (not actually used)
-        c_1 = (0.0,0.0,0.0)                                                                         # text
-        c_2 = (0.0,0.0,0.0)                                                                         # lines
-        c_3 = (1.0,1.0,1.0)                                                                         # outer rim
-        c_4 = (1.0,1.0,1.0)                                                                         # inner area
-        s_1 = 12                                                                                    # title/labels
-        s_2 = 12                                                                                    # tick params
+        c_1 = (0.0, 0.0, 0.0)  # text
+        c_2 = (0.0, 0.0, 0.0)  # lines
+        c_3 = (1.0, 1.0, 1.0)  # outer rim
+        c_4 = (1.0, 1.0, 1.0)  # inner area
+        s_1 = 12  # title/labels
+        s_2 = 12  # tick params
     
     if (theme is not None):
         # set the colours
@@ -233,12 +233,13 @@ def Scatter3D(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z',
     ax.tick_params(labelsize=s_2)
     
     plt.tight_layout()
-    plt.show() 
+    if show:
+        plt.show()
     return
 
 
-def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)', 
-        ylabel=r'Luminosity log($L/L_\odot$)', colour='temperature', theme=None, mask=None):
+def hr_diagram(T_eff, log_Lum, title='hr_diagram', xlabel='Temperature (K)', ylabel=r'Luminosity log($L/L_\odot$)',
+               colour='temperature', theme=None, mask=None, show=True):
     """Plot the Herzsprung Russell Diagram. Use mask to select certain stars.
     colours can be made to match the temperature (default behaviour)
     Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
@@ -250,9 +251,10 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
     
     # colours can be made to match the temperature (using T_eff)
     if ((T_eff is not None) & (colour == 'temperature')):
-        colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
-        colour[T_eff <= 10] = [0.2, 0.2, 0.2]                                                       # dead stars
-        colour = mcol.to_rgba_array(colour, 0.5)                                                    # add alpha
+        colour = conv.TemperatureToRGB(T_eff).transpose()
+        # make dead stars grey and add alpha
+        colour[T_eff <= 10] = [0.2, 0.2, 0.2]
+        colour = mcol.to_rgba_array(colour, 0.5)
         colour = colour[mask]
     elif (colour == 'blue'):
         colour = mcol.to_rgba('tab:blue', 0.5)
@@ -285,12 +287,12 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
         s_2 = 12
     else:
         # defaults (not actually used)
-        c_1 = '0.0'                                                                                 # text
-        c_2 = '0.0'                                                                                 # lines
-        c_3 = '1.0'                                                                                 # outer rim
-        c_4 = '1.0'                                                                                 # inner area
-        s_1 = 12                                                                                    # title/labels
-        s_2 = 12                                                                                    # tick params
+        c_1 = '0.0'  # text
+        c_2 = '0.0'  # lines
+        c_3 = '1.0'  # outer rim
+        c_4 = '1.0'  # inner area
+        s_1 = 12  # title/labels
+        s_2 = 12  # tick params
     
     if (theme is not None):
         # set the colours
@@ -313,12 +315,13 @@ def HRD(T_eff, log_Lum, title='HRD', xlabel='Temperature (K)',
     ax.tick_params(labelsize=s_2)
     
     plt.tight_layout()
-    plt.show() 
+    if show:
+        plt.show()
     return
 
 
-def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude', 
-        colour='blue', T_eff=None, theme=None, adapt_axes=True, mask=None):
+def cm_diagram(c_mag, mag, title='cm_diagram', xlabel='colour', ylabel='magnitude', colour='blue', T_eff=None,
+               theme=None, adapt_axes=True, mask=None, show=True):
     """Plot the Colour Magnitude Diagram. Use mask to select certain stars.
     colours can be made to match the temperature (default behaviour)
     Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
@@ -326,9 +329,10 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
     """
     # colours can be made to match the temperature (using T_eff)
     if (T_eff is not None):
-        colour = conv.TemperatureToRGB(T_eff).transpose()                                           # T_eff array of temps of the objects
-        colour[T_eff <= 10] = [0.2, 0.2, 0.2]                                                       # dead stars
-        colour = mcol.to_rgba_array(colour, 0.5)                                                    # add alpha
+        colour = conv.TemperatureToRGB(T_eff).transpose()
+        # make dead stars grey and add alpha
+        colour[T_eff <= 10] = [0.2, 0.2, 0.2]
+        colour = mcol.to_rgba_array(colour, 0.5)
         colour = colour[mask]
     elif (colour == 'blue'):
         colour = mcol.to_rgba('tab:blue', 0.5)
@@ -350,7 +354,8 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
         ax.set_xlim(min_x - 0.25, max_x + 0.25) 
         ax.set_ylim(max_y + 4, min_y - 4)
     else:
-        ax.set_xlim(-0.5, 2.0)                                                                      # good for seeing vertical differences
+        # good for seeing vertical differences
+        ax.set_xlim(-0.5, 2.0)
         ax.set_ylim(17.25, -12.75)
     
     ax.set_title(title)
@@ -375,12 +380,12 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
         s_2 = 12
     else:
         # defaults (not actually used)
-        c_1 = '0.0'                                                                                 # text
-        c_2 = '0.0'                                                                                 # lines
-        c_3 = '1.0'                                                                                 # outer rim
-        c_4 = '1.0'                                                                                 # inner area
-        s_1 = 12                                                                                    # title/labels
-        s_2 = 12                                                                                    # tick params
+        c_1 = '0.0'  # text
+        c_2 = '0.0'  # lines
+        c_3 = '1.0'  # outer rim
+        c_4 = '1.0'  # inner area
+        s_1 = 12  # title/labels
+        s_2 = 12  # tick params
     
     if (theme is not None):
         # set the colours
@@ -403,18 +408,23 @@ def CMD(c_mag, mag, title='CMD', xlabel='colour', ylabel='magnitude',
     ax.tick_params(labelsize=s_2)
         
     plt.tight_layout()
-    plt.show() 
+    if show:
+        plt.show()
     return
 
 
-def DistHist(dist, title='Histogram', xlabel='parameter', ylabel='relative number', 
-             step=True, type='linear', labels=[]):
+def dist_histogram(dist, title='Histogram', xlabel='parameter', ylabel='relative number', step=True, type='linear',
+                   labels=None, show=True):
     """Display the histogram for some distribution. Can handle multiple distributions.
     type can be linear, linlog, loglin (x,y) and loglog. Step=False will give a plot instead.
     """
-    dim = len(np.shape(dist))                                                                       # see if multiple dists given
+    # see if multiple dists given
+    dim = len(np.shape(dist))
     if (dim != 1):
-        num_dists = np.shape(dist)[0]                                                               # number of dists
+        num_dists = np.shape(dist)[0]
+        if not labels:
+            labels = []
+
         if (len(labels) == num_dists):
             use_labels = True
         else:
@@ -426,12 +436,12 @@ def DistHist(dist, title='Histogram', xlabel='parameter', ylabel='relative numbe
         hist, bins = np.histogram(dist, bins='auto', density=True)
         
         if (type == 'linlog'):
-            hist = np.log10(hist)                                                                   # y axis logarithmic
+            hist = np.log10(hist)  # y axis logarithmic
         elif (type == 'loglin'):
-            bins = np.log10(bins)                                                                   # x axis logarithmic
+            bins = np.log10(bins)  # x axis logarithmic
         elif (type == 'loglog'):
-            bins = np.log10(bins)                                                                   # x axis logarithmic and
-            hist = np.log10(hist)                                                                   # y axis logarithmic   
+            bins = np.log10(bins)  # x axis logarithmic and
+            hist = np.log10(hist)  # y axis logarithmic
         
         if use_labels:
             if step:
@@ -455,9 +465,11 @@ def DistHist(dist, title='Histogram', xlabel='parameter', ylabel='relative numbe
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    if use_labels: plt.legend()
+    if use_labels:
+        plt.legend()
     plt.tight_layout()
-    plt.show() 
+    if show:
+        plt.show()
     return
     
     

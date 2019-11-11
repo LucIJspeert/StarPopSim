@@ -95,8 +95,8 @@ class Stars(object):
         self.inclination = utils.cast_inclination(incl, n_pop)                                       # inclination of the stars per population
         self.r_dist_types = utils.cast_radial_dist_type(r_dist, n_pop)                                 # type of radial distribution per population
         self.r_dist_types = utils.check_radial_dist_type(self.r_dist_types)
-        self.r_dist_param = utils.CastRadialDistParam(r_dist_par, self.r_dist_types, n_pop)         # the further spatial distribution parameters (dictionary per population)
-        self.ellipse_axes = utils.CastEllipseAxes(ellipse_axes, n_pop)                              # relative axis size for ellipsoidal shapes 
+        self.r_dist_param = utils.cast_radial_dist_param(r_dist_par, self.r_dist_types, n_pop)         # the further spatial distribution parameters (dictionary per population)
+        self.ellipse_axes = utils.cast_ellipse_axes(ellipse_axes, n_pop)                              # relative axis size for ellipsoidal shapes
         self.spiral_arms = spiral_arms                          # number of spiral arms (per population)
         self.spiral_bulge = spiral_bulge                        # relative proportion of central bulge (per population)
         self.spiral_bar = spiral_bar                            # relative proportion of central bar (per population)
@@ -332,7 +332,7 @@ class Stars(object):
         """
         # check the input, make sure it is an array of the right size
         n_pop = len(self.pop_number)
-        axes = utils.CastEllipseAxes(axes, n_pop)
+        axes = utils.cast_ellipse_axes(axes, n_pop)
         axes_shape = np.shape(axes)
         
         # check for existing ellipse axes
@@ -524,7 +524,7 @@ class Stars(object):
     
     def ApparentMagnitudes(self, distance, filters=None, add_redshift=False):
         """Computes the apparent magnitude from the absolute magnitude and the individual distances 
-        (in pc). Needs the luminosity distance to the astronomical object (in pc). 
+        (in pc). Needs the luminosity distance_3d to the astronomical object (in pc).
         A list of filters can be specified; None will result in all available magnitudes.
         Redshift can be roughly included (uses black body spectra).
         """
@@ -536,10 +536,10 @@ class Stars(object):
             if (len(filters) == 1):
                 abs_mag = abs_mag.flatten()                                                         # correct for 2D array
         else:
-            if (distance > 100*np.abs(np.min(self.coords[:,2]))):                                   # distance 'much larger' than individual variations
-                true_dist = distance - self.coords[:,2]                                             # approximate the individual distance to each star with the z-coordinate
+            if (distance > 100*np.abs(np.min(self.coords[:,2]))):                                   # distance_3d 'much larger' than individual variations
+                true_dist = distance - self.coords[:,2]                                             # approximate the individual distance_3d to each star with the z-coordinate
             else:
-                true_dist = form.Distance(self.coords, np.array([0, 0, distance]))                  # distance is now properly calculated for each star
+                true_dist = form.distance_3d(self.coords, np.array([0, 0, distance]))                  # distance_3d is now properly calculated for each star
             
             true_dist = true_dist.reshape((len(true_dist),) + (1,)*(len(filters) > 1))              # fix dimension for broadcast
             
@@ -606,7 +606,7 @@ class Stars(object):
         return np.log10(np.sum(10**self.LogLuminosities(realistic_remnants=False)))                 # remnants don't add much, so leave them as is
         
     def CoordsArcsec(self, distance):
-        """Returns coordinates converted to arcseconds (from pc). Needs the angular distance 
+        """Returns coordinates converted to arcseconds (from pc). Needs the angular distance_3d
         to the object (in pc).
         """
         return conv.ParsecToArcsec(self.coords, distance)
@@ -614,9 +614,9 @@ class Stars(object):
     def OrbitalRadii(self, distance, unit='pc', spher=False):
         """Returns the radial coordinate of the stars (spherical or cylindrical) in pc/as."""
         if spher:
-            radii = form.Distance(self.coords)
+            radii = form.distance_3d(self.coords)
         else:
-            radii = form.Distance2D(self.coords)
+            radii = form.distance_2d(self.coords)
         
         if (unit == 'as'):                                                                          # convert to arcsec if wanted
             radii = conv.ParsecToArcsec(radii, distance)
@@ -633,9 +633,9 @@ class Stars(object):
         tot_mass = np.sum(M_cur)                                                                    # do this locally, to avoid unnecesairy overhead
         
         if spher:
-            r_star = form.Distance(self.coords)                                                     # spherical radii of the stars
+            r_star = form.distance_3d(self.coords)                                                     # spherical radii of the stars
         else:
-            r_star = form.Distance2D(self.coords)                                                   # cylindrical radii of the stars
+            r_star = form.distance_2d(self.coords)                                                   # cylindrical radii of the stars
             
         indices = np.argsort(r_star)                                                                # indices that sort the radii
         r_sorted = r_star[indices]                                                                  # sorted radii
@@ -655,9 +655,9 @@ class Stars(object):
         tot_lum = np.sum(lum)                                                                       # do this locally, to avoid unnecesairy overhead
         
         if spher:
-            r_star = form.Distance(self.coords)                                                     # spherical radii of the stars
+            r_star = form.distance_3d(self.coords)                                                     # spherical radii of the stars
         else:
-            r_star = form.Distance2D(self.coords)                                                   # cylindrical radii of the stars
+            r_star = form.distance_2d(self.coords)                                                   # cylindrical radii of the stars
             
         indices = np.argsort(r_star)                                                                # indices that sort the radii
         r_sorted = r_star[indices]                                                                  # sorted radii
@@ -671,7 +671,7 @@ class Stars(object):
         return hlr
         
     def Plot2D(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', 
-               filter='V', theme='dark1'):
+               filter='V', theme='dark1', show=True):
         """Make a plot of the object positions in two dimensions
         Set colour to 'temperature' for a temperature representation.
         Set filter to None to avoid markers scaling in size with magnitude.
@@ -689,12 +689,12 @@ class Stars(object):
         else:
             temps = None
         
-        vis.Scatter2D(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
-                      axes=axes, colour=colour, T_eff=temps, mag=mags, theme=theme)
+        vis.scatter_2d(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
+                       axes=axes, colour=colour, T_eff=temps, mag=mags, theme=theme, show=show)
         return
         
     def Plot3D(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', 
-               filter='V', theme='dark1'):
+               filter='V', theme='dark1', show=True):
         """Make a plot of the object positions in three dimensions.
         Set colour to 'temperature' for a temperature representation.
         Set filter to None to avoid markers scaling in size with magnitude.
@@ -711,11 +711,11 @@ class Stars(object):
         else:
             temps = None
         
-        vis.Scatter3D(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
-                      axes=axes, colour=colour, T_eff=temps, mag=mags, theme=theme)
+        vis.scatter_3d(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
+                       axes=axes, colour=colour, T_eff=temps, mag=mags, theme=theme, show=show)
         return
         
-    def PlotHRD(self, title='HRD', colour='temperature', theme='dark1'):
+    def PlotHRD(self, title='hr_diagram', colour='temperature', theme='dark1', show=True):
         """Make a plot of stars in an HR diagram.
         Set colour to 'temperature' for a temperature representation.
         Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
@@ -725,12 +725,12 @@ class Stars(object):
         temps = 10**self.LogTemperatures()
         lums = self.LogLuminosities()
         
-        vis.HRD(T_eff=temps, log_Lum=lums, title=title, xlabel='Temperature (K)', 
-                ylabel=r'Luminosity log($L/L_\odot$)', colour=colour, theme=theme, mask=r_mask)
+        vis.hr_diagram(T_eff=temps, log_Lum=lums, title=title, xlabel='Temperature (K)',
+                       ylabel=r'Luminosity log($L/L_\odot$)', colour=colour, theme=theme, mask=r_mask, show=show)
         return
         
-    def PlotCMD(self, x='B-V', y='V', title='CMD', colour='blue', theme='dark1'):
-        """Make a plot of the stars in a CMD
+    def PlotCMD(self, x='B-V', y='V', title='cm_diagram', colour='blue', theme='dark1', show=True):
+        """Make a plot of the stars in a cm_diagram
         Set x and y to the colour and magnitude to be used (x needs format 'A-B')
         Set colour to 'temperature' for a temperature representation.
         """
@@ -746,8 +746,8 @@ class Stars(object):
         else:
             mag = self.ApparentMagnitudes(filter=y)
         
-        vis.CMD(c_mag, mag, title='CMD', xlabel=x, ylabel=y, 
-                colour='blue', T_eff=None, theme=None, adapt_axes=True, mask=None)
+        vis.cm_diagram(c_mag, mag, title='cm_diagram', xlabel=x, ylabel=y,
+                       colour='blue', T_eff=None, theme=None, adapt_axes=True, mask=None, show=show)
         return
         
     def PerformanceMode(self, full=False, turn_off=False):
@@ -875,15 +875,15 @@ class AstronomicalObject():
     """
     def __init__(self, distance=10, d_type='l', extinct=0, **kwargs):
         
-        self.d_type = d_type                                                                        # distance type [l for luminosity, z for redshift]
+        self.d_type = d_type                                                                        # distance_3d type [l for luminosity, z for redshift]
         if (self.d_type == 'z'):
             self.redshift = distance                                                                # redshift for the object
-            self.d_lum = form.DLuminosity(self.redshift)                                            # luminosity distance to the object (in pc)
+            self.d_lum = form.DLuminosity(self.redshift)                                            # luminosity distance_3d to the object (in pc)
         else:
-            self.d_lum = distance                                                                   # luminosity distance to the object (in pc)
+            self.d_lum = distance                                                                   # luminosity distance_3d to the object (in pc)
             self.redshift = form.DLToRedshift(self.d_lum)                                           # redshift for the object
         
-        self.d_ang = form.DAngular(self.redshift)                                                   # angular distance (in pc)
+        self.d_ang = form.DAngular(self.redshift)                                                   # angular distance_3d (in pc)
         self.extinction = extinct                                                                   # extinction between source and observer
         
         # initialise the component classes (pop the right kwargs per object)
@@ -1234,7 +1234,7 @@ def MagnitudeLimited(age, Z, mag_lim=default_mag_lim, d=10, ext=0, filter='Ks'):
     Works only for resolved stars. 
     If light is integrated along the line of sight (crowded fields), 
     then don't use this method! Resulting images would not be accurate!
-    distance, age, metallicity and extinction of the population of stars are needed.
+    distance_3d, age, metallicity and extinction of the population of stars are needed.
     A filter must be specified in which the given limiting magnitude is measured.
     """
     iso_M_ini = utils.stellar_isochrone(age, Z, columns=['M_initial'])                               # get the isochrone values
@@ -1245,7 +1245,7 @@ def MagnitudeLimited(age, Z, mag_lim=default_mag_lim, d=10, ext=0, filter='Ks'):
     if not mask.any():
         mask = (mag_vals == np.min(mag_vals))                                                       # if limit too high (too low in mag) then it will break
         warnings.warn(('objectgenerator//MagnitudeLimited: compacting will not work, '
-                       'distance too large.'), RuntimeWarning)
+                       'distance_3d too large.'), RuntimeWarning)
 
     mass_lim_low = iso_M_ini[mask][0]                                                               # the lowest mass where mask==True
     
