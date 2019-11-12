@@ -264,7 +264,7 @@ class Stars(object):
                     if (mass_limit[i, 1] > self.imf_param[i, 1]):
                         mass_limit[i, 1] = self.imf_param[i, 1]                                         # don't increase the upper limit!
                     
-                    self.fraction_generated[i] = form.MassFraction(mass_limit[i], 
+                    self.fraction_generated[i] = form.mass_fraction_from_limits(mass_limit[i], 
                                                                     imf=self.imf_param[i])
                 if np.any(mass_limit[:, 0] > mass_limit[:, 1]):                                       
                     raise RuntimeError('objectgenerator//GenerateStars: compacting failed, '
@@ -381,7 +381,7 @@ class Stars(object):
                 # give estimates for remnant masses (replacing the 0 above)
                 if realistic_remnants:
                     remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
-                    r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses (depend on Z)
+                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses (depend on Z)
                     M_cur_i[remnants_i] = r_M_cur_i                                                 # fill in the values
                 
                 M_cur = np.append(M_cur, M_cur_i)  
@@ -410,8 +410,8 @@ class Stars(object):
                 # give estimates for remnant radii (replacing the 0 above)
                 if realistic_remnants:
                     remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
-                    r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses (depend on Z)
-                    r_R_cur_i = form.RemnantRadius(r_M_cur_i)                                       # approx. remnant radii
+                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses (depend on Z)
+                    r_R_cur_i = form.remnant_radius(r_M_cur_i)                                       # approx. remnant radii
                     R_cur_i[remnants_i] = r_R_cur_i                                                 # fill in the values
                 
                 R_cur = np.append(R_cur, R_cur_i)  
@@ -440,11 +440,11 @@ class Stars(object):
                 # give estimates for remnant luminosities (replacing the -9 above)
                 if realistic_remnants:
                     remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
-                    remnant_time = form.RemnantTime(M_init_i[remnants_i], age, self.metal[i])       # approx. time that the remnant had to cool
-                    r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
-                    r_R_cur_i = form.RemnantRadius(r_M_cur_i)                                       # approx. remnant radii
-                    r_Te_i = form.RemnantTeff(r_M_cur_i, r_R_cur_i, remnant_time)                   # approx. remnant temperatures
-                    r_log_L_i = np.log10(form.BBLuminosity(r_Te_i, r_R_cur_i))                      # remnant luminosity := BB radiation
+                    remnant_time = form.remnant_time(M_init_i[remnants_i], age, self.metal[i])       # approx. time that the remnant had to cool
+                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
+                    r_R_cur_i = form.remnant_radius(r_M_cur_i)                                       # approx. remnant radii
+                    r_Te_i = form.remnant_temperature(r_M_cur_i, r_R_cur_i, remnant_time)                   # approx. remnant temperatures
+                    r_log_L_i = np.log10(form.bb_luminosity(r_Te_i, r_R_cur_i))                      # remnant luminosity := BB radiation
                     log_L_i[remnants_i] = r_log_L_i                                                 # fill in the values
                 
                 log_L = np.append(log_L, log_L_i)  
@@ -473,10 +473,10 @@ class Stars(object):
                 # give estimates for remnant temperatures (replacing the 1 above)
                 if realistic_remnants:
                     remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
-                    remnant_time = form.RemnantTime(M_init_i[remnants_i], age, self.metal[i])       # approx. time that the remnant had to cool
-                    r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
-                    r_R_cur_i = form.RemnantRadius(r_M_cur_i)                                       # approx. remnant radii
-                    r_log_Te_i = np.log10(form.RemnantTeff(r_M_cur_i, r_R_cur_i, remnant_time))     # approx. remnant temperatures
+                    remnant_time = form.remnant_time(M_init_i[remnants_i], age, self.metal[i])       # approx. time that the remnant had to cool
+                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
+                    r_R_cur_i = form.remnant_radius(r_M_cur_i)                                       # approx. remnant radii
+                    r_log_Te_i = np.log10(form.remnant_temperature(r_M_cur_i, r_R_cur_i, remnant_time))     # approx. remnant temperatures
                     log_Te_i[remnants_i] = r_log_Te_i                                               # fill in the values
                 
                 log_Te = np.append(log_Te, log_Te_i)  
@@ -512,11 +512,11 @@ class Stars(object):
                 
                 if realistic_remnants:
                     remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
-                    remnant_time = form.RemnantTime(M_init_i[remnants_i], age, self.metal[i])       # approx. time that the remnant had to cool
-                    r_M_cur_i = form.RemnantMass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
-                    r_R_cur_i = form.RemnantRadius(r_M_cur_i)                                       # approx. remnant radii
-                    r_Te_i = form.RemnantTeff(r_M_cur_i, r_R_cur_i, remnant_time)                   # approx. remnant temperatures
-                    mag_i[remnants_i] = form.BBMagnitude(r_Te_i, r_R_cur_i, filters)                # approx. remnant magnitudes
+                    remnant_time = form.remnant_time(M_init_i[remnants_i], age, self.metal[i])       # approx. time that the remnant had to cool
+                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
+                    r_R_cur_i = form.remnant_radius(r_M_cur_i)                                       # approx. remnant radii
+                    r_Te_i = form.remnant_temperature(r_M_cur_i, r_R_cur_i, remnant_time)                   # approx. remnant temperatures
+                    mag_i[remnants_i] = form.bb_magnitude(r_Te_i, r_R_cur_i, filters)                # approx. remnant magnitudes
                 
                 abs_mag = np.append(abs_mag, mag_i, axis=0)
         
@@ -549,11 +549,11 @@ class Stars(object):
                 shifted_filters = (1 + self.redshift)*filter_means
                 R_cur = self.StellarRadii(realistic_remnants=True)
                 T_eff = 10**self.LogTemperatures(realistic_remnants=True)
-                abs_mag = form.BBMagnitude(T_eff, R_cur, filters, filter_means=shifted_filters)
+                abs_mag = form.bb_magnitude(T_eff, R_cur, filters, filter_means=shifted_filters)
             else:
                 abs_mag = self.AbsoluteMagnitudes(filters=filters)
             
-            app_mag = form.ApparentMag(abs_mag, true_dist, ext=self.extinction)                     # true_dist in pc!
+            app_mag = form.apparent_magnitude(abs_mag, true_dist, ext=self.extinction)                     # true_dist in pc!
         
         return app_mag
         
@@ -725,7 +725,7 @@ class Stars(object):
         temps = 10**self.LogTemperatures()
         lums = self.LogLuminosities()
         
-        vis.hr_diagram(T_eff=temps, log_Lum=lums, title=title, xlabel='Temperature (K)',
+        vis.hr_diagram(T_eff=temps, log_lum=lums, title=title, xlabel='Temperature (K)',
                        ylabel=r'Luminosity log($L/L_\odot$)', colour=colour, theme=theme, mask=r_mask, show=show)
         return
         
@@ -878,12 +878,12 @@ class AstronomicalObject():
         self.d_type = d_type                                                                        # distance_3d type [l for luminosity, z for redshift]
         if (self.d_type == 'z'):
             self.redshift = distance                                                                # redshift for the object
-            self.d_lum = form.DLuminosity(self.redshift)                                            # luminosity distance_3d to the object (in pc)
+            self.d_lum = form.d_luminosity(self.redshift)                                            # luminosity distance_3d to the object (in pc)
         else:
             self.d_lum = distance                                                                   # luminosity distance_3d to the object (in pc)
-            self.redshift = form.DLToRedshift(self.d_lum)                                           # redshift for the object
+            self.redshift = form.d_luminosity_to_redshift(self.d_lum)                                           # redshift for the object
         
-        self.d_ang = form.DAngular(self.redshift)                                                   # angular distance_3d (in pc)
+        self.d_ang = form.d_angular(self.redshift)                                                   # angular distance_3d (in pc)
         self.extinction = extinct                                                                   # extinction between source and observer
         
         # initialise the component classes (pop the right kwargs per object)
@@ -1223,7 +1223,7 @@ def NumberLimited(N, age, Z, imf=default_imf_par):
     M_ini = utils.stellar_isochrone(age, Z, columns=['M_initial'])                                   # get the isochrone values
     mass_lim_high = M_ini[-1]                                                                       # highest value in the isochrone
     
-    mass_lim_low = form.MassLimit(fraction, M_max=mass_lim_high, imf=imf)
+    mass_lim_low = form.mass_limit_from_fraction(fraction, M_max=mass_lim_high, imf=imf)
     
     return mass_lim_low, mass_lim_high
 
@@ -1240,7 +1240,7 @@ def MagnitudeLimited(age, Z, mag_lim=default_mag_lim, d=10, ext=0, filter='Ks'):
     iso_M_ini = utils.stellar_isochrone(age, Z, columns=['M_initial'])                               # get the isochrone values
     mag_vals = utils.stellar_isochrone(age, Z, columns=[filter])
 
-    abs_mag_lim = form.AbsoluteMag(mag_lim, d, ext=ext)                                             # calculate the limiting absolute magnitude
+    abs_mag_lim = form.absolute_magnitude(mag_lim, d, ext=ext)                                             # calculate the limiting absolute magnitude
     mask = (mag_vals < abs_mag_lim + 0.1)                                                           # take all mag_vals below the limit
     if not mask.any():
         mask = (mag_vals == np.min(mag_vals))                                                       # if limit too high (too low in mag) then it will break

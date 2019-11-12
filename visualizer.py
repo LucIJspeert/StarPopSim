@@ -143,7 +143,7 @@ def scatter_3d(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z', colo
         colour = mcol.to_rgba_array(colour, 0.5)
     elif (theme == 'fits'):
         # set colours to white
-        colour = np.array([mcol.to_rgba((1,1,1), 0.2)])
+        colour = np.array([mcol.to_rgba((1, 1, 1), 0.2)])
     elif (colour == 'blue'):
         colour = np.array([mcol.to_rgba('tab:blue', 0.5)])
     else:
@@ -159,7 +159,7 @@ def scatter_3d(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z', colo
             alpha = (m_max - mag)**3
             alpha = alpha/np.max(alpha)
             colour = np.repeat(colour, len(alpha), axis=0)
-            colour[:,3] = alpha
+            colour[:, 3] = alpha
     else:
         sizes = 20  # default size
     
@@ -238,7 +238,7 @@ def scatter_3d(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z', colo
     return
 
 
-def hr_diagram(T_eff, log_Lum, title='hr_diagram', xlabel='Temperature (K)', ylabel=r'Luminosity log($L/L_\odot$)',
+def hr_diagram(T_eff, log_lum, title='hr_diagram', xlabel='Temperature (K)', ylabel=r'Luminosity log($L/L_\odot$)',
                colour='temperature', theme=None, mask=None, show=True):
     """Plot the Herzsprung Russell Diagram. Use mask to select certain stars.
     colours can be made to match the temperature (default behaviour)
@@ -262,7 +262,7 @@ def hr_diagram(T_eff, log_Lum, title='hr_diagram', xlabel='Temperature (K)', yla
         colour = mcol.to_rgba(colour, 0.5)
     
     fig, ax = plt.subplots(figsize=[7.0, 5.5])
-    ax.scatter(T_eff[mask], log_Lum[mask], c=colour, marker='.', linewidths=0.0)
+    ax.scatter(T_eff[mask], log_lum[mask], c=colour, marker='.', linewidths=0.0)
     ax.set_xlim(40000, 500) 
     ax.set_ylim(-5, 7)
     ax.set_title(title)

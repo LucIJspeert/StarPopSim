@@ -1914,16 +1914,16 @@ init_masses = np.arange(0.08, 200, 0.02)
 border_masses = np.array([0.85, 2.85, 3.6, 7.2, 11, 30, 50, 90])
 
 fig, ax = plt.subplots()
-ax.plot(init_masses, form.RemnantMass(init_masses), label='solar')
-ax.plot(init_masses, form.RemnantMass(init_masses, Z=0.014), label='0.014')
-ax.plot(init_masses, form.RemnantMass(init_masses, Z=0.008), label='0.008')
-ax.plot(init_masses, form.RemnantMass(init_masses, Z=0.001), label='0.001')
-ax.plot(init_masses, form.RemnantMass(init_masses, Z=0.0001), label='0.0001')
-# ax.scatter(border_masses, form.RemnantMass(border_masses), c='orange')
-# ax.scatter(border_masses, form.RemnantMass(border_masses, Z=0.014), c='orange')
-# ax.scatter(border_masses, form.RemnantMass(border_masses, Z=0.008), c='orange')
-# ax.scatter(border_masses, form.RemnantMass(border_masses, Z=0.001), c='orange')
-# ax.scatter(border_masses, form.RemnantMass(border_masses, Z=0.0001), c='orange')
+ax.plot(init_masses, form.remnant_mass(init_masses), label='solar')
+ax.plot(init_masses, form.remnant_mass(init_masses, Z=0.014), label='0.014')
+ax.plot(init_masses, form.remnant_mass(init_masses, Z=0.008), label='0.008')
+ax.plot(init_masses, form.remnant_mass(init_masses, Z=0.001), label='0.001')
+ax.plot(init_masses, form.remnant_mass(init_masses, Z=0.0001), label='0.0001')
+# ax.scatter(border_masses, form.remnant_mass(border_masses), c='orange')
+# ax.scatter(border_masses, form.remnant_mass(border_masses, Z=0.014), c='orange')
+# ax.scatter(border_masses, form.remnant_mass(border_masses, Z=0.008), c='orange')
+# ax.scatter(border_masses, form.remnant_mass(border_masses, Z=0.001), c='orange')
+# ax.scatter(border_masses, form.remnant_mass(border_masses, Z=0.0001), c='orange')
 ax.set_xlabel('Initial Mass (M_sun)')
 ax.set_ylabel('Final Mass (M_sun)')
 plt.legend()
@@ -1977,13 +1977,13 @@ plt.show()
 
 ## Remnant Temperatures
 M1 = np.append(np.linspace(0.1, 1.456, 20), np.logspace(2.0, 10**3, 20))
-R1 = form.RemnantRadius(M1)
+R1 = form.remnant_radius(M1)
 t_c = np.logspace(-1, 12, 1000)
 T1 = np.zeros([0,len(t_c)])
 for M, R in zip(M1, R1):
     Mass = np.array([M for i in range(len(t_c))])
     Radius = np.array([R for i in range(len(t_c))])
-    T1 = np.append(T1, [form.RemnantTeff(Mass, Radius, t_c)], axis=0)
+    T1 = np.append(T1, [form.remnant_temperature(Mass, Radius, t_c)], axis=0)
 
 fig, ax = plt.subplots()
 for T in T1:
@@ -1997,7 +1997,7 @@ L1 = np.zeros([0,len(t_c)])
 for M, R in zip(M1, R1):
     Mass = np.array([M for i in range(len(t_c))])
     Radius = np.array([R for i in range(len(t_c))])
-    L1 = np.append(L1, [form.BBLuminosity(Radius, form.RemnantTeff(Mass, Radius, t_c))], axis=0)
+    L1 = np.append(L1, [form.bb_luminosity(Radius, form.remnant_temperature(Mass, Radius, t_c))], axis=0)
 
 fig, ax = plt.subplots()
 for L in L1:
@@ -2108,7 +2108,7 @@ plt.show()
 
 ##
 wavel = np.arange(0.3, 3.0, 0.01)*10**-6
-flux = form.PlanckBB(wavel, 5000, var='wavl')
+flux = form.plank_bb(wavel, 5000, var='wavl')
 
 
 fig, ax = plt.subplots()
@@ -2310,7 +2310,7 @@ for pars in par_grid[par_grid[:,0] < 6.7]:
     objsaver(pars)
     
 ## tests (something is broken)
-mag = form.ApparentMag([-2], 10**6)
+mag = form.apparent_magnitude([-2], 10**6)
 src = sim.source.stars(mags=[mag], x=[0], y=[0], filter_name='Ks', spec_types='M8IV')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter='Ks', ao_mode='scao', filename='img_test_save')
 fh.PlotFits('img_test_save')
@@ -2499,16 +2499,16 @@ ax.set_ylabel('relative number')
 plt.show()
 
 ##
-# new function MassFraction
+# new function mass_fraction_from_limits
 masses = np.arange(0.08, 100, 0.01)
 
 fig, ax = plt.subplots()
 frac1 = []
 frac2 = []
 for m in masses:
-    frac1.append(form.MassFraction([m, 150], mass=[0.08, 150]))
+    frac1.append(form.mass_fraction_from_limits([m, 150], mass=[0.08, 150]))
 for m in masses:
-    frac2.append(form.MassFraction([0.1, m], mass=[0.08, 150]))
+    frac2.append(form.mass_fraction_from_limits([0.1, m], mass=[0.08, 150]))
 ax.plot(masses, frac1)
 ax.plot(masses, frac2)
 ax.set_xlabel('M (Msun)')
@@ -2661,7 +2661,7 @@ fh.plot_fits('img_test_save', scale='lin', grid=False)
 
 
 ##
-abs_mag_lim = form.AbsoluteMag(28, 2*10**8, ext=0)
+abs_mag_lim = form.absolute_magnitude(28, 2*10**8, ext=0)
 # bolometric correction is added the second time, when an estimate for Teff is known
 lum_lim = conv.MagnitudeToLuminosity(abs_mag_lim)
 mass_lim = conv.LuminosityToMass(lum_lim, mass=[0.08, 150])
@@ -2675,7 +2675,7 @@ mag_BC = obg.BolometricCorrection(conv.MassToTemperature(mass_limit, lum_lim))
 bol_mag_lim = abs_mag_lim + mag_BC
 lum_lim = conv.MagnitudeToLuminosity(bol_mag_lim)
 mass_limit2 = conv.LuminosityToMass(lum_lim, mass=[0.08, 150])
-# fraction_generate = form.MassFraction(mass_limit, mass=[0.08, 150])
+# fraction_generate = form.mass_fraction_from_limits(mass_limit, mass=[0.08, 150])
 print(mass_lim, mass_limit, mass_limit2)
     # remove BC?
     
@@ -2706,7 +2706,7 @@ mag_lim = 29
 dists = np.logspace(1, 8, 10**3)
 M_lim = []
 for d in dists:
-    abs_mag = form.AbsoluteMag(mag_lim, d)
+    abs_mag = form.absolute_magnitude(mag_lim, d)
     mask = (mag[-1] < abs_mag + 0.1) #& (mag[-1] > abs_mag - 0.1)
     if not mask.any():
         mask = (mag[-1] == np.min(mag[-1]))
@@ -2793,7 +2793,7 @@ ax.set_ylabel('luminosity * IMF')
 # ax.loglog()
 plt.show()
 
-print(form.MassFraction([M_lim, M_ini[-1]]))
+print(form.mass_fraction_from_limits([M_lim, M_ini[-1]]))
 
 ##
 M, D, r = np.log10(5*10**6), np.log10(15*10**6), 0.345              # M, D in 10log
@@ -2822,7 +2822,7 @@ image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', fi
 frac = np.arange(1, 0, -0.001)
 mass = []
 for f in frac:
-    mass.append(form.MassLimit(f))
+    mass.append(form.mass_limit_from_fraction(f))
 
 fig, ax = plt.subplots()
 ax.plot(frac, mass)
