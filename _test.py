@@ -163,7 +163,7 @@ dist1 = dists.Schuster(power, scale, n)
 dist3 = []
 maxval = max(dist1)
 for i in range(n):
-    dist3.append(dists.PowerLaw(minval, maxval, power, n))
+    dist3.append(dists.power_law(minval, maxval, power, n))
 
 plt.hist(np.log10(dist1), bins=20, histtype='step', label='Schuster')
 #plt.hist(dist2, bins=20, histtype='step')
@@ -177,7 +177,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import ObjectGen as og
 
-objects = og.Ellipsoid(10000, 'Exponential', axes=[1,5,3])
+objects = og.Ellipsoid(10000, 'exponential', axes=[1,5,3])
 
 fig, ax = plt.subplots()
 ax.scatter(objects[:,0], objects[:,1], marker='.', linewidths=0.0, alpha=0.5)
@@ -332,7 +332,7 @@ import conversions as conv
 
 temps = np.arange(1000, 15000, (15000-1000)/10000, dtype=float)
 
-objects = obg.Ellipsoid(10000, 'Exponential', axes=[1,3,2])
+objects = obg.Ellipsoid(10000, 'exponential', axes=[1,3,2])
 
 viz.scatter_3d(objects, colour='temperature', T_eff=temps)
 
@@ -598,7 +598,7 @@ vis.cm_diagram(magBV_obj, mag2_obj)
 # vis.hr_diagram(BVmagToTemp(magBV_obj), logL_obj)
 
 ##
-objects = obg.Ellipsoid(20000, 'Exponential', axes=[1,2,1.5])
+objects = obg.Ellipsoid(20000, 'exponential', axes=[1,2,1.5])
 viz.scatter_3d(objects, colour='temperature', T_eff=10 ** logTe_obj)
 
 ## wvl/temp to RGB
@@ -660,7 +660,7 @@ pow1 = -3.0
 pow2 = -3.0
 
 for i in range(N):
-    list.append(dist.PowerLaw(n=1, power=pow1, min=1e-6, max=10))
+    list.append(dist.power_law(n=1, power=pow1, min_val=1e-6, max_val=10))
 
 arr = dist.PowLaw(n=10000, power=pow2, min=1e-6, max=10)
 
@@ -682,7 +682,7 @@ scale = 1.0
 xs = np.logspace(-2, 2, 100)
 ys = 3*xs**2/scale**2*(1 + xs**2/scale**2)**(-2.5)
 
-arr = dist.PearsonVII_r(n=1000000, s=scale)
+arr = dist.pearson_vii_r(n=1000000, s=scale)
 
 hist, bins = np.histogram(arr, bins='auto', density=True)
 
@@ -717,7 +717,7 @@ ax.step(bins[:-1], hist, label='Exp interp')
 ax.plot(rvals, Exponential_r(rvals), label='Exp')
 # log
 # ax.step(np.log10(bins1[:-1]), np.log10(hist1), label='Exp interp')
-# ax.plot(np.log10(rvals), np.log10(Exponential_r(rvals)), label='Exp')
+# ax.plot(np.log10(rvals), np.log10(exponential_r(rvals)), label='Exp')
 ax.legend()
 plt.show()
 
@@ -739,11 +739,11 @@ r_inter_norm = np.interp(np.random.rand(1000000), Nvals_norm, rvals)
 hist, bins = np.histogram(r_inter_norm, bins='auto', density=True)
 
 fig, ax = plt.subplots()
-ax.step(bins[:-1], hist, label='Normal interp')
-ax.plot(rvals, Normal_r(rvals), label='Normal')
+ax.step(bins[:-1], hist, label='normal interp')
+ax.plot(rvals, Normal_r(rvals), label='normal')
 # log
-# ax.step(np.log10(bins[:-1]), np.log10(hist), label='Normal interp')
-# ax.plot(np.log10(rvals), np.log10(Normal_r(rvals)), label='Normal')
+# ax.step(np.log10(bins[:-1]), np.log10(hist), label='normal interp')
+# ax.plot(np.log10(rvals), np.log10(normal_r(rvals)), label='normal')
 ax.legend()
 plt.show()
 
@@ -769,7 +769,7 @@ ax.step(bins[:-1], hist, label='Cauchy interp')
 ax.plot(rvals, SquaredCauchy_r(rvals), label='Cauchy')
 # log
 # ax.step(np.log10(bins[:-1]), np.log10(hist), label='Cauchy interp')
-# ax.plot(np.log10(rvals), np.log10(SquaredCauchy_r(rvals)), label='Cauchy')
+# ax.plot(np.log10(rvals), np.log10(squared_cauchy_r(rvals)), label='Cauchy')
 ax.legend()
 plt.show()
 
@@ -795,7 +795,7 @@ ax.step(bins[:-1], hist, label='Pearson interp')
 ax.plot(rvals, PearsonVII_r(rvals), label='Pearson')
 # log
 # ax.step(np.log10(bins[:-1]), np.log10(hist), label='Pearson interp')
-# ax.plot(np.log10(rvals), np.log10(PearsonVII_r(rvals)), label='Pearson')
+# ax.plot(np.log10(rvals), np.log10(pearson_vii_r(rvals)), label='Pearson')
 ax.legend()
 plt.show()
 
@@ -805,7 +805,7 @@ import time
 many = 10**6
 
 t1 = time.time()
-r_inv = dist.PearsonVII_r(n=many)
+r_inv = dist.pearson_vii_r(n=many)
 t2 = time.time()
 rvals = np.logspace(-3, 4, 1000)
 Nvals = NpearsonVII_r(rvals)
@@ -828,14 +828,14 @@ plt.show()
 
 ## dist vs radial dist
 # take care to remove the '_r' appending code
-objects = obg.Ellipsoid(100000, dist_type='Exponential')
-objects2 = obg.Ellipsoid(100000, dist_type='Exponential_r')
-# objects = obg.Ellipsoid(100000, dist_type='Normal')
-# objects2 = obg.Ellipsoid(100000, dist_type='Normal_r')
+objects = obg.Ellipsoid(100000, dist_type='exponential')
+objects2 = obg.Ellipsoid(100000, dist_type='exponential_r')
+# objects = obg.Ellipsoid(100000, dist_type='normal')
+# objects2 = obg.Ellipsoid(100000, dist_type='normal_r')
 
-# objects = obg.Ellipsoid(100000, dist_type='SquaredCauchy_r')
+# objects = obg.Ellipsoid(100000, dist_type='squared_cauchy_r')
 
-# objects2 = obg.Ellipsoid(100000, dist_type='PearsonVII_r')
+# objects2 = obg.Ellipsoid(100000, dist_type='pearson_vii_r')
 
 vis.scatter_2d(objects)
 vis.scatter_2d(objects2)
@@ -852,10 +852,10 @@ import formulas as form
 import conversions as conv
 import distributions as dist
 
-def GenRadii(N_obj=1, dist_type='Exponential_r', scale=1.0):
+def GenRadii(N_obj=1, dist_type='exponential_r', scale=1.0):
     r_dist = eval('dist.' + dist_type)(n=N_obj, s=scale)                                            # the radial distribution
-    phi_dist = dist.AnglePhi(N_obj)                                                                 # dist for angle with x axis
-    theta_dist = dist.AngleTheta(N_obj)                                                             # dist for angle with z axis
+    phi_dist = dist.angle_phi(N_obj)                                                                 # dist for angle with x axis
+    theta_dist = dist.angle_theta(N_obj)                                                             # dist for angle with z axis
     
     xyz = conv.SpherToCart(r_dist, theta_dist, phi_dist).transpose()
     
@@ -876,7 +876,7 @@ rads, rads2 = GenRadii(10**6, scale=10)
 
 hist, bins = np.histogram(rads, bins=np.logspace(-0.5, 3.5, 50), density=True)
 hist2, bins2 = np.histogram(rads2, bins=np.logspace(-0.5, 3.5, 50), density=True)
-# hist_ref, bins_ref = np.histogram(dist.Exponential(10**6, s=10), bins=np.logspace(-0.5, 3.5, 50), density=True)
+# hist_ref, bins_ref = np.histogram(dist.exponential(10**6, s=10), bins=np.logspace(-0.5, 3.5, 50), density=True)
 hist_ref, bins_ref = np.histogram(ref, bins=np.logspace(-0.5, 3.5, 50), density=True)
 hist_ref2, bins_ref2 = np.histogram(ref2, bins=np.logspace(-0.5, 3.5, 50), density=True)
 
@@ -923,15 +923,15 @@ Nvals = N_KingGlobular_r(rvals, s, R)
 r_inter = np.interp(np.random.rand(1000000), Nvals, rvals)
 
 hist, bins = np.histogram(r_inter, bins='auto', density=True)
-# hist_ref1, bins_ref1 = np.histogram(dist.KingGlobular_r(N, s=s, R=R), bins=np.logspace(-0.5, 3.5, 50), density=True)
+# hist_ref1, bins_ref1 = np.histogram(dist.king_globular_r(N, s=s, R=R), bins=np.logspace(-0.5, 3.5, 50), density=True)
 # hist_ref2, bins_ref2 = np.histogram(dist.KingGlobular_rho(N, s=s, R=R), bins=np.logspace(-0.5, 3.5, 50), density=True)
 
 fig, ax = plt.subplots()
 # ax.step(bins[1:], hist, label='King interp')
-# ax.plot(rvals, KingGlobular_r(rvals, s, R), label='King')
+# ax.plot(rvals, king_globular_r(rvals, s, R), label='King')
 # log
 # ax.step(np.log10(bins[1:]), np.log10(hist), label='King interp')
-# ax.plot(np.log10(rvals), np.log10(KingGlobular_r(rvals, s, R)), label='King')
+# ax.plot(np.log10(rvals), np.log10(king_globular_r(rvals, s, R)), label='King')
 # log cartesian
 ax.step(np.log10(bins[1:]), np.log10(hist/bins[1:]**2), label='King interp')
 ax.plot(np.log10(rvals), np.log10(KingGlobular_r(rvals, s, R)/rvals**2), label='King')
@@ -944,15 +944,15 @@ plt.show()
 ## compare dists
 N = 10**7
 sc = 10
-hist_ref, bins_ref = np.histogram(dist.Exponential_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
-hist_ref2, bins_ref2 = np.histogram(dist.Normal_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
-hist_ref3, bins_ref3 = np.histogram(dist.SquaredCauchy_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
-hist_ref4, bins_ref4 = np.histogram(dist.PearsonVII_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
-hist_ref5, bins_ref5 = np.histogram(dist.KingGlobular_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
+hist_ref, bins_ref = np.histogram(dist.exponential_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
+hist_ref2, bins_ref2 = np.histogram(dist.normal_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
+hist_ref3, bins_ref3 = np.histogram(dist.squared_cauchy_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
+hist_ref4, bins_ref4 = np.histogram(dist.pearson_vii_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
+hist_ref5, bins_ref5 = np.histogram(dist.king_globular_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
 
 fig, ax = plt.subplots()
-ax.plot(np.log10(bins_ref[1:]), np.log10(hist_ref/bins_ref[1:]**2), label='Exponential')
-ax.plot(np.log10(bins_ref2[1:]), np.log10(hist_ref2/bins_ref2[1:]**2), label='Normal')
+ax.plot(np.log10(bins_ref[1:]), np.log10(hist_ref/bins_ref[1:]**2), label='exponential')
+ax.plot(np.log10(bins_ref2[1:]), np.log10(hist_ref2/bins_ref2[1:]**2), label='normal')
 ax.plot(np.log10(bins_ref3[1:]), np.log10(hist_ref3/bins_ref3[1:]**2), label='SquaredCauchy')
 ax.plot(np.log10(bins_ref4[1:]), np.log10(hist_ref4/bins_ref4[1:]**2), label='PearsonVII')
 ax.plot(np.log10(bins_ref5[1:]), np.log10(hist_ref5/bins_ref5[1:]**2), label='King')
@@ -974,11 +974,11 @@ rvals_3 = np.logspace(-0.5, np.log10(30*R_3 - 0.1), 1000)
 
 fig, ax = plt.subplots(figsize=[7.0, 5.5])
 ax.step(np.log10(bins_ref1[1:]), np.log10(hist_ref1/bins_ref1[1:]*np.max(bins_ref1[1:])), label='1')
-ax.plot(np.log10(rvals_1), np.log10(dist.pdf_KingGlobular(rvals_1, s=R_1, R=30*R_1, form='cylindrical')/rvals_1*np.max(rvals_1)), label='1 (pdf)')
+ax.plot(np.log10(rvals_1), np.log10(dist.pdf_king_globular(rvals_1, s=R_1, R=30*R_1, form='cylindrical')/rvals_1*np.max(rvals_1)), label='1 (pdf)')
 ax.step(np.log10(bins_ref2[1:]), np.log10(hist_ref2/bins_ref2[1:]*np.max(bins_ref2[1:])), label='6')
-ax.plot(np.log10(rvals_2), np.log10(dist.pdf_KingGlobular(rvals_2, s=R_2, R=30*R_2, form='cylindrical')/rvals_2*np.max(rvals_2)), label='6 (pdf)')
+ax.plot(np.log10(rvals_2), np.log10(dist.pdf_king_globular(rvals_2, s=R_2, R=30*R_2, form='cylindrical')/rvals_2*np.max(rvals_2)), label='6 (pdf)')
 ax.step(np.log10(bins_ref3[1:]), np.log10(hist_ref3/bins_ref3[1:]*np.max(bins_ref3[1:])), label='21')
-ax.plot(np.log10(rvals_3), np.log10(dist.pdf_KingGlobular(rvals_3, s=R_3, R=30*R_3, form='cylindrical')/rvals_3*np.max(rvals_3)), label='21 (pdf)')
+ax.plot(np.log10(rvals_3), np.log10(dist.pdf_king_globular(rvals_3, s=R_3, R=30*R_3, form='cylindrical')/rvals_3*np.max(rvals_3)), label='21 (pdf)')
 # ax.set_title('King, s=var, R=30*s'.format(N, sc))
 ax.set_xlabel('log(r (pc))', fontsize=20)
 ax.set_ylabel('log(N) (relative number)', fontsize=20)
@@ -987,19 +987,19 @@ ax.tick_params(labelsize=14)
 plt.tight_layout()
 plt.show()
 ## (spherical)
-hist_ref1, bins_ref1 = np.histogram(dist.KingGlobular_r(N, s=R_1), bins='auto', density=True)
-hist_ref2, bins_ref2 = np.histogram(dist.KingGlobular_r(N, s=R_2), bins='auto', density=True)
-hist_ref3, bins_ref3 = np.histogram(dist.KingGlobular_r(N, s=R_3), bins='auto', density=True)
+hist_ref1, bins_ref1 = np.histogram(dist.king_globular_r(N, s=R_1), bins='auto', density=True)
+hist_ref2, bins_ref2 = np.histogram(dist.king_globular_r(N, s=R_2), bins='auto', density=True)
+hist_ref3, bins_ref3 = np.histogram(dist.king_globular_r(N, s=R_3), bins='auto', density=True)
 # rvals = np.logspace(-1.5, np.log10(30*R_1 - 5), 1000)
 
 fig, ax = plt.subplots(figsize=[7.0, 5.5])
 ax.step(np.log10(bins_ref1[1:]), np.log10(hist_ref1/bins_ref1[1:]**2*np.max(bins_ref1[1:])**2), label='hist')
-ax.plot(np.log10(rvals_1), np.log10(dist.pdf_KingGlobular(rvals_1, s=R_1, R=30*R_1, form='spherical')/rvals_1**2*np.max(rvals_1)**2), label='pdf')
-# ax.step(np.log10(rvals), np.log10(dist.pdf_Exponential(rvals, s=R_1)/rvals**2*np.max(rvals)**2), label='exp', lw=3)
+ax.plot(np.log10(rvals_1), np.log10(dist.pdf_king_globular(rvals_1, s=R_1, R=30*R_1, form='spherical')/rvals_1**2*np.max(rvals_1)**2), label='pdf')
+# ax.step(np.log10(rvals), np.log10(dist.pdf_exponential(rvals, s=R_1)/rvals**2*np.max(rvals)**2), label='exp', lw=3)
 ax.step(np.log10(bins_ref2[1:]), np.log10(hist_ref2/bins_ref2[1:]**2*np.max(bins_ref2[1:])**2), label='6')
-ax.plot(np.log10(rvals_2), np.log10(dist.pdf_KingGlobular(rvals_2, s=R_2, R=30*R_2, form='spherical')/rvals_2**2*np.max(rvals_2)**2), label='6 (pdf)')
+ax.plot(np.log10(rvals_2), np.log10(dist.pdf_king_globular(rvals_2, s=R_2, R=30*R_2, form='spherical')/rvals_2**2*np.max(rvals_2)**2), label='6 (pdf)')
 ax.step(np.log10(bins_ref3[1:]), np.log10(hist_ref3/bins_ref3[1:]**2*np.max(bins_ref3[1:])**2), label='21')
-ax.plot(np.log10(rvals_3), np.log10(dist.pdf_KingGlobular(rvals_3, s=R_3, R=30*R_3, form='spherical')/rvals_3**2*np.max(rvals_3)**2), label='21 (pdf)')
+ax.plot(np.log10(rvals_3), np.log10(dist.pdf_king_globular(rvals_3, s=R_3, R=30*R_3, form='spherical')/rvals_3**2*np.max(rvals_3)**2), label='21 (pdf)')
 # ax.set_title('King, s=var, R=30*s'.format(N, sc))
 ax.set_xlabel('log(r (pc))', fontsize=20)
 ax.set_ylabel('log(N) (relative number)', fontsize=20)
@@ -1021,19 +1021,19 @@ s_king = 1500
 
 fig, ax = plt.subplots()
 ax.plot(rvals, dist.cdf_Exponential_r(rvals, s=s_exp), label='Exp, s={0}'.format(s_exp), c='darkgreen', lw=0.7)
-ax.plot(rvals, dist.cdf_Normal_r(rvals, s=s_norm), label='Normal, s={0}'.format(s_norm), c='blue', lw=0.7)
+ax.plot(rvals, dist.cdf_Normal_r(rvals, s=s_norm), label='normal, s={0}'.format(s_norm), c='blue', lw=0.7)
 ax.plot(rvals, dist.cdf_Squaredcauchy_r(rvals, s=s_cau), label='Cauchy, s={0}'.format(s_cau), c='purple', lw=0.7)
 ax.plot(rvals, dist.cdf_PearsonVII_r(rvals, s=s_pea), label='Pearson, s={0}'.format(s_pea), c='c', lw=0.7)
 ax.plot(rvals, dist.cdf_KingGlobular_r(rvals, s=s_king, R=3800), label='King, s={0}'.format(s_king), c='black', lw=0.7)
 
-dist1 = dist.Exponential_r(N, s=s_exp)
-dist2 = dist.Normal_r(N, s=s_norm)
-dist3 = dist.SquaredCauchy_r(N, s=s_cau)
-dist4 = dist.PearsonVII_r(N, s=s_pea)
-dist5 = dist.KingGlobular_r(N, s=s_king, R=3800)
+dist1 = dist.exponential_r(N, s=s_exp)
+dist2 = dist.normal_r(N, s=s_norm)
+dist3 = dist.squared_cauchy_r(N, s=s_cau)
+dist4 = dist.pearson_vii_r(N, s=s_pea)
+dist5 = dist.king_globular_r(N, s=s_king, R=3800)
 
 ax.plot(np.sort(dist1), np.cumsum(dist1)/np.sum(dist1), label='cumsum Exp, s={0}'.format(s_exp), c='darkgreen', lw=0.7)
-ax.plot(np.sort(dist2), np.cumsum(dist2)/np.sum(dist2), label='cumsum Normal, s={0}'.format(s_norm), c='blue', lw=0.7)
+ax.plot(np.sort(dist2), np.cumsum(dist2)/np.sum(dist2), label='cumsum normal, s={0}'.format(s_norm), c='blue', lw=0.7)
 ax.plot(np.sort(dist3), np.cumsum(dist3)/np.sum(dist3), label='cumsum Cauchy, s={0}'.format(s_cau), c='purple', lw=0.7)
 ax.plot(np.sort(dist4), np.cumsum(dist4)/np.sum(dist4), label='cumsum Pearson, s={0}'.format(s_pea), c='c', lw=0.7)
 ax.plot(np.sort(dist5), np.cumsum(dist5)/np.sum(dist5), label='cumsum King, s={0}'.format(s_king), c='black', lw=0.7)
@@ -1188,7 +1188,7 @@ import sys
 import subprocess
 subprocess.call([sys.executable, 'MCopdr1.py', '-N 1000', '-alpha', '1'])
 
-subprocess.call([sys.executable, 'constructor.py', '-N 1000', '-rdistpar', '1', '-rdist', 'Exponential'])
+subprocess.call([sys.executable, 'constructor.py', '-N 1000', '-rdistpar', '1', '-rdist', 'exponential'])
 
 ## default args
 def get_default_args(func):
@@ -1218,7 +1218,7 @@ def AngleTheta(n=1):
     return np.arccos(2*np.random.rand(int(n)) - 1)
     
 def Radius(n=1, power=2):
-    """Uniform radius"""
+    """uniform radius"""
     k = power
     return Power(n, k)
 
@@ -1259,7 +1259,7 @@ ax.step(bins2[1:-1], hist2[1:]/bins2[1:-1]**2, label='r')
 # ax.plot(np.log10(r_ref), np.log10(3*np.sqrt(1 - r_ref**2)), label='sqrt(1 - r**2)')
 # ax.step(np.log10(bins[1:-1]), np.log10(hist[1:]/bins[1:-1]), label='rho')
 # ax.step(np.log10(bins2[1:-1]), np.log10(hist2[1:]/bins2[1:-1]**2), label='r')
-ax.set_title('Uniform sphere')
+ax.set_title('uniform sphere')
 ax.set_xlabel('log(r)')
 ax.set_ylabel('log(density)')
 ax.legend()
@@ -1290,7 +1290,7 @@ ax.step(bins2[1:-1], hist2[1:]/bins2[1:-1]**2, label='r')
 # ax.plot(np.log10(r_ref), np.log10(3*np.sqrt(1 - r_ref**2)), label='sqrt(1 - r**2)')
 # ax.step(np.log10(bins[1:-1]), np.log10(hist[1:]/bins[1:-1]), label='rho')
 # ax.step(np.log10(bins2[1:-1]), np.log10(hist2[1:]/bins2[1:-1]**2), label='r')
-ax.set_title('Uniform sphere')
+ax.set_title('uniform sphere')
 ax.set_xlabel('log(r)')
 ax.set_ylabel('log(density)')
 ax.legend()
@@ -1304,7 +1304,7 @@ theta = np.arange(0, np.pi, 0.01)
 fig, ax = plt.subplots()
 ax.scatter(np.cos(t1), rad1)
 ax.plot(np.cos(theta), np.sqrt(1-np.cos(theta)**2), c='r')
-ax.set_title('Uniform sphere')
+ax.set_title('uniform sphere')
 ax.set_xlabel('cos(theta)')
 ax.set_ylabel('rho')
 plt.show() 
@@ -1314,7 +1314,7 @@ plt.show()
 ## normal
 import distributions as dist
 
-rad1, r1, t1 = GenSphereProj(10**5, dist.Normal_r)
+rad1, r1, t1 = GenSphereProj(10**5, dist.normal_r)
     
 r_ref = np.logspace(-2, np.log10(3), 10**3)
 
@@ -1322,17 +1322,17 @@ hist, bins = np.histogram(rad1, bins='auto', density=True)
 hist2, bins2 = np.histogram(r1, bins='auto', density=True)
 
 fig, ax = plt.subplots()
-ax.plot(np.log10(r_ref), np.log10(dist.pdf_Normal(r_ref)/r_ref**2), label='sqrt(1 - r**2)')
+ax.plot(np.log10(r_ref), np.log10(dist.pdf_normal(r_ref)/r_ref**2), label='sqrt(1 - r**2)')
 ax.step(np.log10(bins[1:-1]), np.log10(hist[1:]/bins[1:-1]), label='rho')
 ax.step(np.log10(bins2[1:-1]), np.log10(hist2[1:]/bins2[1:-1]**2), label='r')
-ax.set_title('Uniform sphere')
+ax.set_title('uniform sphere')
 ax.set_xlabel('log(r)')
 ax.set_ylabel('log(density)')
 ax.legend()
 plt.show()      
     
 ## Cauchy
-rad1, r1, t1 = GenSphereProj(10**5, dist.SquaredCauchy_r) 
+rad1, r1, t1 = GenSphereProj(10**5, dist.squared_cauchy_r)
     
 r_ref = np.logspace(-2, np.log10(10), 10**3)
 
@@ -1340,10 +1340,10 @@ hist, bins = np.histogram(rad1, bins='auto', density=True)
 hist2, bins2 = np.histogram(r1, bins='auto', density=True)
 
 fig, ax = plt.subplots()
-ax.plot(np.log10(r_ref), np.log10(dist.pdf_SquaredCauchy(r_ref)/r_ref**2), label='ref')
+ax.plot(np.log10(r_ref), np.log10(dist.pdf_squared_cauchy(r_ref)/r_ref**2), label='ref')
 ax.step(np.log10(bins[1:-1]), np.log10(hist[1:]/bins[1:-1]), label='rho')
 ax.step(np.log10(bins2[1:-1]), np.log10(hist2[1:]/bins2[1:-1]**2), label='r')
-ax.set_title('Uniform sphere')
+ax.set_title('uniform sphere')
 ax.set_xlabel('log(r)')
 ax.set_ylabel('log(density)')
 ax.legend()
@@ -1509,11 +1509,11 @@ plt.show()
 n = 10**6
 
 rvals = np.logspace(-2, np.log10(30), n)
-cauchyr = dist.SquaredCauchy_r(n)
+cauchyr = dist.squared_cauchy_r(n)
 cauchyrho = dist.SquaredCauchy_rho(n)
-pearsonr = dist.PearsonVII_r(n)
+pearsonr = dist.pearson_vii_r(n)
 pearsonrho = dist.PearsonVII_rho(n)
-kingr = dist.KingGlobular_r(n)
+kingr = dist.king_globular_r(n)
 kingrho = dist.KingGlobular_rho(n)
 
 hist, bins = np.histogram(cauchyr, bins='auto', density=True)
@@ -1533,8 +1533,8 @@ fig, ax = plt.subplots()
 # ax.step(np.log10(rvals), np.log10(dist.pdf_PearsonVII_r(rvals)/rvals**2), label='pearson')
 ax.step(np.log10(bins4[:-1]), np.log10(hist4/bins4[:-1]**2), label='king r') 
 ax.step(np.log10(bins5[:-1]), np.log10(hist5/bins5[:-1]), label='king rho') 
-ax.step(np.log10(rvals), np.log10(dist.pdf_KingGlobular(rvals)/rvals**2), label='th. cauchy r')
-ax.step(np.log10(rvals), np.log10(dist.pdf_KingGlobular(rvals, form='cylindrical')/rvals), label='th. cauchy rho')  
+ax.step(np.log10(rvals), np.log10(dist.pdf_king_globular(rvals)/rvals**2), label='th. cauchy r')
+ax.step(np.log10(rvals), np.log10(dist.pdf_king_globular(rvals, form='cylindrical')/rvals), label='th. cauchy rho')
 ax.legend()
 plt.show()
 
@@ -1570,8 +1570,8 @@ fig, ax = plt.subplots()
 ax.step(np.log10(bins4[:-1]), np.log10(hist4/bins4[:-1]**2), label='king r') 
 ax.step(np.log10(bins5[:-1]), np.log10(hist5/bins5[:-1]), label='king rho') 
 ax.step(np.log10(bins6[:-1]), np.log10(hist6/bins6[:-1]), label='proj king r') 
-ax.plot(np.log10(rvals), np.log10(dist.pdf_KingGlobular(rvals)/rvals**2), label='th. king r')
-ax.plot(np.log10(rvals), np.log10(dist.pdf_KingGlobular(rvals, form='cylindrical')/rvals), label='th. king rho')  
+ax.plot(np.log10(rvals), np.log10(dist.pdf_king_globular(rvals)/rvals**2), label='th. king r')
+ax.plot(np.log10(rvals), np.log10(dist.pdf_king_globular(rvals, form='cylindrical')/rvals), label='th. king rho')
 ax.legend()
 plt.show()
 
@@ -1668,7 +1668,7 @@ for i in range(int(n/3-1)):
 import sys
 import subprocess
 
-subprocess.call([sys.executable, 'constructor.py', '-N 1000', '-rdist', 'Normal', 'KingGlobular', '-rdistpar', '1', '2'])
+subprocess.call([sys.executable, 'constructor.py', '-N 1000', '-rdist', 'normal', 'KingGlobular', '-rdistpar', '1', '2'])
 subprocess.call([sys.executable, 'constructor.py', '-N 1000', '-ages', '9', '10', '9', '-i', '1', '2'])
 subprocess.call([sys.executable, 'constructor.py', '-N 1000', '-relN', '5', '4', '2', '-axes', '1', '2', '5', '2', '2', '1'])
 ##

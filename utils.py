@@ -15,7 +15,7 @@ prop_names = np.array(['log_age', 'M_initial', 'M_current', 'log_L', 'log_Te', '
 # for reference (make sure this one exists!)
 default_isoc_file = 'isoc_Z0.014.dat'
 default_imf_par = [0.08, 150]   # M_sun     lower bound, upper bound on mass
-default_rdist = 'Normal'        # see distributions module for a full list of options
+default_rdist = 'normal'        # see distributions module for a full list of options
 
 
 def open_isochrones_file(Z, columns=None):

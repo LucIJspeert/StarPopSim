@@ -30,7 +30,7 @@ as_rad = np.pi/648000           # arcseconds to radians
 
 
 # global defaults
-default_rdist = 'Normal'        # see distributions module for a full list of options
+default_rdist = 'normal'        # see distributions module for a full list of options
 default_imf_par = [0.08, 150]   # M_sun     lower bound, upper bound on mass
 default_mag_lim = 32            # magnitude limit for compact mode
 limiting_number = 10**7         # maximum number of stars for compact mode 
@@ -920,13 +920,13 @@ class AstronomicalObject():
         # add like a query to Gaia data, 
         # default: some random distribution in the shape of the fov
         fov_rad = fov*as_rad
-        phi = dist.Uniform(n=n, min=0, max=2*np.pi, power=1)
-        theta = dist.AngleTheta(n=n)
-        radius = dist.Uniform(n=n, min=10, max=10**3, power=3)                                      # uniform between 10 pc and a kpc
+        phi = dist.uniform(n=n, min_val=0, max_val=2*np.pi, power=1)
+        theta = dist.angle_theta(n=n)
+        radius = dist.uniform(n=n, min_val=10, max_val=10**3, power=3)                                      # uniform between 10 pc and a kpc
         coords = conv.SpherToCart(radius, theta, phi)
         distance = self.d_lum - np.abs(coords[:,3])
         
-        mag = dist.Uniform(n=n, min=5, max=20, power=1)                                             # placeholder for magnitudes
+        mag = dist.uniform(n=n, min_val=5, max_val=20, power=1)                                             # placeholder for magnitudes
         filt = np.full_like(mag, 'V', dtype='U5')                                                   # placeholder for filter
         spec_types = np.full_like(mag, 'G0V', dtype='U5')                                           # placeholder for spectral types
         self.field_stars = np.array([coords[:,0], coords[:,1], mag, filt, spec_types])
@@ -968,8 +968,8 @@ class AstronomicalObject():
             pos_y = np.array([10.6])                                                                # y position in as
         else:
             # assume we are using MCAO now. generate random positions within patrol field
-            angle = dist.AnglePhi(n=len(mag))
-            radius = dist.Uniform(n=len(mag), min=46, max=90, power=2)                              # radius of patrol field in as
+            angle = dist.angle_phi(n=len(mag))
+            radius = dist.uniform(n=len(mag), min_val=46, max_val=90, power=2)                              # radius of patrol field in as
             pos_x_y = conv.PolToCart(radius, angle)
             pos_x = pos_x_y[0]
             pos_y = pos_x_y[1]
@@ -1063,8 +1063,8 @@ def Spherical(N_stars, dist_type=default_rdist, **kwargs):
                            ).format(key, kwargs.pop(key, None)), SyntaxWarning)
     
     r_dist = eval('dist.' + dist_type)(n=N_stars, **kwargs)                                         # the radial distribution
-    phi_dist = dist.AnglePhi(N_stars)                                                               # dist for angle with x axis
-    theta_dist = dist.AngleTheta(N_stars)                                                           # dist for angle with z axis
+    phi_dist = dist.angle_phi(N_stars)                                                               # dist for angle with x axis
+    theta_dist = dist.angle_theta(N_stars)                                                           # dist for angle with z axis
     
     return conv.SpherToCart(r_dist, theta_dist, phi_dist).transpose()
 
@@ -1098,7 +1098,7 @@ def StarMasses(N_stars=0, M_tot=0, imf=[0.08, 150]):
         N_stars = conv.MtotToNstars(M_tot, imf)                                                     # estimate the number of stars to generate
         
     # mass
-    M_init = dist.KroupaIMF(N_stars, imf)                                                           # assign initial masses using IMF
+    M_init = dist.kroupa_imf(N_stars, imf)                                                           # assign initial masses using IMF
     M_tot_gen = np.sum(M_init)                                                                      # total generated mass (will differ from input mass, if given)
     
     if (M_tot != 0):

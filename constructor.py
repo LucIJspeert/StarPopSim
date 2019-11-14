@@ -466,7 +466,7 @@ def Inclination(struct, pop_n, default=False):
 
 def RadialDistribution(struct, pop_n, default=False):
     """Asks what radial distribution to use."""
-    def_val = 'Normal'
+    def_val = 'normal'
     
     if default:
         change = 'n'
@@ -557,7 +557,7 @@ def RadialParameters(struct, dist_type_list, default=False):
                 par_dict = {}
                 for k, v in sig.parameters.items():                                                 # loop through needed parameters (except n)
                     if (k != 'n'):
-                        if ((dist_type == 'KingGlobular_r') & (k == 'R')):                          # catch the default (None) in KingGlobular_r
+                        if ((dist_type == 'king_globular_r') & (k == 'R')):                          # catch the default (None) in king_globular_r
                             value = utils.while_ask(' |  Value for parameter {0}'.format(k),
                                              '[{0}]'.format(30*par_dict['s']),
                                                     function='RadialParameters', check='float',
@@ -583,7 +583,7 @@ def RadialParameters(struct, dist_type_list, default=False):
             par_dict = {}
             for k, v in sig.parameters.items():                                                     # loop through needed parameters (except n)
                 if (k != 'n'):
-                    if ((dist_type == 'KingGlobular_r') & (k == 'R')):                              # catch the default (None) in KingGlobular_r
+                    if ((dist_type == 'king_globular_r') & (k == 'R')):                              # catch the default (None) in king_globular_r
                         value = utils.while_ask(' |  Value for parameter {0}'.format(k),
                                          '[{0}]'.format(30*par_dict['s']),
                                                 function='RadialParameters', check='float',
@@ -741,7 +741,7 @@ def OneLineCommand(astobj, N, M, IMF, savename):
         command += ' -A ' + str(astobj.extinction)
     if (astobj.inclination != 0).any():
         command += ' -i ' + ' '.join(str(item) for item in astobj.inclination)
-    if np.any(np.array(astobj.r_dist_types) != 'Normal_r'):
+    if np.any(np.array(astobj.r_dist_types) != 'normal_r'):
         command += ' -rdist ' + ' '.join(str(item) for item in astobj.r_dist_types)
     if np.array([param != {'s': 1.0} for param in astobj.r_dist_param]).any():
         command += ' -rdistpar '
@@ -811,8 +811,8 @@ if __name__ == '__main__':
                         help='inclination angle (rotation of object\'s '
                         'x-axis towards z-axis (=l.o.s.))')
                         
-    parser.add_argument('-rdist', type=str, nargs='+', required=False, default=['Normal'],
-                        choices=['Exponential','Normal','SquaredCauchy','PearsonVII',
+    parser.add_argument('-rdist', type=str, nargs='+', required=False, default=['normal'],
+                        choices=['exponential','normal','SquaredCauchy','PearsonVII',
                         'KingGlobular'], help='(ellipse) type of radial distribution')
                         
     parser.add_argument('-rdistpar', type=float, nargs='+', required=False, default=[1.0],
