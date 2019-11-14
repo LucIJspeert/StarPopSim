@@ -1,7 +1,4 @@
-# Luc IJspeert
-# Part of starpopsim: (coordinate) conversions
-##
-"""Conversion between i.e. coordinates. 
+"""Conversion between i.e. coordinates.
 Optimized for converting many numbers at once (ndarray).
 """
 import numpy as np

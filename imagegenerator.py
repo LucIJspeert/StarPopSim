@@ -1,6 +1,3 @@
-# Luc IJspeert
-# Part of starpopsim: (astronomical) image generator (uses SimCADO)
-##
 """This module generates an image or collection thereof, in the usual fits format.
 The software package SimCADO is used for the optical train.
 The source is made with the provided astronomical object.
