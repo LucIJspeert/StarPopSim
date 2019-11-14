@@ -1,6 +1,3 @@
-# Luc IJspeert
-# Part of starpopsim: utility functions
-##
 """Utility functions are thrown over here."""
 import os
 import warnings

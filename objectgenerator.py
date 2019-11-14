@@ -1,7 +1,4 @@
-# Luc IJspeert
-# Part of starpopsim: (astronomical) object generator and class
-##
-"""This module defines the Astronomical Object class and subclasses that hold 
+"""This module defines the Astronomical Object class and subclasses that hold
 all the information for the simulated astronomical object. 
 It also contains all the checks performed on the user input.
 It defines the functions that can be performed on the astronomical object.

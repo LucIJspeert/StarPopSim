@@ -1,7 +1,4 @@
-# Luc IJspeert
-# Part of starpopsim: fits file handler
-##
-"""This module contains the interactions with fits files. 
+"""This module contains the interactions with fits files.
 It is likely biased towards the purpose of the main program.
 It is assumed that the fits data is in a folder called 'images', 
 positioned within the working directory.

@@ -1,7 +1,4 @@
-# Luc IJspeert
-# Part of starpopsim: Visualizer
-##
-"""Visualize data by making images/plots in 2D or 3D. 
+"""Visualize data by making images/plots in 2D or 3D.
 Just for convenience really. And nice plots.
 """
 import numpy as np

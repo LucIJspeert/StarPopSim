@@ -1,6 +1,3 @@
-# Luc IJspeert
-# Part of starpopsim: distribution functions
-##
 """Distribution definitions to randomly draw numbers from. Optimized for drawing many numbers at once (array).
 Distributions ending in _r are 3D radial (spherical) variants of the 1D (cartesian) versions.
 Distributions ending in _rho are 2D radial (cylindrical) variants.
