@@ -1,4 +1,7 @@
-"""Formulas that are not just conversions (to keep things more organized).
+# Luc IJspeert
+# Part of starpopsim: (physical) formulas
+##
+"""Formulas that are not just conversions (to keep things more organized). 
 Most functions optimized for processing many numbers at once (ndarray).
 """
 import numpy as np

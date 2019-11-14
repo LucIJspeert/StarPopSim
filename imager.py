@@ -1,3 +1,6 @@
+# Luc IJspeert
+# Part of starpopsim: program used for making the astronomical image
+##
 """This module provides a function (Image) that takes user input for making an astronomical image
 as well as an interactive function (DynamicImage) that leads the user through all the options.
 """

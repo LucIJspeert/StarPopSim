@@ -1,22 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="630201bb-75e0-47d7-8c31-7885199f3f5e" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/StarPopSim.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/StarPopSim.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/conversions.py" beforeDir="false" afterPath="$PROJECT_DIR$/conversions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/distributions.py" beforeDir="false" afterPath="$PROJECT_DIR$/distributions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fitsanalyser.py" beforeDir="false" afterPath="$PROJECT_DIR$/fitsanalyser.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fitshandler.py" beforeDir="false" afterPath="$PROJECT_DIR$/fitshandler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/formulas.py" beforeDir="false" afterPath="$PROJECT_DIR$/formulas.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/imagegenerator.py" beforeDir="false" afterPath="$PROJECT_DIR$/imagegenerator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/imager.py" beforeDir="false" afterPath="$PROJECT_DIR$/imager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/objectgenerator.py" beforeDir="false" afterPath="$PROJECT_DIR$/objectgenerator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/visualizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/visualizer.py" afterDir="false" />
-    </list>
+    <list default="true" id="c898bb92-d3a4-473a-afd1-118fb6ff89cd" name="Default Changelist" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -29,28 +14,14 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="IgnoredFileRootStore">
-    <option name="generatedRoots">
-      <set>
-        <option value="$PROJECT_DIR$/.idea" />
-      </set>
-    </option>
-  </component>
-  <component name="ProjectId" id="1TZU0a8Lyqnt7pnlbWkRa46nZtJ" />
+  <component name="ProjectId" id="1TDBX5pTG10CGolFTvkfCOI335B" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="PropertiesComponent">
     <property name="TODO_SCOPE" value="All Places" />
     <property name="ToolWindowPython Console.ShowToolbar" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
-    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
-  </component>
-  <component name="PyConsoleOptionsProvider">
-    <option name="myPythonConsoleState">
-      <console-settings module-name="StarPopSim" is-module-sdk="true">
-        <option name="myUseModuleSdk" value="true" />
-        <option name="myModuleName" value="StarPopSim" />
-      </console-settings>
-    </option>
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/imager.py" />
+    <property name="run.code.analysis.last.selected.profile" value="aDefault" />
+    <property name="settings.editor.selected.configurable" value="Errors" />
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -64,16 +35,19 @@
       </list>
     </option>
   </component>
+  <component name="StructureViewFactory">
+    <option name="ACTIVE_ACTIONS" value=",SHOW_FIELDS,SHOW_INHERITED" />
+  </component>
   <component name="SvnConfiguration">
     <configuration />
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="630201bb-75e0-47d7-8c31-7885199f3f5e" name="Default Changelist" comment="" />
-      <created>1573666888921</created>
+      <changelist id="c898bb92-d3a4-473a-afd1-118fb6ff89cd" name="Default Changelist" comment="" />
+      <created>1572984822266</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1573666888921</updated>
+      <updated>1572984822266</updated>
     </task>
     <servers />
   </component>

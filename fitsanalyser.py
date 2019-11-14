@@ -1,4 +1,7 @@
-"""This module contains the analysis functions for fits files.
+# Luc IJspeert
+# Part of starpopsim: (basic) PSF photometry
+##
+"""This module contains the analysis functions for fits files. 
 It is likely biased towards the purpose of the main program.
 It is assumed that the fits data is in a folder called 'images', 
 positioned within the working directory.
