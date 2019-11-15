@@ -4,6 +4,7 @@ Just for convenience really. And nice plots.
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcol
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 
 import conversions as conv
 
