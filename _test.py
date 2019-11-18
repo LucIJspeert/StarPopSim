@@ -1850,7 +1850,7 @@ tree = sps.cKDTree(lonlat)
 ##
 astobj = aoc.AstObject(N_obj=10000, age=[8, 9, 10], metal=[0.019], distance=10**6)
 
-spectra = obg.FindSpectralType(astobj.log_Te, astobj.log_L, np.log10(astobj.M_cur))
+spectra = obg.find_spectral_type(astobj.log_Te, astobj.log_L, np.log10(astobj.M_cur))
 
 ##
 T, L, M, types = [], [], [], []

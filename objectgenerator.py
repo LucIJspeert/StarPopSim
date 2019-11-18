@@ -251,11 +251,11 @@ class Stars(object):
                 
                 for i, pop_num in enumerate(self.pop_number):
                     if (self.compact_mode == 'mag'):
-                        mass_limit[i] = MagnitudeLimited(self.ages[i], self.metal[i], 
+                        mass_limit[i] = magnitude_limited(self.ages[i], self.metal[i], 
                                                             mag_lim=self.mag_limit, d=self.d_lum, 
                                                             ext=self.extinction, filter='Ks')
                     else:
-                        mass_limit[i] = NumberLimited(self.N_stars, self.ages[i], 
+                        mass_limit[i] = number_limited(self.N_stars, self.ages[i], 
                                                         self.metal[i], imf=self.imf_param[i])
                     
                     if (mass_limit[i, 1] > self.imf_param[i, 1]):
@@ -271,18 +271,18 @@ class Stars(object):
                                         'try not compacting or generating a higher number of stars.')
             '''
         if not np.all(self.sfhist == None):
-            rel_num, ages = StarFormHistory(self.gen_ages, min_age=self.min_ages, sfr=self.sfhist, 
-                                               Z=self.metal, tau=self.tau_sfh)
+            rel_num, ages = star_form_history(self.gen_ages, min_age=self.min_ages, sfr=self.sfhist,
+                                              Z=self.metal, tau=self.tau_sfh)
             self.gen_pop_number = np.rint(rel_num*self.N_stars).astype(int)
             self.gen_ages = ages
         
         # generate the positions, masses   
         for i, pop_num in enumerate(self.gen_pop_number):
-            coords_i = Spherical(pop_num, dist_type=self.r_dist_types[i], **self.r_dist_param[i])
-            M_init_i, M_diff_i = StarMasses(pop_num, 0, imf=self.gen_imf_param[i])
+            coords_i = gen_spherical(pop_num, dist_type=self.r_dist_types[i], **self.r_dist_param[i])
+            M_init_i, M_diff_i = gen_star_masses(pop_num, 0, imf=self.gen_imf_param[i])
             self.coords = np.append(self.coords, coords_i, axis=0)                           
             self.M_init = np.append(self.M_init, M_init_i)
-            self.M_diff += M_diff_i                                                                 # StarMasses already gives diff in Mass (=estimate since no mass was given)
+            self.M_diff += M_diff_i                                                                 # gen_star_masses already gives diff in Mass (=estimate since no mass was given)
         
         # if only N_stars was given, set M_tot_init to the total generated mass
         mass_generated = np.sum(self.M_init)
@@ -377,7 +377,7 @@ class Stars(object):
                 
                 # give estimates for remnant masses (replacing the 0 above)
                 if realistic_remnants:
-                    remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
+                    remnants_i = remnants_single_pop(M_init_i, age, self.metal[i])
                     r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses (depend on Z)
                     M_cur_i[remnants_i] = r_M_cur_i                                                 # fill in the values
                 
@@ -406,7 +406,7 @@ class Stars(object):
                 
                 # give estimates for remnant radii (replacing the 0 above)
                 if realistic_remnants:
-                    remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
+                    remnants_i = remnants_single_pop(M_init_i, age, self.metal[i])
                     r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses (depend on Z)
                     r_R_cur_i = form.remnant_radius(r_M_cur_i)                                       # approx. remnant radii
                     R_cur_i[remnants_i] = r_R_cur_i                                                 # fill in the values
@@ -436,7 +436,7 @@ class Stars(object):
                 
                 # give estimates for remnant luminosities (replacing the -9 above)
                 if realistic_remnants:
-                    remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
+                    remnants_i = remnants_single_pop(M_init_i, age, self.metal[i])
                     remnant_time = form.remnant_time(M_init_i[remnants_i], age, self.metal[i])       # approx. time that the remnant had to cool
                     r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
                     r_R_cur_i = form.remnant_radius(r_M_cur_i)                                       # approx. remnant radii
@@ -469,7 +469,7 @@ class Stars(object):
                 
                 # give estimates for remnant temperatures (replacing the 1 above)
                 if realistic_remnants:
-                    remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
+                    remnants_i = remnants_single_pop(M_init_i, age, self.metal[i])
                     remnant_time = form.remnant_time(M_init_i[remnants_i], age, self.metal[i])       # approx. time that the remnant had to cool
                     r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
                     r_R_cur_i = form.remnant_radius(r_M_cur_i)                                       # approx. remnant radii
@@ -508,7 +508,7 @@ class Stars(object):
                 mag_i = interper(M_init_i)
                 
                 if realistic_remnants:
-                    remnants_i = RemnantsSinglePop(M_init_i, age, self.metal[i])
+                    remnants_i = remnants_single_pop(M_init_i, age, self.metal[i])
                     remnant_time = form.remnant_time(M_init_i[remnants_i], age, self.metal[i])       # approx. time that the remnant had to cool
                     r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
                     r_R_cur_i = form.remnant_radius(r_M_cur_i)                                       # approx. remnant radii
@@ -568,7 +568,7 @@ class Stars(object):
             log_L = self.LogLuminosities(realistic_remnants=realistic_remnants)
             log_M_cur = np.log10(self.CurrentMasses(realistic_remnants=realistic_remnants))
             
-            spec_indices, spec_names = FindSpectralType(log_T_eff, log_L, log_M_cur)                # assign spectra to the stars
+            spec_indices, spec_names = find_spectral_type(log_T_eff, log_L, log_M_cur)                # assign spectra to the stars
             
             # if this is run for the first time, save the spectral names
             if len(self.spec_names == 0):
@@ -1038,7 +1038,7 @@ class SpiralGalaxy(AstronomicalObject):
         return
 
 
-def Spherical(N_stars, dist_type=default_rdist, **kwargs):
+def gen_spherical(N_stars, dist_type=default_rdist, **kwargs):
     """Make a spherical distribution of stars using the given radial distribution type.
     Takes additional parameters for the r-distribution function (i.e. scale length s).
     """
@@ -1049,7 +1049,7 @@ def Spherical(N_stars, dist_type=default_rdist, **kwargs):
     dist_list = list(set(fnmatch.filter(dir(dist), '*_r')))
     
     if (dist_type not in dist_list):
-        warnings.warn(('objectgenerator//Spherical: Specified distribution type does not exist. '
+        warnings.warn(('objectgenerator//gen_spherical: Specified distribution type does not exist. '
                        'Using default (={})').format(default_rdist), SyntaxWarning)
         dist_type = default_rdist + '_r'
     
@@ -1058,7 +1058,7 @@ def Spherical(N_stars, dist_type=default_rdist, **kwargs):
     dict = kwargs.copy()                                                                            # need a copy for popping in iteration
     for key in dict:
         if key not in sig.parameters:
-            warnings.warn(('objectgenerator//Spherical: Wrong keyword given in distribution '
+            warnings.warn(('objectgenerator//gen_spherical: Wrong keyword given in distribution '
                            'parameters. Deleted entry.\n    {0} = {1}'
                            ).format(key, kwargs.pop(key, None)), SyntaxWarning)
     
@@ -1069,20 +1069,20 @@ def Spherical(N_stars, dist_type=default_rdist, **kwargs):
     return conv.SpherToCart(r_dist, theta_dist, phi_dist).transpose()
 
 
-def Spiral(N_stars):
+def gen_spiral(N_stars):
     """Make a spiral galaxy."""
     #todo: add this
     
 
-def SpiralArms():
+def gen_spiral_arms():
     """Make spiral arms."""
     
 
-def Irregular(N_stars):
+def gen_irregular(N_stars):
     """Make an irregular galaxy"""
     
 
-def StarMasses(N_stars=0, M_tot=0, imf=[0.08, 150]):
+def gen_star_masses(N_stars=0, M_tot=0, imf=[0.08, 150]):
     """Generate masses using the Initial Mass Function. 
     Either number of stars or total mass should be given.
     imf defines the lower and upper bound to the masses generated in the IMF.
@@ -1091,7 +1091,7 @@ def StarMasses(N_stars=0, M_tot=0, imf=[0.08, 150]):
     """
     # check input (N_stars or M_tot?)
     if (N_stars == 0) & (M_tot == 0):
-        warnings.warn(('objectgenerator//StarMasses: Input mass and number of stars '
+        warnings.warn(('objectgenerator//gen_star_masses: Input mass and number of stars '
                        'cannot be zero simultaniously. Using N_stars=10'), SyntaxWarning)
         N_stars = 10
     elif (N_stars == 0):                                                                            # a total mass is given
@@ -1110,7 +1110,7 @@ def StarMasses(N_stars=0, M_tot=0, imf=[0.08, 150]):
     return M_init, M_diff
 
 
-def StarFormHistory(max_age, min_age=1, sfr='exp', Z=0.014, tau=1e10):
+def star_form_history(max_age, min_age=1, sfr='exp', Z=0.014, tau=1e10):
     """Finds the relative number of stars to give each (logarithmic) age step up to a 
     maximum given age (starting from a minimum age if desired).
     The star formation rate (sfr) can be 'exp' or 'lin-exp'.
@@ -1160,7 +1160,7 @@ def StarFormHistory(max_age, min_age=1, sfr='exp', Z=0.014, tau=1e10):
     return rel_num, log_ages_used
 
 
-def FindSpectralType(T_eff, Lum, Mass):
+def find_spectral_type(T_eff, Lum, Mass):
     """Finds the spectral type of a star from its properties using a table.
     T_eff: effective temperature (K)
     Lum: logarithm of the luminosity in Lsun
@@ -1210,7 +1210,7 @@ def FindSpectralType(T_eff, Lum, Mass):
     return indices, type_selection
 
 
-def NumberLimited(N, age, Z, imf=default_imf_par):
+def number_limited(N, age, Z, imf=default_imf_par):
     """Retrieves the lower mass limit for which the number of stars does not exceed 10**7. 
     Will also give an upper mass limit based on the values in the isochrone.
     The intended number of generated stars, age and metallicity are needed.
@@ -1225,7 +1225,7 @@ def NumberLimited(N, age, Z, imf=default_imf_par):
     return mass_lim_low, mass_lim_high
 
 
-def MagnitudeLimited(age, Z, mag_lim=default_mag_lim, d=10, ext=0, filter='Ks'):
+def magnitude_limited(age, Z, mag_lim=default_mag_lim, d=10, ext=0, filter='Ks'):
     """Retrieves the lower mass limit for which the given magnitude threshold is met. 
     Will also give an upper mass limit based on the values in the isochrone.
     Works only for resolved stars. 
@@ -1241,7 +1241,7 @@ def MagnitudeLimited(age, Z, mag_lim=default_mag_lim, d=10, ext=0, filter='Ks'):
     mask = (mag_vals < abs_mag_lim + 0.1)                                                           # take all mag_vals below the limit
     if not mask.any():
         mask = (mag_vals == np.min(mag_vals))                                                       # if limit too high (too low in mag) then it will break
-        warnings.warn(('objectgenerator//MagnitudeLimited: compacting will not work, '
+        warnings.warn(('objectgenerator//magnitude_limited: compacting will not work, '
                        'distance_3d too large.'), RuntimeWarning)
 
     mass_lim_low = iso_M_ini[mask][0]                                                               # the lowest mass where mask==True
@@ -1251,7 +1251,7 @@ def MagnitudeLimited(age, Z, mag_lim=default_mag_lim, d=10, ext=0, filter='Ks'):
     return mass_lim_low, mass_lim_high
 
 
-def RemnantsSinglePop(M_init, age, Z):
+def remnants_single_pop(M_init, age, Z):
     """Gives the positions of the remnants in a single population (as a boolean mask)."""
     iso_M_ini = utils.stellar_isochrone(age, Z, columns=['M_initial'])
     max_mass = np.max(iso_M_ini)                                                                    # maximum initial mass in isoc file
