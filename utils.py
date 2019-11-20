@@ -510,7 +510,7 @@ def check_and_cast_n_stars(n_stars, M_tot, n_pop, imf_par):
         raise ValueError('Input mass and number of stars cannot be zero simultaneously.')
     elif np.all(n_stars == 0):
         # estimate of the number of stars to generate
-        n_stars = conv.MtotToNstars(M_tot, imf=imf_par)
+        n_stars = conv.m_tot_to_n_stars(M_tot, imf=imf_par)
     else:
         if hasattr(n_stars, '__len__'):
             n_stars = np.array(n_stars)

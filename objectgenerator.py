@@ -267,7 +267,7 @@ class Stars(object):
                 for i, pop_num in enumerate(self.n_stars):
                     if (self.compact_mode == 'mag'):
                         mass_limit[i] = magnitude_limited(self.ages[i], self.metal[i], 
-                                                            mag_lim=self.mag_limit, d=self.d_lum, 
+                                                            mag_lim=self.mag_limit, distance=self.d_lum, 
                                                             ext=self.extinction, filter='Ks')
                     else:
                         mass_limit[i] = number_limited(self.n_stars, self.ages[i], 
@@ -333,7 +333,7 @@ class Stars(object):
         # rotate the XZ plane (x axis towards positive z)
         if not np.all(self.inclination == 0):
             indices = np.repeat(np.arange(n_pop), self.n_stars)                                  # population index per star
-            self.coords = conv.RotateXZ(self.coords, self.inclination[indices])
+            self.coords = conv.rotate_xz(self.coords, self.inclination[indices])
         return
         
     def AddEllipticity(self, axes):
@@ -415,7 +415,7 @@ class Stars(object):
                 # use the isochrone files to interpolate properties
                 iso_M_ini, iso_log_g = utils.stellar_isochrone(age, self.metal[i],
                                                                columns=['M_initial', 'log_g'])       # get the isochrone values
-                iso_R_cur = conv.GravityToRadius(iso_log_g, iso_M_ini)
+                iso_R_cur = conv.gravity_to_radius(iso_log_g, iso_M_ini)
                 M_init_i = self.M_init[index[i]:index[i+1]]
                 R_cur_i = np.interp(M_init_i, iso_M_ini, iso_R_cur, right=0)                        # (right) return 0 for stars heavier than available in isoc file (dead stars)
                 
@@ -536,7 +536,7 @@ class Stars(object):
     
     def ApparentMagnitudes(self, distance, filters=None, add_redshift=False):
         """Computes the apparent magnitude from the absolute magnitude and the individual distances 
-        (in pc). Needs the luminosity distance_3d to the astronomical object (in pc).
+        (in pc). Needs the luminosity distance to the astronomical object (in pc).
         A list of filters can be specified; None will result in all available magnitudes.
         Redshift can be roughly included (uses black body spectra).
         """
@@ -548,10 +548,10 @@ class Stars(object):
             if (len(filters) == 1):
                 abs_mag = abs_mag.flatten()                                                         # correct for 2D array
         else:
-            if (distance > 100*np.abs(np.min(self.coords[:,2]))):                                   # distance_3d 'much larger' than individual variations
+            if (distance > 100*np.abs(np.min(self.coords[:,2]))):                                   # distance 'much larger' than individual variations
                 true_dist = distance - self.coords[:,2]                                             # approximate the individual distance_3d to each star with the z-coordinate
             else:
-                true_dist = form.distance_3d(self.coords, np.array([0, 0, distance]))                  # distance_3d is now properly calculated for each star
+                true_dist = form.distance_3d(self.coords, np.array([0, 0, distance]))                  # distance is now properly calculated for each star
             
             true_dist = true_dist.reshape((len(true_dist),) + (1,)*(len(filters) > 1))              # fix dimension for broadcast
             
@@ -618,10 +618,10 @@ class Stars(object):
         return np.log10(np.sum(10**self.LogLuminosities(realistic_remnants=False)))                 # remnants don't add much, so leave them as is
         
     def CoordsArcsec(self, distance):
-        """Returns coordinates converted to arcseconds (from pc). Needs the angular distance_3d
+        """Returns coordinates converted to arcseconds (from pc). Needs the angular distance
         to the object (in pc).
         """
-        return conv.ParsecToArcsec(self.coords, distance)
+        return conv.parsec_to_arcsec(self.coords, distance)
         
     def OrbitalRadii(self, distance, unit='pc', spher=False):
         """Returns the radial coordinate of the stars (spherical or cylindrical) in pc/as."""
@@ -631,7 +631,7 @@ class Stars(object):
             radii = form.distance_2d(self.coords)
         
         if (unit == 'as'):                                                                          # convert to arcsec if wanted
-            radii = conv.ParsecToArcsec(radii, distance)
+            radii = conv.parsec_to_arcsec(radii, distance)
         
         return radii
     
@@ -656,7 +656,7 @@ class Stars(object):
         hmr = np.max(r_sorted[mass_sum <= tot_mass/2])                                              # 2D/3D radius at half the mass
         
         if (unit == 'as'):                                                                          # convert to arcsec if wanted
-            hmr = conv.ParsecToArcsec(hmr, self.d_ang)
+            hmr = conv.parsec_to_arcsec(hmr, self.d_ang)
             
         return hmr
         
@@ -678,7 +678,7 @@ class Stars(object):
         hlr = np.max(r_sorted[lum_sum <= tot_lum/2])                                                # 2D/3D radius at half the luminosity
         
         if (unit == 'as'):                                                                          # convert to arcsec if wanted
-            hlr = conv.ParsecToArcsec(hlr, self.d_ang)
+            hlr = conv.parsec_to_arcsec(hlr, self.d_ang)
             
         return hlr
         
@@ -887,15 +887,15 @@ class AstronomicalObject():
     """
     def __init__(self, distance=10, d_type='l', extinct=0, **kwargs):
         
-        self.d_type = d_type                                                                        # distance_3d type [l for luminosity, z for redshift]
+        self.d_type = d_type                                                                        # distance type [l for luminosity, z for redshift]
         if (self.d_type == 'z'):
             self.redshift = distance                                                                # redshift for the object
-            self.d_lum = form.d_luminosity(self.redshift)                                            # luminosity distance_3d to the object (in pc)
+            self.d_lum = form.d_luminosity(self.redshift)                                            # luminosity distance to the object (in pc)
         else:
-            self.d_lum = distance                                                                   # luminosity distance_3d to the object (in pc)
+            self.d_lum = distance                                                                   # luminosity distance to the object (in pc)
             self.redshift = form.d_luminosity_to_redshift(self.d_lum)                                           # redshift for the object
         
-        self.d_ang = form.d_angular(self.redshift)                                                   # angular distance_3d (in pc)
+        self.d_ang = form.d_angular(self.redshift)                                                   # angular distance (in pc)
         self.extinction = extinct                                                                   # extinction between source and observer
         
         # initialise the component classes (pop the right kwargs per object)
@@ -938,7 +938,7 @@ class AstronomicalObject():
         phi = dist.uniform(n=n, min_val=0, max_val=2*np.pi, power=1)
         theta = dist.angle_theta(n=n)
         radius = dist.uniform(n=n, min_val=10, max_val=10**3, power=3)                                      # uniform between 10 pc and a kpc
-        coords = conv.SpherToCart(radius, theta, phi)
+        coords = conv.spher_to_cart(radius, theta, phi)
         distance = self.d_lum - np.abs(coords[:,3])
         
         mag = dist.uniform(n=n, min_val=5, max_val=20, power=1)                                             # placeholder for magnitudes
@@ -985,7 +985,7 @@ class AstronomicalObject():
             # assume we are using MCAO now. generate random positions within patrol field
             angle = dist.angle_phi(n=len(mag))
             radius = dist.uniform(n=len(mag), min_val=46, max_val=90, power=2)                              # radius of patrol field in as
-            pos_x_y = conv.PolToCart(radius, angle)
+            pos_x_y = conv.pol_to_cart(radius, angle)
             pos_x = pos_x_y[0]
             pos_y = pos_x_y[1]
         
@@ -1081,7 +1081,7 @@ def gen_spherical(N_stars, dist_type=default_rdist, **kwargs):
     phi_dist = dist.angle_phi(N_stars)                                                               # dist for angle with x axis
     theta_dist = dist.angle_theta(N_stars)                                                           # dist for angle with z axis
     
-    return conv.SpherToCart(r_dist, theta_dist, phi_dist)
+    return conv.spher_to_cart(r_dist, theta_dist, phi_dist)
 
 
 def gen_spiral(N_stars):
@@ -1110,7 +1110,7 @@ def gen_star_masses(N_stars=0, M_tot=0, imf=[0.08, 150]):
                        'cannot be zero simultaniously. Using N_stars=10'), SyntaxWarning)
         N_stars = 10
     elif (N_stars == 0):                                                                            # a total mass is given
-        N_stars = conv.MtotToNstars(M_tot, imf)                                                     # estimate the number of stars to generate
+        N_stars = conv.m_tot_to_n_stars(M_tot, imf)                                                     # estimate the number of stars to generate
         
     # mass
     M_init = dist.kroupa_imf(N_stars, imf)                                                           # assign initial masses using IMF
@@ -1119,7 +1119,7 @@ def gen_star_masses(N_stars=0, M_tot=0, imf=[0.08, 150]):
     if (M_tot != 0):
         M_diff = M_tot_gen - M_tot
     else:
-        M_tot_est = conv.NstarsToMtot(N_stars, imf)
+        M_tot_est = conv.n_stars_to_m_tot(N_stars, imf)
         M_diff = M_tot_gen - M_tot_est                                                              # will give the difference to the estimated total mass for n stars
         
     return M_init, M_diff
@@ -1240,24 +1240,24 @@ def number_limited(N, age, Z, imf=default_imf_par):
     return mass_lim_low, mass_lim_high
 
 
-def magnitude_limited(age, Z, mag_lim=default_mag_lim, d=10, ext=0, filter='Ks'):
+def magnitude_limited(age, Z, mag_lim=default_mag_lim, distance=10, ext=0, filter='Ks'):
     """Retrieves the lower mass limit for which the given magnitude threshold is met. 
     Will also give an upper mass limit based on the values in the isochrone.
     Works only for resolved stars. 
     If light is integrated along the line of sight (crowded fields), 
     then don't use this method! Resulting images would not be accurate!
-    distance_3d, age, metallicity and extinction of the population of stars are needed.
+    distance, age, metallicity and extinction of the population of stars are needed.
     A filter must be specified in which the given limiting magnitude is measured.
     """
     iso_M_ini = utils.stellar_isochrone(age, Z, columns=['M_initial'])                               # get the isochrone values
     mag_vals = utils.stellar_isochrone(age, Z, columns=[filter])
 
-    abs_mag_lim = form.absolute_magnitude(mag_lim, d, ext=ext)                                             # calculate the limiting absolute magnitude
+    abs_mag_lim = form.absolute_magnitude(mag_lim, distance, ext=ext)                                             # calculate the limiting absolute magnitude
     mask = (mag_vals < abs_mag_lim + 0.1)                                                           # take all mag_vals below the limit
     if not mask.any():
         mask = (mag_vals == np.min(mag_vals))                                                       # if limit too high (too low in mag) then it will break
         warnings.warn(('objectgenerator//magnitude_limited: compacting will not work, '
-                       'distance_3d too large.'), RuntimeWarning)
+                       'distance too large.'), RuntimeWarning)
 
     mass_lim_low = iso_M_ini[mask][0]                                                               # the lowest mass where mask==True
     

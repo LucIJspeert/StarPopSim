@@ -283,12 +283,12 @@ T_c_from_M = conv.Temperature(mag, convert='mag1')
 T_BB_from_M = conv.Temperature(mag, convert='mag2')
 T_eff_from_M = conv.Temperature(mag, convert='mag3')
 
-colours = conv.TemperatureToRGB(input_temp).transpose()
-colours2 = conv.TemperatureToRGB(T_c_from_eff).transpose()
-colours3 = conv.TemperatureToRGB(T_eff_from_c).transpose()
-colours4 = conv.TemperatureToRGB(T_c_from_M).transpose()
-colours5 = conv.TemperatureToRGB(T_BB_from_M).transpose()
-colours6 = conv.TemperatureToRGB(T_eff_from_M).transpose()
+colours = conv.temperature_to_rgb(input_temp).transpose()
+colours2 = conv.temperature_to_rgb(T_c_from_eff).transpose()
+colours3 = conv.temperature_to_rgb(T_eff_from_c).transpose()
+colours4 = conv.temperature_to_rgb(T_c_from_M).transpose()
+colours5 = conv.temperature_to_rgb(T_BB_from_M).transpose()
+colours6 = conv.temperature_to_rgb(T_eff_from_M).transpose()
 
 fig, ax1 = plt.subplots()
 
@@ -612,12 +612,12 @@ input_temp = np.arange(1000, 40000, 10, dtype=float)
 ytemp = np.zeros_like(input_temp)
 
 fig, ax = plt.subplots()
-ax.scatter(xs, ys, marker='|', s=2000, c=conv.WavelengthToRGB(xs).transpose())
+ax.scatter(xs, ys, marker='|', s=2000, c=conv.wavelength_to_rgb(xs).transpose())
 ax.set_xlabel('Wavelength (nm)')
 plt.show()
 
 fig, ax = plt.subplots()
-ax.scatter(input_temp, ytemp, marker='|', s=2000, c=conv.TemperatureToRGB(input_temp).transpose())
+ax.scatter(input_temp, ytemp, marker='|', s=2000, c=conv.temperature_to_rgb(input_temp).transpose())
 ax.set_xlabel('Temperature (K)')
 plt.show()
 
@@ -857,7 +857,7 @@ def GenRadii(N_obj=1, dist_type='exponential_r', scale=1.0):
     phi_dist = dist.angle_phi(N_obj)                                                                 # dist for angle with x axis
     theta_dist = dist.angle_theta(N_obj)                                                             # dist for angle with z axis
     
-    xyz = conv.SpherToCart(r_dist, theta_dist, phi_dist).transpose()
+    xyz = conv.spher_to_cart(r_dist, theta_dist, phi_dist).transpose()
     
     radii = form.distance_2d(xyz)
     radii2 = form.distance_3d(xyz)
@@ -1233,7 +1233,7 @@ def GenSphereProj(n, r_dist=Radius):
     theta = AngleTheta(n)
     phi = AnglePhi(n)
     
-    xyz = conv.SpherToCart(r, theta, phi).transpose()
+    xyz = conv.spher_to_cart(r, theta, phi).transpose()
     
     #vis.scatter_2d(xyz)
     
@@ -1737,15 +1737,15 @@ ax.invert_yaxis()
 plt.show()
 ##
 fig, ax = plt.subplots()
-ax.scatter( np.log10(spec_tbl[spec_tbl_names['Temp']]), conv.RadiusToGravity(spec_tbl[spec_tbl_names['Radius']], spec_tbl[spec_tbl_names['Mass']]) )
+ax.scatter(np.log10(spec_tbl[spec_tbl_names['Temp']]), conv.radius_to_gravity(spec_tbl[spec_tbl_names['Radius']], spec_tbl[spec_tbl_names['Mass']]))
 for i, type in enumerate(spec_tbl_types):
-    ax.annotate( type, xy=(np.log10(spec_tbl[spec_tbl_names['Temp'], i]), conv.RadiusToGravity(spec_tbl[spec_tbl_names['Radius']], spec_tbl[spec_tbl_names['Mass']])[i] ) )
+    ax.annotate(type, xy=(np.log10(spec_tbl[spec_tbl_names['Temp'], i]), conv.radius_to_gravity(spec_tbl[spec_tbl_names['Radius']], spec_tbl[spec_tbl_names['Mass']])[i]))
 ax.set_xlabel('temperature')
 ax.set_ylabel('log_g')
 ax.invert_xaxis()
 plt.show()
 ##
-ys = (conv.RadiusToGravity(spec_tbl[spec_tbl_names['Radius']], spec_tbl[spec_tbl_names['Mass']]) + np.log10(spec_tbl[spec_tbl_names['Luminosity']] + 1) )#/np.log(spec_tbl[spec_tbl_names['Temp']])**3
+ys = (conv.radius_to_gravity(spec_tbl[spec_tbl_names['Radius']], spec_tbl[spec_tbl_names['Mass']]) + np.log10(spec_tbl[spec_tbl_names['Luminosity']] + 1))#/np.log(spec_tbl[spec_tbl_names['Temp']])**3
 fig, ax = plt.subplots()
 ax.scatter( np.log10(spec_tbl[spec_tbl_names['Temp']]), ys)
 for i, type in enumerate(spec_tbl_types):
@@ -4119,7 +4119,7 @@ def T2(t):
 
 R = 1.58*10**-5
 M = 1.4
-log_g = conv.RadiusToGravity(R, M)
+log_g = conv.radius_to_gravity(R, M)
 time = np.logspace(1, 8, 1000)
 
 T_1 = T1(time, M, R, log_g, 2e-6, 10**-50)
@@ -4194,13 +4194,13 @@ plt.show()
 integral = np.trapz(PlanckBB(lam_arr, 5770, var='wavl'), x=lam_arr)                                 # W/sr^1/m^2
 intensity = np.pi*integral                                                                          # W/m^2
 luminosity = intensity*4*np.pi*(R_sun)**2                                                           # W
-magnitude = conv.LumToMag(luminosity/L_sun)
+magnitude = conv.lum_to_mag(luminosity/L_sun)
 print('M_bol sun: ', magnitude) 
 
 integral = PlanckBB(phot_dat['mean'], 5770, var='wavl')*phot_dat['width']                                  # W/sr^1/m^2
 intensity = np.pi*integral                                                                          # W/m^2
 luminosity = intensity*4*np.pi*(R_sun)**2                                                           # W
-magnitude = conv.LumToMag(luminosity/L_sun)
+magnitude = conv.lum_to_mag(luminosity/L_sun)
 print(', '.join(['{0}= {1}'.format(name, num) for name,num in zip(phot_dat['alt_name'], magnitude)]))
 print('')
 
@@ -4210,7 +4210,7 @@ temps = np.array([5000, 5300, 5770, 6000])
 integral = np.trapz(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*len(np.shape(lam_arr))), var='wavl'), x=lam_arr, axis=-1)      # W/sr^1/m^2
 intensity = np.pi*integral                                                                          # W/m^2
 luminosity = intensity*4*np.pi*(np.array([1,2,1,1]).reshape((4,) + (1,)*(len(phot_dat['mean']) > 1))*R_sun)**2                                                           # W
-magnitude = conv.LumToMag(luminosity/L_sun)
+magnitude = conv.lum_to_mag(luminosity/L_sun)
 print(magnitude)
 # print(', '.join(['{0}= {1}'.format(name, num) for name,num in zip(phot_dat['alt_name'], magnitude)]))
 

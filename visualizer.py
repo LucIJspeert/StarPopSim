@@ -24,7 +24,7 @@ def scatter_2d(coords, title='Scatter', xlabel='x', ylabel='y', axes='xy', colou
 
     # colours can be made to match the temperature (using T_eff)
     if (T_eff is not None):
-        colour = conv.TemperatureToRGB(T_eff).transpose()
+        colour = conv.temperature_to_rgb(T_eff).transpose()
         # make dead stars grey and add alpha
         colour[T_eff <= 10] = [0.2, 0.2, 0.2]
         colour = mcol.to_rgba_array(colour, 0.5)
@@ -135,7 +135,7 @@ def scatter_3d(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z', colo
     """
     # colours can be made to match the temperature (using T_eff)
     if (T_eff is not None):
-        colour = conv.TemperatureToRGB(T_eff).transpose()
+        colour = conv.temperature_to_rgb(T_eff).transpose()
         # make dead stars grey and add alpha
         colour[T_eff <= 10] = [0.2, 0.2, 0.2]
         colour = mcol.to_rgba_array(colour, 0.5)
@@ -249,7 +249,7 @@ def hr_diagram(T_eff, log_lum, title='hr_diagram', xlabel='Temperature (K)', yla
     
     # colours can be made to match the temperature (using T_eff)
     if ((T_eff is not None) & (colour == 'temperature')):
-        colour = conv.TemperatureToRGB(T_eff).transpose()
+        colour = conv.temperature_to_rgb(T_eff).transpose()
         # make dead stars grey and add alpha
         colour[T_eff <= 10] = [0.2, 0.2, 0.2]
         colour = mcol.to_rgba_array(colour, 0.5)
@@ -327,7 +327,7 @@ def cm_diagram(c_mag, mag, title='cm_diagram', xlabel='colour', ylabel='magnitud
     """
     # colours can be made to match the temperature (using T_eff)
     if (T_eff is not None):
-        colour = conv.TemperatureToRGB(T_eff).transpose()
+        colour = conv.temperature_to_rgb(T_eff).transpose()
         # make dead stars grey and add alpha
         colour[T_eff <= 10] = [0.2, 0.2, 0.2]
         colour = mcol.to_rgba_array(colour, 0.5)
