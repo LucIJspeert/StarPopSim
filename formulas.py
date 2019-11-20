@@ -31,21 +31,22 @@ NS_mass = 1.2                   # M_sun     lower mass bound for NSs
 BH_mass = 2.0                   # M_sun     lower mass bound for BHs
 
 
-def distance_3d(points, position=None):
-    """Calculates the 3 dimensional distance between a set of points and a position (default at origin)."""
+def distance_3d(coords, position=None):
+    """Calculates the 3 dimensional distance between a set of coordinates and a position (default at origin).
+    First axis is assumed to correspond to x,y,z (so x=coords[0]).
+    """
     if not position:
         position = [0, 0, 0]
-    # change array to [xs, ys, zs]
-    coords = points.transpose()
     return ((coords[0] - position[0])**2 + (coords[1] - position[1])**2 + (coords[2] - position[2])**2)**(1/2)
 
 
-def distance_2d(points, position=None):
-    """Calculates the 2 dimensional distance between a set of points and a position (default at origin)."""
+def distance_2d(coords, position=None):
+    """Calculates the 2 dimensional distance between a set of coordinates and a position (default at origin).
+    First axis is assumed to correspond to x,y,z (so x=coords[0]).
+    """
     if not position:
         position = [0, 0]
     # change array to [xs, ys]
-    coords = points.transpose()
     return ((coords[0] - position[0])**2 + (coords[1] - position[1])**2)**(1/2)
 
 
@@ -186,8 +187,8 @@ def d_angular(z, points=1e4):
     return d_c/(1 + z)
 
 
-def d_luminosity_to_redshift(dist, points=1e3):
-    """Calculates the redshift assuming luminosity distance_3d (in pc) is given.
+def d_luminosity_to_redshift(d, points=1e3):
+    """Calculates the redshift assuming luminosity distance (in pc) is given.
     Quite slow for arrays (usually not what it would be used for anyway).
     points is the number of steps for which z is calculated.
     """
@@ -195,15 +196,15 @@ def d_luminosity_to_redshift(dist, points=1e3):
     # and it belongs with the other distance_3d formulas]
     # precision for distance_3d calculation
     num_dist = 10**3
-    len_flag = hasattr(dist, '__len__')
+    len_flag = hasattr(d, '__len__')
     
     # making sure it works for many different types of input
     if len_flag:
-        dist = np.array(dist)
+        d = np.array(d)
     else:
-        dist = np.array([dist])
+        d = np.array([d])
     # first estimate using a linear formula
-    z_est = 7.04208*10**-11*dist
+    z_est = 7.04208*10**-11*d
     
     z_range = np.linspace(0.1*z_est, 10*z_est + 0.1, int(points))
     arg_best = np.argmin(np.abs(d_luminosity(z_range, points=num_dist) - dist), axis=0)
@@ -214,14 +215,14 @@ def d_luminosity_to_redshift(dist, points=1e3):
 
 
 def apparent_magnitude(mag, dist, ext=0):
-    """Compute the apparent magnitude for the absolute magnitude plus a distance_3d (in pc!).
+    """Compute the apparent magnitude for the absolute magnitude plus a distance (in pc!).
     ext is an optional extinction to add (waveband dependent).
     """
     return mag + 5*np.log10(dist/10) + ext
 
 
 def absolute_magnitude(mag, dist, ext=0):
-    """Compute the absolute magnitude for the apparant magnitude plus a distance_3d (in pc!).
+    """Compute the absolute magnitude for the apparent magnitude plus a distance (in pc!).
     ext is an optional extinction to subtract (waveband dependent).
     """
     return mag - 5*np.log10(dist/10) - ext

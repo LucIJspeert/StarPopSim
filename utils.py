@@ -504,34 +504,34 @@ def cast_m_total(M_tot, n_pop):
     return M_tot
 
 
-def check_n_stars(N_stars, M_tot, n_pop, imf_par):
+def check_and_cast_n_stars(n_stars, M_tot, n_pop, imf_par):
     """Check if we got values for number of stars, or calculate them."""
-    if ((N_stars == 0) & np.all(M_tot == 0)):
+    if (np.all(n_stars == 0) & np.all(M_tot == 0)):
         raise ValueError('Input mass and number of stars cannot be zero simultaneously.')
-    elif (N_stars == 0):
+    elif np.all(n_stars == 0):
         # estimate of the number of stars to generate
-        N_stars = conv.MtotToNstars(M_tot, imf=imf_par)
+        n_stars = conv.MtotToNstars(M_tot, imf=imf_par)
     else:
-        if hasattr(N_stars, '__len__'):
-            N_stars = np.array(N_stars)
+        if hasattr(n_stars, '__len__'):
+            n_stars = np.array(n_stars)
         else:
-            N_stars = np.array([N_stars])
+            n_stars = np.array([n_stars])
         
-        len_N_stars = len(N_stars)
+        len_N_stars = len(n_stars)
         if ((n_pop > 1) & (len_N_stars == 1)):
             # the stars are divided equally among the populations
-            N_stars = np.full(n_pop, N_stars[0])/n_pop
+            n_stars = np.full(n_pop, n_stars[0])/n_pop
         elif (len_N_stars < n_pop):
             # extend length (dividing stars among pops)
-            N_stars = np.append(N_stars, np.full(n_pop - len_N_stars, N_stars[-1]))
-            N_stars[len_N_stars:] /= (n_pop - len_N_stars)
+            n_stars = np.append(n_stars, np.full(n_pop - len_N_stars, n_stars[-1]))
+            n_stars[len_N_stars:] /= (n_pop - len_N_stars)
         elif (len_N_stars > n_pop):
             warnings.warn('utils//check_n_stars: too many values received for N_stars', SyntaxWarning)
-            N_stars = N_stars[:n_pop]
+            n_stars = n_stars[:n_pop]
 
     # make sure they are int, and add up nicely
-    N_stars = fix_total(np.rint(N_stars).astype(int), np.sum(N_stars))
-    return N_stars
+    n_stars = fix_total(np.rint(n_stars).astype(int), np.sum(n_stars))
+    return n_stars
 
 
 def cast_sfhistory(sfhist, n_pop):

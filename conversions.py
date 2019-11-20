@@ -48,16 +48,16 @@ def CartToSpher(x, y, z):
     return np.array([r, theta, phi])
 
 
-def RotateXZ(positions, angle):
+def RotateXZ(coords, angle):
     """Rotate a set of positions around y axis by 'angle' radians 
     (so xz plane is rotated: positive x towards positive z).
+    First axis is assumed to correspond to x,y,z (so x=coords[0]).
     """
-    coords = positions.transpose()
     cos = np.cos(angle)
     sin = np.sin(angle)
     x_new = coords[0]*cos - coords[2]*sin
     z_new = coords[2]*cos + coords[0]*sin
-    return np.array([x_new, coords[1], z_new]).transpose()
+    return np.array([x_new, coords[1], z_new])
     
     
 def ParsecToArcsec(x, d):
@@ -74,9 +74,9 @@ def ArcsecToParsec(x, d):
     return np.tan(x*as_rad)*d
     
     
-def ParsecToDModulus(dist):
+def ParsecToDModulus(d):
     """Compute the distance_3d modulus given a distance_3d in pc."""
-    return 5*np.log10(dist/10)
+    return 5*np.log10(d/10)
     
     
 def DModulusToParsec(mod):
@@ -84,11 +84,13 @@ def DModulusToParsec(mod):
     return 10**(mod/5 + 1)
 
 
-def MtotToNstars(M, imf=default_imf_par):
+def MtotToNstars(M, imf=None):
     """Converts from mass in a cluster (one stellar population) 
     to number of objects using the implemented IMF.
     """
-    M_L, M_U = imf[:,0], imf[:,1]
+    if not imf:
+        imf = default_imf_par
+    M_L, M_U = imf[:, 0], imf[:, 1]
     M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
     C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
     D_mid = (1/0.35 + 1/0.65)*M_mid**(0.65)
@@ -97,10 +99,12 @@ def MtotToNstars(M, imf=default_imf_par):
     return np.rint(M/M_mean).astype(np.int64)
 
 
-def NstarsToMtot(N, imf=default_imf_par):
+def NstarsToMtot(N, imf=None):
     """Converts from number of objects in a cluster (one stellar population) 
     to total mass using the implemented IMF.
     """
+    if not imf:
+        imf = default_imf_par
     M_L, M_U = imf
     M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
     C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)

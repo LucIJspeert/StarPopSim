@@ -46,7 +46,7 @@ class Stars(object):
         'array' here means numpy.ndarray, while lists (or even single entries) are also accepted
     
     Args:
-        N_stars (array of int): the total number of stars to make per stellar population.
+        n_stars (array of int): the total number of stars to make per stellar population.
         M_tot_init (array of float): the total mass in stars to produce per population (in Msol).
         ages (array of float): stellar age for each population (in linear or 10log yr).
             This is equal to the maximum age when sfh is used.
@@ -67,24 +67,25 @@ class Stars(object):
         spiral_bulge (array of float): relative proportion of the central bulge (per population).
         spiral_bar (array of float): relative proportion of the central bar (per population).
         compact_mode (array of str and None): generate only a fraction of the total number of stars.
-            choose from 'num' or 'mag' for number or magnitude limited. 
+            choose 'num' or 'mag' for number or magnitude limited.
     
     Attributes:
         All of the arguments described above are stored as attributes.
-        origin (array of float): origin of the stellar distribution (for each population)
-        coords (array of float): 2D array of the cartesian coordinates of the stars. Shape is [N_stars, 3].
-        M_init (array of float):
-        M_diff ():
-        mag_names ():
-        spec_names ():
-        fraction_generated (array of float):
+        origin (array of float): origin of the stellar distribution (for each population). Shape is [3, n_pop]
+        coords (array of float): 2D array of the cartesian coordinates of the stars. Shape is [3, n_stars].
+        M_init (array of float): the individual masses of the stars in Msol.
+        M_diff (array of float): difference between given and generated mass per population (only when n_stars=0).
+        mag_names (array of str): the filter names of the corresponding default set of supported magnitudes.
+        spec_names (array of str): spectral type names corresponding to the reference numbers in spectral_types.
+        fraction_generated (array of float): part of the total number of stars that has actually been generated
+            per population (when compact mode is used).
     
     Returns:
         
     """    
-    def __init__(self, N_stars=0, M_tot_init=0, ages=None, metal=None, imf_par=None, sfh=None, 
-                 min_ages=None, tau_sfh=None, incl=None, r_dist=None, r_dist_par=None, 
-                 ellipse_axes=None, spiral_arms=None, spiral_bulge=None, spiral_bar=None, 
+    def __init__(self, n_stars=0, M_tot_init=0, ages=None, metal=None, imf_par=None, sfh=None,
+                 min_ages=None, tau_sfh=None, incl=None, r_dist=None, r_dist_par=None,
+                 ellipse_axes=None, spiral_arms=None, spiral_bulge=None, spiral_bar=None,
                  compact_mode=None):
         
         # cast input to right formats, and perform some checks. first find the intended number of populations
@@ -94,7 +95,7 @@ class Stars(object):
         self.imf_param = utils.cast_imf_parameters(imf_par, n_pop, fill_value=default_imf_par)
         self.imf_param = utils.check_lowest_imf_mass(self.imf_param, self.ages, self.metal)
         self.M_tot_init = utils.cast_m_total(M_tot_init, n_pop)
-        self.N_stars = utils.CastNStars(N_stars, self.M_tot_init, n_pop, self.imf_param)
+        self.n_stars = utils.check_and_cast_n_stars(n_stars, self.M_tot_init, n_pop, self.imf_param)
         self.sfhist = utils.cast_sfhistory(sfh, n_pop)
         self.min_ages = min_ages
         self.tau_sfh = tau_sfh
@@ -110,29 +111,32 @@ class Stars(object):
         self.spiral_bar = spiral_bar
         
         # properties that are derived/generated
-        self.origin = np.zeros([n_pop, 3])                                                          # origin of the stellar distribution (for each population)
-        self.coords = np.empty([0,3])                                                               # spatial coordinates of the stars
-        self.M_init = np.array([])                                                                  # the masses of the stars
-        self.M_diff = np.zeros(n_pop)                                                               # mass difference between given and generated mass (when N_stars=0)
-        self.mag_names = utils.get_supported_filters()                                                   # the filter names of the corresponding default set of supported magnitudes
-        self.spec_names = np.array([])                                                              # spectral type names corresponding to the numbers in spectral_types
+        self.origin = np.zeros([3, n_pop])
+        self.coords = np.empty([3, 0])
+        self.M_init = np.array([])
+        self.M_diff = np.zeros(n_pop)
+        self.mag_names = utils.get_supported_filters()
+        self.spec_names = np.array([])
         
         # compact mode parameters
-        self.compact_mode = compact_mode                                                            # (compact mode) generate only the higher mass stars. num=number limited, mag=magnitude limited
-        self.fraction_generated = np.ones(n_pop)                                                    # (compact mode) part of the total number of stars that has actually been generated per population
+        self.compact_mode = compact_mode
+        self.fraction_generated = np.ones(n_pop)
         
         # semi-private
-        self.gen_imf_param = self.imf_param                                                         # the actual imf parameters to use for each population (limits imposed by compacting)
-        self.gen_pop_number = self.N_stars                                                       # actually generated number of stars per population (for compact mode/sfhist)
-        # todo: replace pop_number by N_stars
-        self.gen_ages = self.ages                                                                   # the actual ages to be generated for each population (for sfhist)
-        
-        self.GenerateStars()                                                                        # actually generate the stars
+        # the actual imf parameters to use for each population (limits imposed by compacting)
+        self.gen_imf_param = self.imf_param
+        # actually generated number of stars per population (for compact mode/sfhist)
+        self.gen_n_stars = self.n_stars
+        # the actual ages to be generated for each population (for sfhist)
+        self.gen_ages = self.ages
+
+        # actually generate the stars
+        self.GenerateStars()
         return
     
     def __repr__(self):
         """Unambiguous representation of what this object is."""
-        repr = (f'Stars(N_stars={self.N_stars!r}, M_tot_init={self.M_tot_init!r}, '
+        repr = (f'Stars(N_stars={self.n_stars!r}, M_tot_init={self.M_tot_init!r}, '
                 f'ages={self.ages!r}, metal={self.metal!r}, sfh={self.sfhist!r}, 
                 f'min_ages={self.min_ages!r}, tau_sfh={self.tau_sfh!r}, '
                 f'imf_par={self.imf_param!r}, incl={self.inclination!r}, '
@@ -143,9 +147,9 @@ class Stars(object):
         return repr
     
     def __str__(self):
-        """Nice to read representation of what this object is"""
+        """Nice-to-read representation of what this object is"""
         string = 'Stars object with parameters:\n'
-        string += f'N_stars:        {self.N_stars!s}\n'
+        string += f'N_stars:        {self.n_stars!s}\n'
         string += f'M_tot_init:     {np.round(self.M_tot_init, 1)!s}\n'
         string += f'ages:           {self.ages!s}\n'
         string += f'metal:          {self.metal!s}\n'
@@ -164,9 +168,10 @@ class Stars(object):
         return string
         
     def __add__(self, other):
-        """Need to add and/or append all the properties."""
-        self.N_stars += other.N_stars
-        self.M_tot_init += other.M_tot_init
+        """Appends two Stars objects to each other."""
+        # Need to append all the properties.
+        self.n_stars = np.append(self.n_stars, other.n_stars)
+        self.M_tot_init = np.append(self.M_tot_init, other.M_tot_init)
         self.ages = np.append(self.ages, other.ages)
         self.metal = np.append(self.metal, other.metal)
         self.rel_number = np.append(self.rel_number, other.rel_number)
@@ -183,14 +188,13 @@ class Stars(object):
         self.spiral_bar = np.append(self.spiral_bar, other.spiral_bar)
         self.compact_mode = np.append(self.compact_mode, other.compact_mode)
         # non-user defined:
-        self.pop_number = np.append(self.pop_number, other.pop_number)
         self.pop_origin = np.append(self.pop_origin, other.pop_origin)
         self.coords = np.append(self.coords, other.coords)
         self.M_init = np.append(self.M_init, other.M_init)
         self.M_diff = np.append(self.M_diff, other.M_diff)
         self.fraction_generated = np.append(self.fraction_generated, other.fraction_generated)
         self.gen_imf_param = np.append(self.gen_imf_param, other.gen_imf_param, axis=0)
-        self.gen_pop_number = np.append(self.gen_pop_number, other.gen_pop_number)
+        self.gen_n_stars = np.append(self.gen_n_stars, other.gen_n_stars)
         self.gen_ages = np.append(self.gen_ages, other.gen_ages)
         # check if both have performance mode attributes (if not, deletes attributes from self)
         if (hasattr(self, 'current_masses') & hasattr(other, 'current_masses')):
@@ -249,24 +253,24 @@ class Stars(object):
         # assign the right values for generation (start of generating sequence)
         if self.compact_mode:
             # todo: fix this, needs functions instead of the not-yet-declared vars (and more)
-            self.gen_pop_number = np.rint(self.pop_number*self.fraction_generated).astype(int)
+            self.gen_n_stars = np.rint(self.n_stars*self.fraction_generated).astype(int)
             self.gen_imf_param = mass_limit
             '''
             # check if compact mode is on
-            self.fraction_generated = np.ones_like(self.pop_number, dtype=float)                        # set to ones initially
+            self.fraction_generated = np.ones_like(self.n_stars, dtype=float)                        # set to ones initially
             mass_limit = np.copy(self.imf_param[:])                                                     # set to imf params initially
             
             if self.compact_mode:
                 if (self.mag_limit is None):
                     self.mag_limit = default_mag_lim                                                    # if not specified, use default
                 
-                for i, pop_num in enumerate(self.pop_number):
+                for i, pop_num in enumerate(self.n_stars):
                     if (self.compact_mode == 'mag'):
                         mass_limit[i] = magnitude_limited(self.ages[i], self.metal[i], 
                                                             mag_lim=self.mag_limit, d=self.d_lum, 
                                                             ext=self.extinction, filter='Ks')
                     else:
-                        mass_limit[i] = number_limited(self.N_stars, self.ages[i], 
+                        mass_limit[i] = number_limited(self.n_stars, self.ages[i], 
                                                         self.metal[i], imf=self.imf_param[i])
                     
                     if (mass_limit[i, 1] > self.imf_param[i, 1]):
@@ -277,18 +281,18 @@ class Stars(object):
                 if np.any(mass_limit[:, 0] > mass_limit[:, 1]):                                       
                     raise RuntimeError('objectgenerator//GenerateStars: compacting failed, '
                                         'mass limit raised above upper mass.')                              # lower limit > upper limit!
-                elif np.any(self.pop_number*self.fraction_generated < 10):                                  # don't want too few stars
+                elif np.any(self.n_stars*self.fraction_generated < 10):                                  # don't want too few stars
                     raise RuntimeError('objectgenerator//GenerateStars: population compacted to <10, '
                                         'try not compacting or generating a higher number of stars.')
             '''
         if not np.all(self.sfhist == None):
             rel_num, ages = star_form_history(self.gen_ages, min_age=self.min_ages, sfr=self.sfhist,
                                               Z=self.metal, tau=self.tau_sfh)
-            self.gen_pop_number = np.rint(rel_num*self.N_stars).astype(int)
+            self.gen_n_stars = np.rint(rel_num*self.n_stars).astype(int)
             self.gen_ages = ages
         
         # generate the positions, masses   
-        for i, pop_num in enumerate(self.gen_pop_number):
+        for i, pop_num in enumerate(self.gen_n_stars):
             coords_i = gen_spherical(pop_num, dist_type=self.r_dist_types[i], **self.r_dist_param[i])
             M_init_i, M_diff_i = gen_star_masses(pop_num, 0, imf=self.gen_imf_param[i])
             self.coords = np.append(self.coords, coords_i, axis=0)                           
@@ -311,7 +315,7 @@ class Stars(object):
         This is additive (given angles stack with previous ones).
         """
         # check the input, make sure it is an array of the right size
-        n_pop = len(self.pop_number)
+        n_pop = len(self.n_stars)
         incl = utils.cast_inclination(incl, n_pop)
         
         # check for existing inclination
@@ -328,7 +332,7 @@ class Stars(object):
         
         # rotate the XZ plane (x axis towards positive z)
         if not np.all(self.inclination == 0):
-            indices = np.repeat(np.arange(n_pop), self.pop_number)                                  # population index per star
+            indices = np.repeat(np.arange(n_pop), self.n_stars)                                  # population index per star
             self.coords = conv.RotateXZ(self.coords, self.inclination[indices])
         return
         
@@ -339,7 +343,7 @@ class Stars(object):
         This is additive (given axis sizes stack with previous ones).
         """
         # check the input, make sure it is an array of the right size
-        n_pop = len(self.pop_number)
+        n_pop = len(self.n_stars)
         axes = utils.cast_ellipse_axes(axes, n_pop)
         axes_shape = np.shape(axes)
         
@@ -354,13 +358,13 @@ class Stars(object):
         elif (axes_shape[0] == 1):
             self.coords = self.coords*axes/np.prod(axes)**(1/3)                                     # convert to ellipsoid (keeps volume conserved)
         else:
-            index = np.cumsum(np.append([0], self.gen_pop_number))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_n_stars))                                  # indices defining the different populations
             for i, axes_i in enumerate(self.ellipse_axes):
                 ind_1, ind_2 = index[i], index[i+1]
                 self.coords[ind_1:ind_2] = self.coords[ind_1:ind_2]*axes_i/np.prod(axes_i)**(1/3)
         
         if not (len(np.unique(self.ellipse_axes)) == 1):
-            indices = np.repeat(np.arange(n_pop), self.pop_number)                                  # population index per star
+            indices = np.repeat(np.arange(n_pop), self.n_stars)                                  # population index per star
             self.coords = self.coords*(axes/np.prod(axes)**(1/3))[indices]                          # convert to ellipsoid (keeps volume conserved)
         return
         
@@ -377,7 +381,7 @@ class Stars(object):
             M_cur = self.current_masses
         else:
             M_cur = np.array([])
-            index = np.cumsum(np.append([0], self.gen_pop_number))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_n_stars))                                  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
@@ -405,7 +409,7 @@ class Stars(object):
             R_cur = self.stellar_radii
         else:
             R_cur = np.array([])
-            index = np.cumsum(np.append([0], self.gen_pop_number))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_n_stars))                                  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
@@ -436,7 +440,7 @@ class Stars(object):
             log_L = self.log_luminosities
         else:
             log_L = np.array([])
-            index = np.cumsum(np.append([0], self.gen_pop_number))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_n_stars))                                  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
@@ -469,7 +473,7 @@ class Stars(object):
             log_Te = self.log_temperatures
         else:
             log_Te = np.array([])
-            index = np.cumsum(np.append([0], self.gen_pop_number))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_n_stars))                                  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
@@ -506,7 +510,7 @@ class Stars(object):
                 abs_mag = abs_mag.flatten()                                                         # correct for 2D array
         else:
             abs_mag = np.empty((0,) + (len(filters),)*(len(filters) != 1))
-            index = np.cumsum(np.append([0], self.gen_pop_number))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_n_stars))                                  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
@@ -595,7 +599,7 @@ class Stars(object):
             remnants = self.remnants
         else:
             remnants = np.array([], dtype=bool)
-            index = np.cumsum(np.append([0], self.gen_pop_number))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_n_stars))                                  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 iso_M_ini = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial'])
@@ -1077,7 +1081,7 @@ def gen_spherical(N_stars, dist_type=default_rdist, **kwargs):
     phi_dist = dist.angle_phi(N_stars)                                                               # dist for angle with x axis
     theta_dist = dist.angle_theta(N_stars)                                                           # dist for angle with z axis
     
-    return conv.SpherToCart(r_dist, theta_dist, phi_dist).transpose()
+    return conv.SpherToCart(r_dist, theta_dist, phi_dist)
 
 
 def gen_spiral(N_stars):
