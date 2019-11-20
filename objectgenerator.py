@@ -49,25 +49,35 @@ class Stars(object):
         N_stars (array of int): the total number of stars to make per stellar population.
         M_tot_init (array of float): the total mass in stars to produce per population (in Msol).
         ages (array of float): stellar age for each population (in linear or 10log yr).
+            This is equal to the maximum age when sfh is used.
         metal (array of float): metallicity for each population.
-        rel_num (array of float, optional): the relative number of stars to put 
-            in each population.
+        rel_num (array of float, optional): the relative number of stars to put in each population.
         sfh (array of str and None, optional): type of star formation history to use per population.
+        min_ages (array of float): minimum ages to use in star formation histories, per population
+        tau_sfh (array of float): characteristic timescales for star formation per population
         imf_par (array of float, optional): 2D array of two parameters per stellar population. 
             First parameter is lowest mass, second is highest mass to make.
         r_dist (array of str): type of radial distribution to use per population.
-        r_dist_par (array of dict): parameter values for the radial distributions specified.
+        r_dist_par (array of dict): parameter values for the radial distributions specified
+            (one dictionary per population).
         incl (array of float): inclination values per population (in radians)
         ellipse_axes (array of float): 2D array of one set of axes per population.
             Relative (x,y,z)-sizes to stretch the distributions; volume is kept constant.
-        spiral_arms ():
-        spiral_bulge ():
-        spiral_bar ():
+        spiral_arms (array of int): number of spiral arms (per population).
+        spiral_bulge (array of float): relative proportion of the central bulge (per population).
+        spiral_bar (array of float): relative proportion of the central bar (per population).
         compact_mode (array of str and None): generate only a fraction of the total number of stars.
             choose from 'num' or 'mag' for number or magnitude limited. 
     
     Attributes:
-        
+        All of the arguments described above are stored as attributes.
+        origin (array of float): origin of the stellar distribution (for each population)
+        coords (array of float): 2D array of the cartesian coordinates of the stars. Shape is [N_stars, 3].
+        M_init (array of float):
+        M_diff ():
+        mag_names ():
+        spec_names ():
+        fraction_generated (array of float):
     
     Returns:
         
@@ -77,26 +87,27 @@ class Stars(object):
                  ellipse_axes=None, spiral_arms=None, spiral_bulge=None, spiral_bar=None, 
                  compact_mode=None):
         
-        # cast input to right formats, and perform some checks
-        n_pop = utils.check_number_of_populations(ages, metal, rel_num)                                     # find the intended number of populations
-        self.ages = utils.cast_ages(ages, n_pop)                                                     # ages of the populations (=max age if SFH is used)
-        self.metal = utils.cast_metallicities(metal, n_pop)                                          # metallicities of the populations
-        self.imf_param = utils.cast_imf_parameters(imf_par, n_pop, fill_value=default_imf_par)        # lower bound, upper bound for the IMF masses
+        # cast input to right formats, and perform some checks. first find the intended number of populations
+        n_pop = utils.check_number_of_populations(ages, metal, rel_num)
+        self.ages = utils.cast_ages(ages, n_pop)
+        self.metal = utils.cast_metallicities(metal, n_pop)
+        self.imf_param = utils.cast_imf_parameters(imf_par, n_pop, fill_value=default_imf_par)
         self.imf_param = utils.check_lowest_imf_mass(self.imf_param, self.ages, self.metal)
-        self.M_tot_init = utils.cast_m_total(M_tot_init, n_pop)                                       # total initial mass in Msun (can initially be zero)
-        self.N_stars = utils.CastNStars(N_stars, self.M_tot_init, n_pop, self.imf_param)            # total number of stars
-        self.sfhist = utils.cast_sfhistory(sfh, n_pop)                                               # star formation history types
-        self.min_ages = min_ages                                # minimum ages to use in star formation histories
-        self.tau_sfh = tau_sfh                                  # characteristic timescales for star formation
-        # shape parameters
-        self.inclination = utils.cast_inclination(incl, n_pop)                                       # inclination of the stars per population
-        self.r_dist_types = utils.cast_radial_dist_type(r_dist, n_pop)                                 # type of radial distribution per population
+        self.M_tot_init = utils.cast_m_total(M_tot_init, n_pop)
+        self.N_stars = utils.CastNStars(N_stars, self.M_tot_init, n_pop, self.imf_param)
+        self.sfhist = utils.cast_sfhistory(sfh, n_pop)
+        self.min_ages = min_ages
+        self.tau_sfh = tau_sfh
+
+        # parameters defining the shape
+        self.inclination = utils.cast_inclination(incl, n_pop)
+        self.r_dist_types = utils.cast_radial_dist_type(r_dist, n_pop)
         self.r_dist_types = utils.check_radial_dist_type(self.r_dist_types)
-        self.r_dist_param = utils.cast_radial_dist_param(r_dist_par, self.r_dist_types, n_pop)         # the further spatial distribution parameters (dictionary per population)
-        self.ellipse_axes = utils.cast_ellipse_axes(ellipse_axes, n_pop)                              # relative axis size for ellipsoidal shapes
-        self.spiral_arms = spiral_arms                          # number of spiral arms (per population)
-        self.spiral_bulge = spiral_bulge                        # relative proportion of central bulge (per population)
-        self.spiral_bar = spiral_bar                            # relative proportion of central bar (per population)
+        self.r_dist_param = utils.cast_radial_dist_param(r_dist_par, self.r_dist_types, n_pop)
+        self.ellipse_axes = utils.cast_ellipse_axes(ellipse_axes, n_pop)
+        self.spiral_arms = spiral_arms
+        self.spiral_bulge = spiral_bulge
+        self.spiral_bar = spiral_bar
         
         # properties that are derived/generated
         self.origin = np.zeros([n_pop, 3])                                                          # origin of the stellar distribution (for each population)
