@@ -18,8 +18,7 @@ def pdf_kroupa_imf(M, imf=None):
     if not imf:
         imf = default_imf_par
     M_low, M_high = imf
-    # fixed turnover position (where slope changes)
-    M_mid = 0.5
+    M_mid = 0.5  # fixed turnover position (where slope changes)
     c_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
     c_low = (1/0.35*M_low**(-0.35) + c_mid - M_mid/1.35*M_high**(-1.35))**-1
     c_high = c_low*M_mid
@@ -33,8 +32,7 @@ def kroupa_imf(n=1, imf=None):
     if not imf:
         imf = default_imf_par
     M_low, M_high = imf
-    # fixed turnover position (where slope changes)
-    M_mid = 0.5
+    M_mid = 0.5  # fixed turnover position (where slope changes)
     n_uniform = np.random.rand(int(n))
     # same constants as are in the IMF:
     c_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)

@@ -20,7 +20,7 @@ L_sun = 3.828*10**26            # W         solar luminosity
 R_sun = 6.9551*10**8            # m         solar radius
 M_ch = 1.456                    # M_sun     Chandrasekhar mass
 H_0 = 67                        # km/s/Mpc  Hubble constant at present epoch
-d_H = c_light*10**3/H_0         # pc        Hubble distance_3d
+d_H = c_light*10**3/H_0         # pc        Hubble distance
 om_r = 9*10**-5                 # frac      omega radiation
 om_m = 0.315                    # frac      omega matter
 om_l = 0.685                    # frac      omega lambda ('dark energy')
@@ -31,21 +31,22 @@ NS_mass = 1.2                   # M_sun     lower mass bound for NSs
 BH_mass = 2.0                   # M_sun     lower mass bound for BHs
 
 
-def distance_3d(points, position=None):
-    """Calculates the 3 dimensional distance between a set of points and a position (default at origin)."""
+def distance_3d(coords, position=None):
+    """Calculates the 3 dimensional distance between a set of coordinates and a position (default at origin).
+    First axis is assumed to correspond to x,y,z (so x=coords[0]).
+    """
     if not position:
         position = [0, 0, 0]
-    # change array to [xs, ys, zs]
-    coords = points.transpose()
     return ((coords[0] - position[0])**2 + (coords[1] - position[1])**2 + (coords[2] - position[2])**2)**(1/2)
 
 
-def distance_2d(points, position=None):
-    """Calculates the 2 dimensional distance between a set of points and a position (default at origin)."""
+def distance_2d(coords, position=None):
+    """Calculates the 2 dimensional distance between a set of coordinates and a position (default at origin).
+    First axis is assumed to correspond to x,y,z (so x=coords[0]).
+    """
     if not position:
         position = [0, 0]
     # change array to [xs, ys]
-    coords = points.transpose()
     return ((coords[0] - position[0])**2 + (coords[1] - position[1])**2)**(1/2)
 
 
@@ -91,7 +92,7 @@ def bb_magnitude(T_eff, R, filters, filter_means=None):
     spec_flux_density = np.pi*spec_radiance                     # W/m^3     integrate d(Ohm)d(nu)
     spec_flux = spec_flux_density*(R*R_sun)**2                  # W/m       times surface star
     calibrated_spec_flux_density = spec_flux/(10*parsec)**2     # W/m^3     at ten pc
-    mag = conv.FluxToMag(calibrated_spec_flux_density, filters=filters)
+    mag = conv.flux_to_mag(calibrated_spec_flux_density, filters=filters)
     return mag
 
 
@@ -132,7 +133,7 @@ def light_travel_time(z, points=1e4):
 
     
 def d_comoving(z, points=1e4):
-    """Gives the comoving distance_3d (in pc) given the redshift z.
+    """Gives the comoving distance (in pc) given the redshift z.
     points is the number of steps for integration: higher=more precision, lower=faster.
     """
     # default minimum valid (log)redshift
@@ -163,7 +164,7 @@ def d_comoving(z, points=1e4):
 
 
 def d_luminosity(z, points=1e4):
-    """Gives the luminosity distance_3d (in pc) to the object given the redshift z.
+    """Gives the luminosity distance (in pc) to the object given the redshift z.
     points is the number of steps for integration: higher=more precision, lower=faster.
     """
     # making sure it works for different types of input
@@ -175,7 +176,7 @@ def d_luminosity(z, points=1e4):
 
 
 def d_angular(z, points=1e4):
-    """Gives the angular diameter distance_3d (in pc) to the object given the redshift z.
+    """Gives the angular diameter distance (in pc) to the object given the redshift z.
     points is the number of steps for integration: higher=more precision, lower=faster.
     """
     # making sure it works for different types of input
@@ -186,45 +187,45 @@ def d_angular(z, points=1e4):
     return d_c/(1 + z)
 
 
-def d_luminosity_to_redshift(dist, points=1e3):
-    """Calculates the redshift assuming luminosity distance_3d (in pc) is given.
+def d_luminosity_to_redshift(distance, points=1e3):
+    """Calculates the redshift assuming luminosity distance (in pc) is given.
     Quite slow for arrays (usually not what it would be used for anyway).
     points is the number of steps for which z is calculated.
     """
     # [this formula is a 'conversion' strictly speaking but it is not really meant for number crunching,
-    # and it belongs with the other distance_3d formulas]
-    # precision for distance_3d calculation
+    # and it belongs with the other distance formulas]
+    # precision for distance calculation
     num_dist = 10**3
-    len_flag = hasattr(dist, '__len__')
+    len_flag = hasattr(distance, '__len__')
     
     # making sure it works for many different types of input
     if len_flag:
-        dist = np.array(dist)
+        distance = np.array(distance)
     else:
-        dist = np.array([dist])
+        distance = np.array([distance])
     # first estimate using a linear formula
-    z_est = 7.04208*10**-11*dist
+    z_est = 7.04208*10**-11*distance
     
     z_range = np.linspace(0.1*z_est, 10*z_est + 0.1, int(points))
-    arg_best = np.argmin(np.abs(d_luminosity(z_range, points=num_dist) - dist), axis=0)
+    arg_best = np.argmin(np.abs(d_luminosity(z_range, points=num_dist) - distance), axis=0)
     z_best = z_range[arg_best, np.arange(len(arg_best))]
     if not len_flag:
         z_best = z_best[0]
     return z_best
 
 
-def apparent_magnitude(mag, dist, ext=0):
-    """Compute the apparent magnitude for the absolute magnitude plus a distance_3d (in pc!).
+def apparent_magnitude(mag, distance, ext=0):
+    """Compute the apparent magnitude for the absolute magnitude plus a distance (in pc!).
     ext is an optional extinction to add (waveband dependent).
     """
-    return mag + 5*np.log10(dist/10) + ext
+    return mag + 5*np.log10(distance/10) + ext
 
 
-def absolute_magnitude(mag, dist, ext=0):
-    """Compute the absolute magnitude for the apparant magnitude plus a distance_3d (in pc!).
+def absolute_magnitude(mag, distance, ext=0):
+    """Compute the absolute magnitude for the apparent magnitude plus a distance (in pc!).
     ext is an optional extinction to subtract (waveband dependent).
     """
-    return mag - 5*np.log10(dist/10) - ext
+    return mag - 5*np.log10(distance/10) - ext
 
 
 def mass_fraction_from_limits(mass_limits, imf=None):
@@ -232,8 +233,7 @@ def mass_fraction_from_limits(mass_limits, imf=None):
     if not imf:
         imf = default_imf_par
     M_low, M_high = imf
-    # fixed turnover position (where slope changes)
-    M_mid = 0.5
+    M_mid = 0.5  # fixed turnover position (where slope changes)
     M_lim_low, M_lim_high = mass_limits
     
     # same constants as are in the IMF:
@@ -255,7 +255,7 @@ def mass_limit_from_fraction(frac, M_max=None, imf=None):
     if not imf:
         imf = default_imf_par
     M_low, M_high = imf
-    M_mid = 0.5  
+    M_mid = 0.5  # fixed turnover position (where slope changes)
     if (M_max is None):
         M_max = M_high
     
@@ -407,7 +407,7 @@ def remnant_temperature(M_rem, R_rem, t_cool):
                       * (R_rem[mask_WD])**(-1/2))
     # [crude approx. https://pdfs.semanticscholar.org/2c10/e76c6c264161c48a4742d4c3ba80ed7fbc3f.pdf]
     # T_rem[mask_NS] = 2*10**(32/5)*t_cool[mask_NS]**(-2/5)
-    log_g = conv.RadiusToGravity(R_rem[mask_NS], M_rem[mask_NS])
+    log_g = conv.radius_to_gravity(R_rem[mask_NS], M_rem[mask_NS])
     # quite involved this... [Ofengeim and Yakovlev, 2017] http://www.ioffe.ru/astro/Stars/Paper/ofengeim_yak17mn.pdf
     T_rem[mask_NS] = ((10**6*a_ns*10**log_g/10**14)**(1/4) 
                       * ((s_ns/q_ns)/(np.e**(6*s_ns*t_cool[mask_NS]) - 1))**(1/12)

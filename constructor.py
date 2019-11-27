@@ -639,7 +639,7 @@ def SpiralArms(struct, default=False):
     elif (default | (struct in ['ellipsoid', 'elliptical'])):
         arms = 0
     elif (struct == 'spiral'):
-        arms_str = utils.while_ask('Amount of spiral arms', '[2]', function='SpiralArms', check='int')
+        arms_str = utils.while_ask('Amount of spiral arms', '[2]', function='gen_spiral_arms', check='int')
         
         arms = int(arms_str)
         if (arms < 1):

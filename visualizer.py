@@ -4,6 +4,7 @@ Just for convenience really. And nice plots.
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcol
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 
 import conversions as conv
 
@@ -23,7 +24,7 @@ def scatter_2d(coords, title='Scatter', xlabel='x', ylabel='y', axes='xy', colou
 
     # colours can be made to match the temperature (using T_eff)
     if (T_eff is not None):
-        colour = conv.TemperatureToRGB(T_eff).transpose()
+        colour = conv.temperature_to_rgb(T_eff).transpose()
         # make dead stars grey and add alpha
         colour[T_eff <= 10] = [0.2, 0.2, 0.2]
         colour = mcol.to_rgba_array(colour, 0.5)
@@ -50,7 +51,7 @@ def scatter_2d(coords, title='Scatter', xlabel='x', ylabel='y', axes='xy', colou
         sizes = 20  # default size
     
     fig, ax = plt.subplots(figsize=[7.0, 5.5])
-    ax.scatter(coords[:, hor_axis], coords[:, vert_axis], marker='.', linewidths=0.0, c=colour, s=sizes)
+    ax.scatter(coords[hor_axis], coords[vert_axis], marker='.', linewidths=0.0, c=colour, s=sizes)
     
     # take the maximum coordinate distance_3d as axis sizes
     axis_size = np.max(np.abs(coords))
@@ -134,7 +135,7 @@ def scatter_3d(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z', colo
     """
     # colours can be made to match the temperature (using T_eff)
     if (T_eff is not None):
-        colour = conv.TemperatureToRGB(T_eff).transpose()
+        colour = conv.temperature_to_rgb(T_eff).transpose()
         # make dead stars grey and add alpha
         colour[T_eff <= 10] = [0.2, 0.2, 0.2]
         colour = mcol.to_rgba_array(colour, 0.5)
@@ -161,7 +162,7 @@ def scatter_3d(coords, title='Scatter', xlabel='x', ylabel='y', zlabel='z', colo
         sizes = 20  # default size
     
     fig, ax = plt.subplots(subplot_kw=dict(projection='3d'), figsize=[6.0, 6.0])
-    ax.scatter(coords[:, 0], coords[:, 1], coords[:, 2], marker='.', linewidths=0.0, c=colour, s=sizes)
+    ax.scatter(coords[0], coords[1], coords[2], marker='.', linewidths=0.0, c=colour, s=sizes)
     
     # take the maximum coordinate distance_3d as axis sizes
     axis_size = np.max(np.abs(coords))
@@ -248,7 +249,7 @@ def hr_diagram(T_eff, log_lum, title='hr_diagram', xlabel='Temperature (K)', yla
     
     # colours can be made to match the temperature (using T_eff)
     if ((T_eff is not None) & (colour == 'temperature')):
-        colour = conv.TemperatureToRGB(T_eff).transpose()
+        colour = conv.temperature_to_rgb(T_eff).transpose()
         # make dead stars grey and add alpha
         colour[T_eff <= 10] = [0.2, 0.2, 0.2]
         colour = mcol.to_rgba_array(colour, 0.5)
@@ -326,7 +327,7 @@ def cm_diagram(c_mag, mag, title='cm_diagram', xlabel='colour', ylabel='magnitud
     """
     # colours can be made to match the temperature (using T_eff)
     if (T_eff is not None):
-        colour = conv.TemperatureToRGB(T_eff).transpose()
+        colour = conv.temperature_to_rgb(T_eff).transpose()
         # make dead stars grey and add alpha
         colour[T_eff <= 10] = [0.2, 0.2, 0.2]
         colour = mcol.to_rgba_array(colour, 0.5)
