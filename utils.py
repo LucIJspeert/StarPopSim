@@ -581,7 +581,7 @@ def cast_radial_dist_param(r_dist_par, r_dist, n_pop):
     Uses parameter names 'n' and 's' in function signatures.
     """
     # get the function signatures for the given distributions
-    func_sigs = [inspect.signature(eval('dist.' + dist_type)) for dist_type in r_dist]
+    func_sigs = [inspect.signature(getattr(dist, dist_type)) for dist_type in r_dist]
     
     # cast to right form and check if dist parameters are correctly specified
     if not r_dist_par:

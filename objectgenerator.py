@@ -1083,7 +1083,7 @@ def gen_spherical(N_stars, dist_type=default_rdist, **kwargs):
         dist_type = default_rdist + '_r'
     
     # check if right parameters given    
-    sig = inspect.signature(eval('dist.' + dist_type))                                              # parameters of the dist function (includes n)
+    sig = inspect.signature(getattr(dist, dist_type))                                               # parameters of the dist function (includes n)
     dict = kwargs.copy()                                                                            # need a copy for popping in iteration
     for key in dict:
         if key not in sig.parameters:
@@ -1091,7 +1091,7 @@ def gen_spherical(N_stars, dist_type=default_rdist, **kwargs):
                            'parameters. Deleted entry.\n    {0} = {1}'
                            ).format(key, kwargs.pop(key, None)), SyntaxWarning)
     
-    r_dist = eval('dist.' + dist_type)(n=N_stars, **kwargs)                                         # the radial distribution
+    r_dist = getattr(dist, dist_type)(n=N_stars, **kwargs)                                           # the radial distribution
     phi_dist = dist.angle_phi(N_stars)                                                               # dist for angle with x axis
     theta_dist = dist.angle_theta(N_stars)                                                           # dist for angle with z axis
     

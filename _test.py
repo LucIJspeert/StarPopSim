@@ -853,7 +853,7 @@ import conversions as conv
 import distributions as dist
 
 def GenRadii(N_obj=1, dist_type='exponential_r', scale=1.0):
-    r_dist = eval('dist.' + dist_type)(n=N_obj, s=scale)                                            # the radial distribution
+    r_dist = getattr(dist, dist_type)(n=N_obj, s=scale)                                            # the radial distribution
     phi_dist = dist.angle_phi(N_obj)                                                                 # dist for angle with x axis
     theta_dist = dist.angle_theta(N_obj)                                                             # dist for angle with z axis
     

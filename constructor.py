@@ -546,7 +546,7 @@ def RadialParameters(struct, dist_type_list, default=False):
     if (same_par.lower() in ['n', 'no']):
         dict_list = []
         for i, dist_type in enumerate(dist_type_list):
-            sig = inspect.signature(eval('dist.' + dist_type))                                      # parameters of the dist function (includes n)
+            sig = inspect.signature(getattr(dist, dist_type))                                      # parameters of the dist function (includes n)
             joined_par = ', '.join(['{0}={1}'.format(k, v.default) 
                                     for k, v in sig.parameters.items() if k is not 'n'])
             
@@ -573,7 +573,7 @@ def RadialParameters(struct, dist_type_list, default=False):
             dict_list.append(par_dict)
     elif (same_par.lower() in ['y', 'yes']):
         dist_type = dist_type_list[0]
-        sig = inspect.signature(eval('dist.' + dist_type))                                          # parameters of the dist function (includes n)
+        sig = inspect.signature(getattr(dist, dist_type))                                          # parameters of the dist function (includes n)
         joined_par = ', '.join(['{0}={1}'.format(k, v.default) 
                                 for k, v in sig.parameters.items() if k is not 'n'])
         
