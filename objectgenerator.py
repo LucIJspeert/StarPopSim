@@ -81,15 +81,15 @@ class Stars(object):
             per population (when compact mode is used).
     
     Returns:
-        
+        Stars object
     """    
     def __init__(self, n_stars=0, M_tot_init=0, ages=None, metal=None, imf_par=None, sfh=None,
-                 min_ages=None, tau_sfh=None, incl=None, r_dist=None, r_dist_par=None,
+                 min_ages=None, tau_sfh=None, origin=None, incl=None, r_dist=None, r_dist_par=None,
                  ellipse_axes=None, spiral_arms=None, spiral_bulge=None, spiral_bar=None,
                  compact_mode=None):
         
         # cast input to right formats, and perform some checks. first find the intended number of populations
-        n_pop = utils.check_number_of_populations(ages, metal, rel_num)
+        n_pop = utils.check_number_of_populations(n_stars, M_tot_init, ages, metal)
         self.ages = utils.cast_ages(ages, n_pop)
         self.metal = utils.cast_metallicities(metal, n_pop)
         self.imf_param = utils.cast_imf_parameters(imf_par, n_pop, fill_value=default_imf_par)
@@ -101,6 +101,7 @@ class Stars(object):
         self.tau_sfh = tau_sfh
 
         # parameters defining the shape
+        self.origin = utils.cast_translation(origin, n_pop).T
         self.inclination = utils.cast_inclination(incl, n_pop)
         self.r_dist_types = utils.cast_radial_dist_type(r_dist, n_pop)
         self.r_dist_types = utils.check_radial_dist_type(self.r_dist_types)
@@ -111,7 +112,6 @@ class Stars(object):
         self.spiral_bar = spiral_bar
         
         # properties that are derived/generated
-        self.origin = np.zeros([3, n_pop])
         self.coords = np.empty([3, 0])
         self.M_init = np.array([])
         self.M_diff = np.zeros(n_pop)
@@ -137,7 +137,7 @@ class Stars(object):
     def __repr__(self):
         """Unambiguous representation of what this object is."""
         repr = (f'Stars(N_stars={self.n_stars!r}, M_tot_init={self.M_tot_init!r}, '
-                f'ages={self.ages!r}, metal={self.metal!r}, sfh={self.sfhist!r}, 
+                f'ages={self.ages!r}, metal={self.metal!r}, sfh={self.sfhist!r}, '
                 f'min_ages={self.min_ages!r}, tau_sfh={self.tau_sfh!r}, '
                 f'imf_par={self.imf_param!r}, incl={self.inclination!r}, '
                 f'r_dist={self.r_dist_types!r}, r_dist_par={self.r_dist_param!r}, '
@@ -148,23 +148,23 @@ class Stars(object):
     
     def __str__(self):
         """Nice-to-read representation of what this object is"""
-        string = 'Stars object with parameters:\n'
-        string += f'N_stars:        {self.n_stars!s}\n'
-        string += f'M_tot_init:     {np.round(self.M_tot_init, 1)!s}\n'
-        string += f'ages:           {self.ages!s}\n'
-        string += f'metal:          {self.metal!s}\n'
-        string += f'sfh:            {self.sfhist!s}\n'
-        string += f'min_ages:       {self.min_ages!s}\n'
-        string += f'tau_sfh:        {self.tau_sfh!s}\n'
-        string += f'imf_par:        {[list(item) for item in self.imf_param]!s}\n'
-        string += f'incl:           {self.inclination!s}\n'
-        string += f'r_dist:         {self.r_dist_types!s}\n'
-        string += f'r_dist_par:     {self.r_dist_param!s}\n'
-        string += f'ellipse_axes:   {[list(item) for item in self.ellipse_axes]!s}\n'
-        string += f'spiral_arms:    {self.spiral_arms!s}\n'
-        string += f'spiral_bulge:   {self.spiral_bulge!s}\n'
-        string += f'spiral_bar:     {self.spiral_bar!s}\n'
-        string += f'compact_mode:   {self.compact_mode!s}\n'
+        string = ('Stars object with parameters:\n'
+                  f'N_stars:        {self.n_stars!s}\n'
+                  f'M_tot_init:     {np.round(self.M_tot_init, 1)!s}\n'
+                  f'ages:           {self.ages!s}\n'
+                  f'metal:          {self.metal!s}\n'
+                  f'sfh:            {self.sfhist!s}\n'
+                  f'min_ages:       {self.min_ages!s}\n'
+                  f'tau_sfh:        {self.tau_sfh!s}\n'
+                  f'imf_par:        {[list(item) for item in self.imf_param]!s}\n'
+                  f'incl:           {self.inclination!s}\n'
+                  f'r_dist:         {self.r_dist_types!s}\n'
+                  f'r_dist_par:     {self.r_dist_param!s}\n'
+                  f'ellipse_axes:   {[list(item) for item in self.ellipse_axes]!s}\n'
+                  f'spiral_arms:    {self.spiral_arms!s}\n'
+                  f'spiral_bulge:   {self.spiral_bulge!s}\n'
+                  f'spiral_bar:     {self.spiral_bar!s}\n'
+                  f'compact_mode:   {self.compact_mode!s}\n')
         return string
         
     def __add__(self, other):
@@ -179,6 +179,7 @@ class Stars(object):
         self.min_ages = np.append(self.min_ages, other.min_ages)
         self.tau_sfh = np.append(self.tau_sfh, other.tau_sfh)
         self.imf_param = np.append(self.imf_param, other.imf_param, axis=0)
+        self.origin = np.append(self.origin, other.origin, axis=0)
         self.inclination = np.append(self.inclination, other.inclination)
         self.r_dist_types = np.append(self.r_dist_types, other.r_dist_types)
         self.r_dist_param = np.append(self.r_dist_param, other.r_dist_param)
@@ -188,8 +189,7 @@ class Stars(object):
         self.spiral_bar = np.append(self.spiral_bar, other.spiral_bar)
         self.compact_mode = np.append(self.compact_mode, other.compact_mode)
         # non-user defined:
-        self.pop_origin = np.append(self.pop_origin, other.pop_origin)
-        self.coords = np.append(self.coords, other.coords)
+        self.coords = np.append(self.coords, other.coords, axis=0)
         self.M_init = np.append(self.M_init, other.M_init)
         self.M_diff = np.append(self.M_diff, other.M_diff)
         self.fraction_generated = np.append(self.fraction_generated, other.fraction_generated)
@@ -254,7 +254,7 @@ class Stars(object):
         if self.compact_mode:
             # todo: fix this, needs functions instead of the not-yet-declared vars (and more)
             self.gen_n_stars = np.rint(self.n_stars*self.fraction_generated).astype(int)
-            self.gen_imf_param = mass_limit
+            self.gen_imf_param = np.copy(self.imf_param)
             '''
             # check if compact mode is on
             self.fraction_generated = np.ones_like(self.n_stars, dtype=float)                        # set to ones initially
@@ -318,7 +318,7 @@ class Stars(object):
         n_pop = len(self.n_stars)
         incl = utils.cast_inclination(incl, n_pop)
         
-        # check for existing inclination
+        # check for existing inclination and record the new one
         if hasattr(self, 'inclination'):
             self.inclination += incl
         else:
@@ -347,30 +347,43 @@ class Stars(object):
         axes = utils.cast_ellipse_axes(axes, n_pop)
         axes_shape = np.shape(axes)
         
-        # check for existing ellipse axes
+        # check for existing ellipse axes and record the new ones
         if hasattr(self, 'ellipse_axes'):
             self.ellipse_axes *= axes
         else:
             self.ellipse_axes = axes
         
-        if (len(np.unique(self.ellipse_axes)) == 1):
-            return                                                                                  # no relative change is made
-        elif (axes_shape[0] == 1):
-            self.coords = self.coords*axes/np.prod(axes)**(1/3)                                     # convert to ellipsoid (keeps volume conserved)
-        else:
-            index = np.cumsum(np.append([0], self.gen_n_stars))                                  # indices defining the different populations
-            for i, axes_i in enumerate(self.ellipse_axes):
-                ind_1, ind_2 = index[i], index[i+1]
-                self.coords[ind_1:ind_2] = self.coords[ind_1:ind_2]*axes_i/np.prod(axes_i)**(1/3)
+        # if (len(np.unique(self.ellipse_axes)) == 1):
+        #     return                                               # no relative change is made
+        # elif (axes_shape[0] == 1):
+        #     self.coords = self.coords*axes/np.prod(axes)**(1/3)  # convert to ellipsoid (keeps volume conserved)
+        # else:
+        #     index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
+        #     for i, axes_i in enumerate(self.ellipse_axes):
+        #         ind_1, ind_2 = index[i], index[i+1]
+        #         self.coords[ind_1:ind_2] = self.coords[ind_1:ind_2]*axes_i/np.prod(axes_i)**(1/3)
         
-        if not (len(np.unique(self.ellipse_axes)) == 1):
-            indices = np.repeat(np.arange(n_pop), self.n_stars)                                  # population index per star
-            self.coords = self.coords*(axes/np.prod(axes)**(1/3))[indices]                          # convert to ellipsoid (keeps volume conserved)
+        if not (len(np.unique(axes)) == 1):
+            # population index per star
+            indices = np.repeat(np.arange(n_pop), self.n_stars)
+            # convert to ellipsoid (keeps volume conserved)
+            self.coords = self.coords * (axes / np.prod(axes)**(1 / 3))[indices]
         return
         
-    def AddTranslation():
-        """Translate the origin of the stellar distribution (per population)."""
-        # todo: make this
+    def AddTranslation(self, translation):
+        """Translate the origin of the stellar distribution.
+        Can be specified for each population separately or for all at once.
+        """
+        # check the input, make sure it is an array of the right size
+        n_pop = len(self.n_stars)
+        translation = utils.cast_translation(translation, n_pop)
+        # record the new translation
+        self.origin += translation.T
+        # population index per star
+        indices = np.repeat(np.arange(n_pop), self.n_stars)
+        # move the stars (assuming shape (n_pop, 3) --> cast to (3, #stars))
+        self.coords = self.coords + translation[indices].T
+        return
     
     def CurrentMasses(self, realistic_remnants=True):
         """Gives the current masses of the stars in Msun.
@@ -385,8 +398,7 @@ class Stars(object):
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
-                iso_M_ini, iso_M_act = utils.stellar_isochrone(age, self.metal[i],
-                                                               columns=['M_initial', 'M_current'])   # get the isochrone values
+                iso_M_ini, iso_M_act = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial', 'M_current'])   # get the isochrone values
                 M_init_i = self.M_init[index[i]:index[i+1]]
                 M_cur_i = np.interp(M_init_i, iso_M_ini, iso_M_act, right=0)                        # (right) return 0 for stars heavier than available in isoc file (dead stars)
                 
@@ -413,8 +425,7 @@ class Stars(object):
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
-                iso_M_ini, iso_log_g = utils.stellar_isochrone(age, self.metal[i],
-                                                               columns=['M_initial', 'log_g'])       # get the isochrone values
+                iso_M_ini, iso_log_g = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial', 'log_g'])       # get the isochrone values
                 iso_R_cur = conv.gravity_to_radius(iso_log_g, iso_M_ini)
                 M_init_i = self.M_init[index[i]:index[i+1]]
                 R_cur_i = np.interp(M_init_i, iso_M_ini, iso_R_cur, right=0)                        # (right) return 0 for stars heavier than available in isoc file (dead stars)
@@ -444,8 +455,7 @@ class Stars(object):
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
-                iso_M_ini, iso_log_L = utils.stellar_isochrone(age, self.metal[i],
-                                                               columns=['M_initial', 'log_L'])       # get the isochrone values
+                iso_M_ini, iso_log_L = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial', 'log_L'])       # get the isochrone values
                 M_init_i = self.M_init[index[i]:index[i+1]]
                 log_L_i = np.interp(M_init_i, iso_M_ini, iso_log_L, right=-9)                       # (right) return -9 --> L = 10**-9 Lsun (for stars heavier than available)
                 
@@ -546,7 +556,7 @@ class Stars(object):
         if hasattr(self, 'apparent_magnitudes'):
             app_mag = self.apparent_magnitudes[:, utils.get_filter_mask(filters)]
             if (len(filters) == 1):
-                abs_mag = abs_mag.flatten()                                                         # correct for 2D array
+                app_mag = app_mag.flatten()                                                         # correct for 2D array
         else:
             if (distance > 100*np.abs(np.min(self.coords[:,2]))):                                   # distance 'much larger' than individual variations
                 true_dist = distance - self.coords[:,2]                                             # approximate the individual distance_3d to each star with the z-coordinate
@@ -635,7 +645,7 @@ class Stars(object):
         
         return radii
     
-    def OrbitalVelocities():
+    def OrbitalVelocities(self):
         """"""
         # todo: make this
     
@@ -864,7 +874,7 @@ class Dust():
         """
 
 
-class AstronomicalObject():
+class AstronomicalObject(object):
     """Base class for astronomical objects like clusters and galaxies.
     Contains the basic information and functionality. It is also a composite of the different
     component classes: Stars, Gas and Dust.
@@ -925,7 +935,11 @@ class AstronomicalObject():
     
     def __add__(self):
         pass
-    
+
+    def parsec_to_arcsec(self, length):
+        """Convert a length (pc) to angular size on the sky (as)."""
+        return conv.parsec_to_arcsec(length, self.d_ang)
+
     def AddFieldStars(self, n=10, fov=53, sky_coords=None):
         """Adds (Milky Way) field stars to the object in the given f.o.v (in as).
         [WIP] Nothing is done with sky_coords at the moment.

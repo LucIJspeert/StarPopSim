@@ -618,7 +618,7 @@ def cast_radial_dist_param(r_dist_par, r_dist, n_pop):
 
 
 def cast_ellipse_axes(axes, n_pop):
-    """Cast input for radial distribution type into the right format."""
+    """Cast input for ellipse axes into the right format."""
     if hasattr(axes, '__len__'):
         axes = np.array(axes)
     else:
@@ -634,17 +634,37 @@ def cast_ellipse_axes(axes, n_pop):
     if ((n_pop > 1) & (shape_axes[0] == 1)):
         axes = np.full([n_pop, 3], axes[0])
     elif (shape_axes[0] < n_pop):
-        axes = np.append(axes, np.full(n_pop - shape_axes[0], axes[-1]), axis=0)
+        axes = np.append(axes, np.full(n_pop - shape_axes[0], np.ones(3)), axis=0)
     elif (shape_axes[0] > n_pop):
         warnings.warn('Too many arguments for axes. Excess discarded.', SyntaxWarning)
         axes = axes[:n_pop]
     axes = axes.astype(float)
     return axes
-    
-    
-    
-    
-    
+
+
+def cast_translation(translation, n_pop):
+    """Cast input for coordinate translation into the right format."""
+    if hasattr(translation, '__len__'):
+        translation = np.array(translation)
+    else:
+        translation = np.array([translation])
+
+    shape_trans = np.shape(translation)
+    if ((len(shape_trans) == 1) & (len(translation) % 3 == 0)):
+        translation = translation.reshape(len(translation)//3, 3)
+    elif (len(shape_trans) == 1):
+        raise ValueError('Wrong number of arguments for translation, must be multiple of 3.')
+
+    shape_trans = np.shape(translation)
+    if ((n_pop > 1) & (shape_trans[0] == 1)):
+        translation = np.full([n_pop, 3], translation[0])
+    elif (shape_trans[0] < n_pop):
+        translation = np.append(translation, np.full(n_pop - shape_trans[0], np.zeros(3)), axis=0)
+    elif (shape_trans[0] > n_pop):
+        warnings.warn('Too many arguments for translation. Excess discarded.', SyntaxWarning)
+        translation = translation[:n_pop]
+    return translation
+
     
     
     

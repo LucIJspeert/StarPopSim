@@ -21,7 +21,7 @@
     <property name="ToolWindowPython Console.ShowToolbar" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/imager.py" />
     <property name="run.code.analysis.last.selected.profile" value="aDefault" />
-    <property name="settings.editor.selected.configurable" value="Errors" />
+    <property name="settings.editor.selected.configurable" value="preferences.keymap" />
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
