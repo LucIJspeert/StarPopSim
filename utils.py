@@ -210,7 +210,9 @@ def fix_total(nums, tot):
 
 
 def is_float(value, integer=False):
-    """Just a little thing to check input (string) for being integer or float."""
+    """Just a little thing to check input (string) for being integer or float.
+    :rtype: bool
+    """
     if integer:
         # check for int instead
         try:
@@ -233,12 +235,13 @@ def is_float(value, integer=False):
 
 def while_ask(question, options, add_opt=None, function='', check='str', help_arg=''):
     """Asks a question and checks input in a while loop.
-    question: string containing the question to ask
-    options: list of options separated by </>; can be an empty string
-    add_opt: list of additional options that are not printed (i.e. to define abbreviations)
-    function: the name of the calling function, for use in Help
-    check: type of answer to check for; can be <str>, <float> or <int>
-    args: passed to Help function
+    :param question: string containing the question to ask
+    :param options: list of options separated by </>; can be an empty string
+    :param add_opt: list of additional options that are not printed (i.e. to define abbreviations)
+    :param function: the name of the calling function, for use in Help
+    :param check: type of answer to check for; can be <str>, <float> or <int>
+    :param help_arg: passed to Help function
+    :return: the answer to the question, as either <str>, <float> or <int>
     """
     if (add_opt is None):
         add_opt = []
@@ -338,7 +341,9 @@ def ask_help(function, add_args):
 
 
 def check_answer(ans, question, options, default, function, *args):
-    """Helper function of while_ask."""
+    """Helper function of while_ask.
+    :rtype: string
+    """
     if ((ans == '') & (default != '')):
         ans = default
     elif (ans in ['help', 'h']):
@@ -359,7 +364,9 @@ def check_answer(ans, question, options, default, function, *args):
 
 
 def check_number_of_populations(N, M_tot, ages, metal):
-    """Figures out the intended number of populations from four input parameters."""
+    """Figures out the intended number of populations from four input parameters.
+    :rtype: int
+    """
     if hasattr(N, '__len__'):
         len_N = len(N)
     else:
@@ -393,6 +400,7 @@ def cast_simple_array(arr, length, fill_value='last', warning=None):
     Needs the input as well as the intended lenght of the array.
     Optionally a fill value can be given to fill up missing values, default is last value in arr.
         a warning message can be supplied for when too many values are given.
+    :rtype: np.ndarray
     """
     if hasattr(arr, '__len__'):
         arr = np.array(arr)
@@ -417,7 +425,9 @@ def cast_simple_array(arr, length, fill_value='last', warning=None):
 
 
 def cast_ages(ages, n_pop):
-    """Cast input for ages into the right format."""
+    """Cast input for ages into the right format.
+    :rtype: np.ndarray
+    """
     if (not ages):
         raise ValueError('No age was defined.')
     ages = cast_simple_array(ages, n_pop, fill_value='last')
@@ -425,7 +435,9 @@ def cast_ages(ages, n_pop):
 
 
 def cast_metallicities(metal, n_pop):
-    """Cast input for metalicities into the right format."""
+    """Cast input for metalicities into the right format.
+    :rtype: np.ndarray
+    """
     if (not metal):
         raise ValueError('No metallicity was defined.')
     metal = cast_simple_array(metal, n_pop, fill_value='last')
@@ -433,7 +445,9 @@ def cast_metallicities(metal, n_pop):
 
 
 def cast_imf_parameters(imf_par, n_pop, fill_value='default'):
-    """Cast input for IMF parameters into the right format."""
+    """Cast input for IMF parameters into the right format.
+    :rtype: np.ndarray
+    """
     if (fill_value == 'default'):
         fill_value = default_imf_par
 
@@ -472,7 +486,9 @@ def cast_imf_parameters(imf_par, n_pop, fill_value='default'):
 
 
 def check_lowest_imf_mass(imf_par, ages, metal):
-    """Check the minimum available mass in isoc file"""
+    """Check the minimum available mass per population in isoc file.
+    :rtype: np.ndarray
+    """
     # note: must go after imf_par cast (and ages, metal cast)
     max_lower_mass = np.copy(imf_par[:, 0])  # maximum lowest mass (to use in IMF)
     for i in range(len(ages)):
@@ -484,7 +500,9 @@ def check_lowest_imf_mass(imf_par, ages, metal):
 
 
 def cast_m_total(M_tot, n_pop):
-    """Cast input for total initial mass into the right format."""
+    """Cast input for total initial mass per population into the right format.
+    :rtype: np.ndarray
+    """
     if hasattr(M_tot, '__len__'):
         M_tot = np.array(M_tot)
     else:
@@ -505,7 +523,9 @@ def cast_m_total(M_tot, n_pop):
 
 
 def check_and_cast_n_stars(n_stars, M_tot, n_pop, imf_par):
-    """Check if we got values for number of stars, or calculate them."""
+    """Check if we got values for number of stars (per population), or calculate them.
+    :rtype: np.ndarray
+    """
     if (np.all(n_stars == 0) & np.all(M_tot == 0)):
         raise ValueError('Input mass and number of stars cannot be zero simultaneously.')
     elif np.all(n_stars == 0):
@@ -535,7 +555,9 @@ def check_and_cast_n_stars(n_stars, M_tot, n_pop, imf_par):
 
 
 def cast_sfhistory(sfhist, n_pop):
-    """Cast input for sf-history into the right format."""
+    """Cast input for sf-history into the right format.
+    :rtype: np.ndarray
+    """
     if not sfhist:
         sfhist = np.full(n_pop, None)
     sfhist = cast_simple_array(sfhist, n_pop, fill_value=None, warning='Too many sfh types given. Excess discarded.')
@@ -543,7 +565,9 @@ def cast_sfhistory(sfhist, n_pop):
 
 
 def cast_inclination(incl, n_pop):
-    """Cast input for inclination into the right format."""
+    """Cast input for inclination into the right format.
+    :rtype: np.ndarray
+    """
     if not incl:
         incl = np.zeros(n_pop)
     incl = cast_simple_array(incl, n_pop, fill_value=0, warning='Too many incl values given. Excess discarded.')
@@ -551,7 +575,9 @@ def cast_inclination(incl, n_pop):
 
 
 def cast_radial_dist_type(r_dist, n_pop):
-    """Cast input for radial distribution type into the right format."""
+    """Cast input for radial distribution type into the right format.
+    :rtype: np.ndarray
+    """
     if not r_dist:
         r_dist = np.full(n_pop, default_rdist)
     r_dist = cast_simple_array(r_dist, n_pop, fill_value=default_rdist,
@@ -560,7 +586,9 @@ def cast_radial_dist_type(r_dist, n_pop):
     
 
 def check_radial_dist_type(r_dist):
-    """Check if the dist types exist."""
+    """Check if the dist types exist.
+    :rtype: np.ndarray
+    """
     dist_list = list(set(fnmatch.filter(dir(dist), '*_r')))
     # to make sure we can increase the string length
     r_dist = r_dist.astype(object)
@@ -579,6 +607,7 @@ def check_radial_dist_type(r_dist):
 def cast_radial_dist_param(r_dist_par, r_dist, n_pop):
     """Cast the radial distribution parameters into the right format.
     Uses parameter names 'n' and 's' in function signatures.
+    :rtype: np.ndarray
     """
     # get the function signatures for the given distributions
     func_sigs = [inspect.signature(getattr(dist, dist_type)) for dist_type in r_dist]
@@ -618,7 +647,9 @@ def cast_radial_dist_param(r_dist_par, r_dist, n_pop):
 
 
 def cast_ellipse_axes(axes, n_pop):
-    """Cast input for ellipse axes into the right format."""
+    """Cast input for ellipse axes into the right format.
+    :rtype: np.ndarray
+    """
     if hasattr(axes, '__len__'):
         axes = np.array(axes)
     else:
@@ -643,7 +674,9 @@ def cast_ellipse_axes(axes, n_pop):
 
 
 def cast_translation(translation, n_pop):
-    """Cast input for coordinate translation into the right format."""
+    """Cast input for coordinate translation into the right format.
+    :rtype: np.ndarray
+    """
     if hasattr(translation, '__len__'):
         translation = np.array(translation)
     else:

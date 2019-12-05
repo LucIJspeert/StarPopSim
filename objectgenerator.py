@@ -44,50 +44,55 @@ class Stars(object):
         N_stars and M_tot_init cannot be zero simultaneously.
         ages and metal are both not optional parameters (they might look like they are).
         'array' here means numpy.ndarray, while lists (or even single entries) are also accepted
+    # https://quantecon.org/wiki-py-docstrings/
+
+    Arguments
+    ---------
+
+    n_stars (array of int): the total number of stars to make per stellar population.
+    M_tot_init (array of float): the total mass in stars to produce per population (in Msol).
+    ages (array of float): stellar age for each population (in linear or 10log yr).
+        This is the maximum age when sfh is used.
+    metal (array of float): metallicity for each population.
+    sfh (array of str and None, optional): type of star formation history to use per population.
+    min_ages (array of float): minimum ages to use in star formation histories, per population
+    tau_sfh (array of float): characteristic timescales for star formation per population
+    imf_par (array of float, optional): 2D array of two parameters per stellar population.
+        First parameter is lowest mass, second is highest mass to make.
+    r_dist (array of str): type of radial distribution to use per population.
+    r_dist_par (array of dict): parameter values for the radial distributions specified
+        (one dictionary per population).
+    incl (array of float): inclination values per population (in radians)
+    ellipse_axes (array of float): 2D array of one set of axes per population.
+        Relative (x,y,z)-sizes to stretch the distributions; volume is kept constant.
+    spiral_arms (array of int): number of spiral arms (per population).
+    spiral_bulge (array of float): relative proportion of the central bulge (per population).
+    spiral_bar (array of float): relative proportion of the central bar (per population).
+    compact_mode (array of str and None): generate only a fraction of the total number of stars.
+        choose 'num' or 'mag' for number or magnitude limited.
+
+    Attributes
+    ----------
+
+    All of the arguments described above are stored as attributes.
+    origin (array of float): origin of the stellar distribution (for each population). Shape is [3, n_pop]
+    coords (array of float): 2D array of the cartesian coordinates of the stars. Shape is [3, n_stars].
+    M_init (array of float): the individual masses of the stars in Msol.
+    M_diff (array of float): difference between given and generated mass per population (only when n_stars=0).
+    mag_names (array of str): the filter names of the corresponding default set of supported magnitudes.
+    spec_names (array of str): spectral type names corresponding to the reference numbers in spectral_types.
+    fraction_generated (array of float): part of the total number of stars that has actually been generated
+        per population (when compact mode is used).
     
-    Args:
-        n_stars (array of int): the total number of stars to make per stellar population.
-        M_tot_init (array of float): the total mass in stars to produce per population (in Msol).
-        ages (array of float): stellar age for each population (in linear or 10log yr).
-            This is equal to the maximum age when sfh is used.
-        metal (array of float): metallicity for each population.
-        rel_num (array of float, optional): the relative number of stars to put in each population.
-        sfh (array of str and None, optional): type of star formation history to use per population.
-        min_ages (array of float): minimum ages to use in star formation histories, per population
-        tau_sfh (array of float): characteristic timescales for star formation per population
-        imf_par (array of float, optional): 2D array of two parameters per stellar population. 
-            First parameter is lowest mass, second is highest mass to make.
-        r_dist (array of str): type of radial distribution to use per population.
-        r_dist_par (array of dict): parameter values for the radial distributions specified
-            (one dictionary per population).
-        incl (array of float): inclination values per population (in radians)
-        ellipse_axes (array of float): 2D array of one set of axes per population.
-            Relative (x,y,z)-sizes to stretch the distributions; volume is kept constant.
-        spiral_arms (array of int): number of spiral arms (per population).
-        spiral_bulge (array of float): relative proportion of the central bulge (per population).
-        spiral_bar (array of float): relative proportion of the central bar (per population).
-        compact_mode (array of str and None): generate only a fraction of the total number of stars.
-            choose 'num' or 'mag' for number or magnitude limited.
-    
-    Attributes:
-        All of the arguments described above are stored as attributes.
-        origin (array of float): origin of the stellar distribution (for each population). Shape is [3, n_pop]
-        coords (array of float): 2D array of the cartesian coordinates of the stars. Shape is [3, n_stars].
-        M_init (array of float): the individual masses of the stars in Msol.
-        M_diff (array of float): difference between given and generated mass per population (only when n_stars=0).
-        mag_names (array of str): the filter names of the corresponding default set of supported magnitudes.
-        spec_names (array of str): spectral type names corresponding to the reference numbers in spectral_types.
-        fraction_generated (array of float): part of the total number of stars that has actually been generated
-            per population (when compact mode is used).
-    
-    Returns:
-        Stars object
+    Returns
+    Stars object
+
     """    
     def __init__(self, n_stars=0, M_tot_init=0, ages=None, metal=None, imf_par=None, sfh=None,
                  min_ages=None, tau_sfh=None, origin=None, incl=None, r_dist=None, r_dist_par=None,
                  ellipse_axes=None, spiral_arms=None, spiral_bulge=None, spiral_bar=None,
                  compact_mode=None):
-        
+
         # cast input to right formats, and perform some checks. first find the intended number of populations
         n_pop = utils.check_number_of_populations(n_stars, M_tot_init, ages, metal)
         self.ages = utils.cast_ages(ages, n_pop)
@@ -544,7 +549,7 @@ class Stars(object):
         
         return abs_mag
     
-    def ApparentMagnitudes(self, distance, filters=None, add_redshift=False):
+    def ApparentMagnitudes(self, distance, filters=None, extinction=0, add_redshift=False, redshift=None):
         """Computes the apparent magnitude from the absolute magnitude and the individual distances 
         (in pc). Needs the luminosity distance to the astronomical object (in pc).
         A list of filters can be specified; None will result in all available magnitudes.
@@ -568,14 +573,14 @@ class Stars(object):
             # add redshift (rough approach)
             if add_redshift:
                 filter_means = utils.open_photometric_data(columns=['mean'], filters=filters)
-                shifted_filters = (1 + self.redshift)*filter_means
+                shifted_filters = (1 + redshift)*filter_means
                 R_cur = self.StellarRadii(realistic_remnants=True)
                 T_eff = 10**self.LogTemperatures(realistic_remnants=True)
                 abs_mag = form.bb_magnitude(T_eff, R_cur, filters, filter_means=shifted_filters)
             else:
                 abs_mag = self.AbsoluteMagnitudes(filters=filters)
             
-            app_mag = form.apparent_magnitude(abs_mag, true_dist, ext=self.extinction)                     # true_dist in pc!
+            app_mag = form.apparent_magnitude(abs_mag, true_dist, ext=extinction)                     # true_dist in pc!
         
         return app_mag
         
@@ -649,7 +654,7 @@ class Stars(object):
         """"""
         # todo: make this
     
-    def HalfMassRadius(self, unit='pc', spher=False):
+    def HalfMassRadius(self, spher=False):
         """Returns the (spherical or cylindrical) half mass radius in pc/as."""
         M_cur = self.CurrentMasses()
         tot_mass = np.sum(M_cur)                                                                    # do this locally, to avoid unnecesairy overhead
@@ -664,13 +669,9 @@ class Stars(object):
         mass_sorted = M_cur[indices]                                                                # masses sorted for radius
         mass_sum = np.cumsum(mass_sorted)                                                           # cumulative sum of sorted masses
         hmr = np.max(r_sorted[mass_sum <= tot_mass/2])                                              # 2D/3D radius at half the mass
-        
-        if (unit == 'as'):                                                                          # convert to arcsec if wanted
-            hmr = conv.parsec_to_arcsec(hmr, self.d_ang)
-            
         return hmr
         
-    def HalfLumRadius(self, unit='pc', spher=False):
+    def HalfLumRadius(self, spher=False):
         """Returns the (spherical or cylindrical) half luminosity radius in pc/as."""
         lum = 10**self.LogLuminosities(realistic_remnants=False)
         
@@ -686,91 +687,7 @@ class Stars(object):
         lum_sorted = lum[indices]                                                                   # luminosities sorted for radius
         lum_sum = np.cumsum(lum_sorted)                                                             # cumulative sum of sorted luminosities
         hlr = np.max(r_sorted[lum_sum <= tot_lum/2])                                                # 2D/3D radius at half the luminosity
-        
-        if (unit == 'as'):                                                                          # convert to arcsec if wanted
-            hlr = conv.parsec_to_arcsec(hlr, self.d_ang)
-            
         return hlr
-        
-    def Plot2D(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', 
-               filter='V', theme='dark1', show=True):
-        """Make a plot of the object positions in two dimensions
-        Set colour to 'temperature' for a temperature representation.
-        Set filter to None to avoid markers scaling in size with magnitude.
-        Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
-            saveable dark plot, 'fits' for a plot that resembles a .fits image,
-            and None for normal light colours.
-        """
-        if (filter is not None):
-            mags = self.ApparentMagnitudes(filter=filter)
-        else:
-            mags = None
-        
-        if (colour == 'temperature'):
-            temps = 10**self.LogTemperatures()
-        else:
-            temps = None
-        
-        vis.scatter_2d(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
-                       axes=axes, colour=colour, T_eff=temps, mag=mags, theme=theme, show=show)
-        return
-        
-    def Plot3D(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', 
-               filter='V', theme='dark1', show=True):
-        """Make a plot of the object positions in three dimensions.
-        Set colour to 'temperature' for a temperature representation.
-        Set filter to None to avoid markers scaling in size with magnitude.
-        Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
-            saveable dark plot, and None for normal light colours.
-        """
-        if (filter is not None):
-            mags = self.ApparentMagnitudes(filter=filter)
-        else:
-            mags = None
-        
-        if (colour == 'temperature'):
-            temps = 10**self.LogTemperatures()
-        else:
-            temps = None
-        
-        vis.scatter_3d(self.coords, title=title, xlabel=xlabel, ylabel=ylabel,
-                       axes=axes, colour=colour, T_eff=temps, mag=mags, theme=theme, show=show)
-        return
-        
-    def PlotHRD(self, title='hr_diagram', colour='temperature', theme='dark1', show=True):
-        """Make a plot of stars in an HR diagram.
-        Set colour to 'temperature' for a temperature representation.
-        Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but 
-            saveable dark plot, and None for normal light colours.
-        """
-        r_mask = np.invert(self.Remnants())
-        temps = 10**self.LogTemperatures()
-        lums = self.LogLuminosities()
-        
-        vis.hr_diagram(T_eff=temps, log_lum=lums, title=title, xlabel='Temperature (K)',
-                       ylabel=r'Luminosity log($L/L_\odot$)', colour=colour, theme=theme, mask=r_mask, show=show)
-        return
-        
-    def PlotCMD(self, x='B-V', y='V', title='cm_diagram', colour='blue', theme='dark1', show=True):
-        """Make a plot of the stars in a cm_diagram
-        Set x and y to the colour and magnitude to be used (x needs format 'A-B')
-        Set colour to 'temperature' for a temperature representation.
-        """
-        x_filters = x.split('-')
-        mag_A = self.ApparentMagnitudes(filter=x_filters[0])
-        mag_B = self.ApparentMagnitudes(filter=x_filters[1])
-        c_mag = mag_A - mag_B
-        
-        if (y == x_filters[0]):
-            mag = mag_A
-        elif (y == x_filters[1]):
-            mag = mag_B
-        else:
-            mag = self.ApparentMagnitudes(filter=y)
-        
-        vis.cm_diagram(c_mag, mag, title='cm_diagram', xlabel=x, ylabel=y,
-                       colour='blue', T_eff=None, theme=None, adapt_axes=True, mask=None, show=show)
-        return
         
     def PerformanceMode(self, full=False, turn_off=False):
         """Sacrifices memory usage for performance during the simulation of images or other tasks.
@@ -937,7 +854,7 @@ class AstronomicalObject(object):
         pass
 
     def parsec_to_arcsec(self, length):
-        """Convert a length (pc) to angular size on the sky (as)."""
+        """Convert a length (pc) to angular size on the sky (as). Can be used for coordinates and radii."""
         return conv.parsec_to_arcsec(length, self.d_ang)
 
     def AddFieldStars(self, n=10, fov=53, sky_coords=None):
@@ -969,7 +886,7 @@ class AstronomicalObject(object):
         # todo: WIP
         return
         
-    def AddNGS(self, mag=[13], filter='V', pos_x=None, pos_y=None, spec_types='G0V'):
+    def AddNGS(self, mag=13, filter='V', pos_x=None, pos_y=None, spec_types='G0V'):
         """Adds one or more natural guide star(s) for the adaptive optics.
         The SCAO mode can only use one NGS that has to be within a magnitude of 10-16 (optical).
         The MCAO mode can track multiple stars. Positions can be specified manually (in as!),
@@ -1015,7 +932,87 @@ class AstronomicalObject(object):
         
         self.natural_guide_stars = [pos_x, pos_y, mag, filt, spec_types]
         return
-    
+
+    def PlotStars2D(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', filter='V', theme='dark1',
+               show=True):
+        """Make a plot of the object positions in two dimensions
+        Set colour to 'temperature' for a temperature representation.
+        Set filter to None to avoid markers scaling in size with magnitude.
+        Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but
+            saveable dark plot, 'fits' for a plot that resembles a .fits image,
+            and None for normal light colours.
+        """
+        # todo: fix the plotting functions for their new class
+        if (filter is not None):
+            mags = self.ApparentMagnitudes(filters=filter)
+        else:
+            mags = None
+
+        if (colour == 'temperature'):
+            temps = 10**self.LogTemperatures()
+        else:
+            temps = None
+
+        vis.scatter_2d(self.coords, title=title, xlabel=xlabel, ylabel=ylabel, axes=axes, colour=colour, T_eff=temps,
+                       mag=mags, theme=theme, show=show)
+        return
+
+    def PlotStars3D(self, title='Scatter', xlabel='x', ylabel='y', colour='blue', filter='V', theme='dark1', show=True):
+        """Make a plot of the object positions in three dimensions.
+        Set colour to 'temperature' for a temperature representation.
+        Set filter to None to avoid markers scaling in size with magnitude.
+        Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but
+            saveable dark plot, and None for normal light colours.
+        """
+        if (filter is not None):
+            mags = self.ApparentMagnitudes(filters=filter)
+        else:
+            mags = None
+
+        if (colour == 'temperature'):
+            temps = 10**self.LogTemperatures()
+        else:
+            temps = None
+
+        vis.scatter_3d(self.coords, title=title, xlabel=xlabel, ylabel=ylabel, colour=colour, T_eff=temps, mag=mags,
+                       theme=theme, show=show)
+        return
+
+    def PlotHRD(self, title='hr_diagram', colour='temperature', theme='dark1', show=True):
+        """Make a plot of stars in an HR diagram.
+        Set colour to 'temperature' for a temperature representation.
+        Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but
+            saveable dark plot, and None for normal light colours.
+        """
+        r_mask = np.invert(self.Remnants())
+        temps = 10**self.LogTemperatures()
+        lums = self.LogLuminosities()
+
+        vis.hr_diagram(T_eff=temps, log_lum=lums, title=title, xlabel='Temperature (K)',
+                       ylabel=r'Luminosity log($L/L_\odot$)', colour=colour, theme=theme, mask=r_mask, show=show)
+        return
+
+    def PlotCMD(self, x='B-V', y='V', title='cm_diagram', colour='blue', theme=None, show=True):
+        """Make a plot of the stars in a cm_diagram
+        Set x and y to the colour and magnitude to be used (x needs format 'A-B')
+        Set colour to 'temperature' for a temperature representation.
+        """
+        x_filters = x.split('-')
+        mag_A = self.ApparentMagnitudes(filters=x_filters[0])
+        mag_B = self.ApparentMagnitudes(filters=x_filters[1])
+        c_mag = mag_A - mag_B
+
+        if (y == x_filters[0]):
+            mag = mag_A
+        elif (y == x_filters[1]):
+            mag = mag_B
+        else:
+            mag = self.ApparentMagnitudes(filters=y)
+
+        vis.cm_diagram(c_mag, mag, title=title, xlabel=x, ylabel=y,
+                       colour=colour, T_eff=None, theme=theme, adapt_axes=True, mask=None, show=show)
+        return
+
     def SaveTo(self, filename):
         """Saves the class to a file."""
         if (filename[-4:] != '.pkl'):
@@ -1111,13 +1108,16 @@ def gen_irregular(N_stars):
     """Make an irregular galaxy"""
     
 
-def gen_star_masses(N_stars=0, M_tot=0, imf=[0.08, 150]):
+def gen_star_masses(N_stars=0, M_tot=0, imf=None):
     """Generate masses using the Initial Mass Function. 
     Either number of stars or total mass should be given.
     imf defines the lower and upper bound to the masses generated in the IMF.
     Also gives the difference between the total generated mass and the input mass 
         (or estimated mass when using N_stars).
     """
+    if not imf:
+        imf = default_imf_par
+
     # check input (N_stars or M_tot?)
     if (N_stars == 0) & (M_tot == 0):
         warnings.warn(('objectgenerator//gen_star_masses: Input mass and number of stars '
@@ -1239,11 +1239,14 @@ def find_spectral_type(T_eff, Lum, Mass):
     return indices, type_selection
 
 
-def number_limited(N, age, Z, imf=default_imf_par):
+def number_limited(N, age, Z, imf=None):
     """Retrieves the lower mass limit for which the number of stars does not exceed 10**7. 
     Will also give an upper mass limit based on the values in the isochrone.
     The intended number of generated stars, age and metallicity are needed.
     """
+    if not imf:
+        imf = default_imf_par
+
     fraction = np.clip(limiting_number/N, 0, 1)                                                     # fraction of the total number of stars to generate
     
     M_ini = utils.stellar_isochrone(age, Z, columns=['M_initial'])                                   # get the isochrone values
