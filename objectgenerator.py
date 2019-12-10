@@ -36,19 +36,19 @@ default_mag_lim = 32            # magnitude limit for compact mode
 limiting_number = 10**7         # maximum number of stars for compact mode 
 
 
-class Stars(object):
+class Stars():
     """Generates populations of stars and contains all the information about them.
     Also functions that can be performed on the stars are defined here.
-    
-    Note:
-        N_stars and M_tot_init cannot be zero simultaneously.
-        ages and metal are both not optional parameters (they might look like they are).
-        'array' here means numpy.ndarray, while lists (or even single entries) are also accepted
+
+    Notes
+    -----
+    N_stars and M_tot_init cannot be zero simultaneously.
+    ages and metal are both not optional parameters (they might look like they are).
+    'array' here means numpy.ndarray, while lists (or even single entries) are also accepted
     # https://quantecon.org/wiki-py-docstrings/
 
     Arguments
     ---------
-
     n_stars (array of int): the total number of stars to make per stellar population.
     M_tot_init (array of float): the total mass in stars to produce per population (in Msol).
     ages (array of float): stellar age for each population (in linear or 10log yr).
@@ -73,7 +73,6 @@ class Stars(object):
 
     Attributes
     ----------
-
     All of the arguments described above are stored as attributes.
     origin (array of float): origin of the stellar distribution (for each population). Shape is [3, n_pop]
     coords (array of float): 2D array of the cartesian coordinates of the stars. Shape is [3, n_stars].
@@ -83,9 +82,11 @@ class Stars(object):
     spec_names (array of str): spectral type names corresponding to the reference numbers in spectral_types.
     fraction_generated (array of float): part of the total number of stars that has actually been generated
         per population (when compact mode is used).
-    
+
     Returns
-    Stars object
+    -------
+    object
+        Contains all information about the stars. Stars are not yet generated when the object is initialized.
 
     """    
     def __init__(self, n_stars=0, M_tot_init=0, ages=None, metal=None, imf_par=None, sfh=None,
@@ -134,11 +135,8 @@ class Stars(object):
         self.gen_n_stars = self.n_stars
         # the actual ages to be generated for each population (for sfhist)
         self.gen_ages = self.ages
-
-        # actually generate the stars
-        self.GenerateStars()
         return
-    
+
     def __repr__(self):
         """Unambiguous representation of what this object is."""
         repr = (f'Stars(N_stars={self.n_stars!r}, M_tot_init={self.M_tot_init!r}, '
@@ -253,44 +251,13 @@ class Stars(object):
     #     else:
     #         return self.__add__(other)
     
-    def GenerateStars(self):
-        """Generate the masses and positions of the stars."""
+    def GenerateStars(self, d_lum=None, extinction=None):
+        """Generate the masses and positions of the stars. Not automatically done on initiate."""
         # assign the right values for generation (start of generating sequence)
         if self.compact_mode:
-            # todo: fix this, needs functions instead of the not-yet-declared vars (and more)
-            self.gen_imf_param, self.fraction_generated = compactify(self.compact_mode, self.n_stars, self.mag_limit,
-                                                                     imf=self.imf_param)
+            self.gen_imf_param, self.fraction_generated = self.compact_parameters(d_lum=d_lum, extinction=extinction)
             self.gen_n_stars = np.rint(self.n_stars*self.fraction_generated).astype(int)
-            '''
-            # check if compact mode is on
-            self.fraction_generated = np.ones_like(self.n_stars, dtype=float)                        # set to ones initially
-            mass_limit = np.copy(self.imf_param[:])                                                     # set to imf params initially
-            
-            if self.compact_mode:
-                if (self.mag_limit is None):
-                    self.mag_limit = default_mag_lim                                                    # if not specified, use default
-                
-                for i, pop_num in enumerate(self.n_stars):
-                    if (self.compact_mode == 'mag'):
-                        mass_limit[i] = magnitude_limited(self.ages[i], self.metal[i], 
-                                                            mag_lim=self.mag_limit, distance=self.d_lum, 
-                                                            ext=self.extinction, filter='Ks')
-                    else:
-                        mass_limit[i] = number_limited(self.n_stars, self.ages[i], 
-                                                        self.metal[i], imf=self.imf_param[i])
-                    
-                    if (mass_limit[i, 1] > self.imf_param[i, 1]):
-                        mass_limit[i, 1] = self.imf_param[i, 1]                                         # don't increase the upper limit!
-                    
-                    self.fraction_generated[i] = form.mass_fraction_from_limits(mass_limit[i], 
-                                                                    imf=self.imf_param[i])
-                if np.any(mass_limit[:, 0] > mass_limit[:, 1]):                                       
-                    raise RuntimeError('compacting failed, '
-                                        'mass limit raised above upper mass.')                              # lower limit > upper limit!
-                elif np.any(self.n_stars*self.fraction_generated < 10):                                  # don't want too few stars
-                    raise RuntimeError('Population compacted to <10, '
-                                        'try not compacting or generating a higher number of stars.')
-            '''
+
         if not np.all(self.sfhist == None):
             rel_num, ages = star_form_history(self.gen_ages, min_age=self.min_ages, sfr=self.sfhist,
                                               Z=self.metal, tau=self.tau_sfh)
@@ -558,19 +525,19 @@ class Stars(object):
         """
         if filters is None:
             filters = self.mag_names
-        
-        if hasattr(self, 'apparent_magnitudes'):
-            app_mag = self.apparent_magnitudes[:, utils.get_filter_mask(filters)]
-            if (len(filters) == 1):
-                app_mag = app_mag.flatten()                                                         # correct for 2D array
+
+        if (distance > 100*np.abs(np.min(self.coords[:, 2]))):  # distance 'much larger' than individual variations
+            true_dist = distance - self.coords[:, 2]  # approximate the individual distance_3d to each star with the z-coordinate
         else:
-            if (distance > 100*np.abs(np.min(self.coords[:,2]))):                                   # distance 'much larger' than individual variations
-                true_dist = distance - self.coords[:,2]                                             # approximate the individual distance_3d to each star with the z-coordinate
-            else:
-                true_dist = form.distance_3d(self.coords, np.array([0, 0, distance]))                  # distance is now properly calculated for each star
-            
-            true_dist = true_dist.reshape((len(true_dist),) + (1,)*(len(filters) > 1))              # fix dimension for broadcast
-            
+            true_dist = form.distance_3d(self.coords, np.array([0, 0, distance]))  # distance is now properly calculated for each star
+
+        true_dist = true_dist.reshape((len(true_dist),) + (1,)*(len(filters) > 1))  # fix dimension for broadcast
+
+        if hasattr(self, 'absolute_magnitudes'):
+            abs_mag = self.absolute_magnitudes[:, utils.get_filter_mask(filters)]
+            if (len(filters) == 1):
+                abs_mag = abs_mag.flatten()                                                         # correct for 2D array
+        else:
             # add redshift (rough approach)
             if add_redshift:
                 filter_means = utils.open_photometric_data(columns=['mean'], filters=filters)
@@ -580,9 +547,8 @@ class Stars(object):
                 abs_mag = form.bb_magnitude(T_eff, R_cur, filters, filter_means=shifted_filters)
             else:
                 abs_mag = self.AbsoluteMagnitudes(filters=filters)
-            
-            app_mag = form.apparent_magnitude(abs_mag, true_dist, ext=extinction)                     # true_dist in pc!
-        
+
+        app_mag = form.apparent_magnitude(abs_mag, true_dist, ext=extinction)  # true_dist in pc!
         return app_mag
         
     def SpectralTypes(self, realistic_remnants=True):
@@ -689,7 +655,38 @@ class Stars(object):
         lum_sum = np.cumsum(lum_sorted)                                                             # cumulative sum of sorted luminosities
         hlr = np.max(r_sorted[lum_sum <= tot_lum/2])                                                # 2D/3D radius at half the luminosity
         return hlr
-        
+
+    def compact_parameters(self, mag_limit=None, d_lum=None, extinction=None):
+        """Reduces the total amount of stars generated by decreasing the range of stellar initial masses."""
+        # check if compact mode is on
+        fraction_generated = np.ones_like(self.n_stars, dtype=float)  # set to ones initially
+        mass_limit = np.copy(self.imf_param)  # set to imf params initially
+
+        if not mag_limit:
+            mag_limit = default_mag_lim  # if not specified, use default
+
+        for i, pop_num in enumerate(self.n_stars):
+            if (self.compact_mode == 'mag'):
+                mass_limit[i] = magnitude_limited(self.ages[i], self.metal[i], mag_lim=mag_limit,
+                                                  distance=d_lum, ext=extinction, filter='Ks')
+            else:
+                mass_limit[i] = number_limited(self.n_stars, self.ages[i], self.metal[i], imf=self.imf_param[i])
+
+            if (mass_limit[i, 1] > self.imf_param[i, 1]):
+                # don't increase the upper limit!
+                mass_limit[i, 1] = self.imf_param[i, 1]
+
+            fraction_generated[i] = form.mass_fraction_from_limits(mass_limit[i], imf=self.imf_param[i])
+
+        if np.any(mass_limit[:, 0] > mass_limit[:, 1]):
+            # lower limit > upper limit!
+            raise RuntimeError('compacting failed, mass limit raised above upper mass.')
+        elif np.any(self.n_stars*fraction_generated < 10):
+            # don't want too few stars
+            raise RuntimeError('Population compacted to <10, try not compacting or '
+                               'generating a higher number of stars.')
+        return mass_limit, fraction_generated
+
     def PerformanceMode(self, full=False, turn_off=False):
         """Sacrifices memory usage for performance during the simulation of images or other tasks.
         The full set of variables like luminosity and temperature can be stored or only
@@ -721,11 +718,6 @@ class Stars(object):
         elif (turn_off & full):
             del self.absolute_magnitudes
         
-        if not hasattr(self, 'apparent_magniutdes'):
-            self.apparent_magniutdes = self.ApparentMagnitudes(add_redshift=True)
-        elif turn_off:
-            del self.apparent_magniutdes
-        
         if not hasattr(self, 'spectral_types'):
             self.spectral_types, names = self.SpectralTypes(realistic_remnants=True)
         elif turn_off:
@@ -736,7 +728,7 @@ class Stars(object):
 
 class Gas():
     """"""
-    def __init__(self):
+    def __init__(self, stuff):
         pass
     
     def __repr__(self):
@@ -765,7 +757,7 @@ class Gas():
     
 class Dust():
     """"""
-    def __init__(self):
+    def __init__(self, stuff):
         pass
     
     def __repr__(self):
@@ -792,26 +784,33 @@ class Dust():
         """
 
 
-class AstronomicalObject(object):
+class AstronomicalObject():
     """Base class for astronomical objects like clusters and galaxies.
     Contains the basic information and functionality. It is also a composite of the different
     component classes: Stars, Gas and Dust.
     
-    Note:
-        takes in all the kwargs necessary for the component classes
+    Notes
+    -----
+
+    takes in all the kwargs necessary for the component classes
         
-    Args:
-        distance
-        d_type
-        extinct
-        **kwargs: the kwargs are used in initiation of the component classes
+    Arguments
+    ---------
+
+    distance
+    d_type
+    extinct
+    **kwargs: the kwargs are used in initiation of the component classes (see Stars, Gas and Dust)
     
-    Attributes:
-        AddFieldStars
-        AddBackGround
-        AddNGS
-        SaveTo
-        LoadFrom
+    Attributes
+    ----------
+
+    AddFieldStars
+    AddBackGround
+    AddNGS
+    SaveTo
+    LoadFrom
+
     """
     def __init__(self, distance=10, d_type='l', extinct=0, **kwargs):
         
@@ -831,6 +830,7 @@ class AstronomicalObject(object):
         stars_dict = {k: kwargs.pop(k) for k in dict(kwargs) if k in stars_args}
         if stars_dict:
             self.stars = Stars(**stars_dict)                                                        # the stellar component
+            self.stars.GenerateStars()
         
         gas_args = [k for k, v in inspect.signature(Gas).parameters.items()]
         gas_dict = {k: kwargs.pop(k) for k in dict(kwargs) if k in gas_args}
@@ -935,7 +935,7 @@ class AstronomicalObject(object):
         return
 
     def PlotStars2D(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', filter='V', theme='dark1',
-               show=True):
+                    show=True):
         """Make a plot of the object positions in two dimensions
         Set colour to 'temperature' for a temperature representation.
         Set filter to None to avoid markers scaling in size with magnitude.
@@ -945,17 +945,17 @@ class AstronomicalObject(object):
         """
         # todo: fix the plotting functions for their new class
         if (filter is not None):
-            mags = self.ApparentMagnitudes(filters=filter)
+            mags = self.stars.ApparentMagnitudes(self.d_lum, filters=filter)
         else:
             mags = None
 
         if (colour == 'temperature'):
-            temps = 10**self.LogTemperatures()
+            temps = 10**self.stars.LogTemperatures()
         else:
             temps = None
 
-        vis.scatter_2d(self.coords, title=title, xlabel=xlabel, ylabel=ylabel, axes=axes, colour=colour, T_eff=temps,
-                       mag=mags, theme=theme, show=show)
+        vis.scatter_2d(self.stars.coords, title=title, xlabel=xlabel, ylabel=ylabel, axes=axes, colour=colour,
+                       T_eff=temps, mag=mags, theme=theme, show=show)
         return
 
     def PlotStars3D(self, title='Scatter', xlabel='x', ylabel='y', colour='blue', filter='V', theme='dark1', show=True):
@@ -966,17 +966,17 @@ class AstronomicalObject(object):
             saveable dark plot, and None for normal light colours.
         """
         if (filter is not None):
-            mags = self.ApparentMagnitudes(filters=filter)
+            mags = self.stars.ApparentMagnitudes(self.d_lum, filters=filter)
         else:
             mags = None
 
         if (colour == 'temperature'):
-            temps = 10**self.LogTemperatures()
+            temps = 10**self.stars.LogTemperatures()
         else:
             temps = None
 
-        vis.scatter_3d(self.coords, title=title, xlabel=xlabel, ylabel=ylabel, colour=colour, T_eff=temps, mag=mags,
-                       theme=theme, show=show)
+        vis.scatter_3d(self.stars.coords, title=title, xlabel=xlabel, ylabel=ylabel, colour=colour, T_eff=temps,
+                       mag=mags, theme=theme, show=show)
         return
 
     def PlotHRD(self, title='hr_diagram', colour='temperature', theme='dark1', show=True):
@@ -985,9 +985,9 @@ class AstronomicalObject(object):
         Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but
             saveable dark plot, and None for normal light colours.
         """
-        r_mask = np.invert(self.Remnants())
-        temps = 10**self.LogTemperatures()
-        lums = self.LogLuminosities()
+        r_mask = np.invert(self.stars.Remnants())
+        temps = 10**self.stars.LogTemperatures()
+        lums = self.stars.LogLuminosities()
 
         vis.hr_diagram(T_eff=temps, log_lum=lums, title=title, xlabel='Temperature (K)',
                        ylabel=r'Luminosity log($L/L_\odot$)', colour=colour, theme=theme, mask=r_mask, show=show)
@@ -999,8 +999,8 @@ class AstronomicalObject(object):
         Set colour to 'temperature' for a temperature representation.
         """
         x_filters = x.split('-')
-        mag_A = self.ApparentMagnitudes(filters=x_filters[0])
-        mag_B = self.ApparentMagnitudes(filters=x_filters[1])
+        mag_A = self.stars.ApparentMagnitudes(self.d_lum, filters=x_filters[0])
+        mag_B = self.stars.ApparentMagnitudes(self.d_lum, filters=x_filters[1])
         c_mag = mag_A - mag_B
 
         if (y == x_filters[0]):
@@ -1008,7 +1008,7 @@ class AstronomicalObject(object):
         elif (y == x_filters[1]):
             mag = mag_B
         else:
-            mag = self.ApparentMagnitudes(filters=y)
+            mag = self.stars.ApparentMagnitudes(self.d_lum, filters=y)
 
         vis.cm_diagram(c_mag, mag, title=title, xlabel=x, ylabel=y,
                        colour=colour, T_eff=None, theme=theme, adapt_axes=True, mask=None, show=show)
@@ -1026,24 +1026,26 @@ class AstronomicalObject(object):
             with open(filename, 'wb') as output:
                 pickle.dump(self, output, -1)
         return
-        
+
+    @staticmethod
     def LoadFrom(filename):
         """Loads the class from a file."""
         if (filename[-4:] != '.pkl'):
             filename += '.pkl'
         
         if os.path.isdir('objects'):
-            with open(os.path.join('objects', filename), 'rb') as input:
-                data = pickle.load(input)
-        else:                                                                                       # if for some reason the objects folder isn't there
-            with open(filename, 'rb') as input:
-                data = pickle.load(input)
+            with open(os.path.join('objects', filename), 'rb') as input_file:
+                data = pickle.load(input_file)
+        else:
+            # if for some reason the 'objects' folder isn't there
+            with open(filename, 'rb') as input_file:
+                data = pickle.load(input_file)
         return data
 
 
 class StarCluster(AstronomicalObject):
     """For generating star clusters."""    
-    def __init__(**kwargs):
+    def __init__(self, **kwargs):
         
         super().__init__(**kwargs)
         return
@@ -1051,7 +1053,7 @@ class StarCluster(AstronomicalObject):
 
 class EllipticalGalaxy(AstronomicalObject):
     """For generating elliptical galaxies."""    
-    def __init__(**kwargs):
+    def __init__(self, **kwargs):
         
         super().__init__(**kwargs)
         return
@@ -1059,57 +1061,54 @@ class EllipticalGalaxy(AstronomicalObject):
 
 class SpiralGalaxy(AstronomicalObject):
     """For generating spiral galaxies."""    
-    def __init__(**kwargs):
+    def __init__(self, **kwargs):
         
         super().__init__(**kwargs)
         return
 
 
-def gen_spherical(N_stars, dist_type=default_rdist, **kwargs):
+def gen_spherical(n_stars, dist_type=default_rdist, **kwargs):
     """Make a spherical distribution of stars using the given radial distribution type.
     Takes additional parameters for the r-distribution function (i.e. scale length s).
     """
-    # check if the dist type exists
+    # check if the dist type exists (add the r to the end for radial version, if not already there)
     if (dist_type[-2:] != '_r'):
-        dist_type += '_r'                                                                           # add the r to the end for radial version
+        dist_type += '_r'
         
     dist_list = list(set(fnmatch.filter(dir(dist), '*_r')))
     
     if (dist_type not in dist_list):
-        warnings.warn(('objectgenerator//gen_spherical: Specified distribution type does not exist. '
-                       'Using default (={})').format(default_rdist), SyntaxWarning)
+        warnings.warn(f'Specified distribution type does not exist. Using default (={default_rdist})', SyntaxWarning)
         dist_type = default_rdist + '_r'
     
     # check if right parameters given    
-    sig = inspect.signature(getattr(dist, dist_type))                                               # parameters of the dist function (includes n)
-    dict = kwargs.copy()                                                                            # need a copy for popping in iteration
+    sig = inspect.signature(getattr(dist, dist_type))  # parameters of the dist function (includes n)
+    dict = kwargs.copy()
     for key in dict:
         if key not in sig.parameters:
-            warnings.warn(('objectgenerator//gen_spherical: Wrong keyword given in distribution '
-                           'parameters. Deleted entry.\n    {0} = {1}'
-                           ).format(key, kwargs.pop(key, None)), SyntaxWarning)
+            warnings.warn(('Wrong keyword given in distribution parameters. Deleted entry.\n '
+                           f'  {key} = {kwargs.pop(key, None)}'), SyntaxWarning)
     
-    r_dist = getattr(dist, dist_type)(n=N_stars, **kwargs)                                           # the radial distribution
-    phi_dist = dist.angle_phi(N_stars)                                                               # dist for angle with x axis
-    theta_dist = dist.angle_theta(N_stars)                                                           # dist for angle with z axis
-    
+    r_dist = getattr(dist, dist_type)(n=n_stars, **kwargs)  # the radial distribution
+    phi_dist = dist.angle_phi(n_stars)  # distribution for angle with x axis
+    theta_dist = dist.angle_theta(n_stars)  # distribution for angle with z axis
     return conv.spher_to_cart(r_dist, theta_dist, phi_dist)
 
 
-def gen_spiral(N_stars):
+def gen_spiral(n_stars):
     """Make a spiral galaxy."""
-    #todo: add this
+    # todo: add this
     
 
 def gen_spiral_arms():
     """Make spiral arms."""
     
 
-def gen_irregular(N_stars):
+def gen_irregular(n_stars):
     """Make an irregular galaxy"""
     
 
-def gen_star_masses(N_stars=0, M_tot=0, imf=None):
+def gen_star_masses(n_stars=0, M_tot=0, imf=None):
     """Generate masses using the Initial Mass Function. 
     Either number of stars or total mass should be given.
     imf defines the lower and upper bound to the masses generated in the IMF.
@@ -1120,29 +1119,29 @@ def gen_star_masses(N_stars=0, M_tot=0, imf=None):
         imf = default_imf_par
 
     # check input (N_stars or M_tot?)
-    if (N_stars == 0) & (M_tot == 0):
-        warnings.warn(('objectgenerator//gen_star_masses: Input mass and number of stars '
-                       'cannot be zero simultaniously. Using N_stars=10'), SyntaxWarning)
-        N_stars = 10
-    elif (N_stars == 0):                                                                            # a total mass is given
-        N_stars = conv.m_tot_to_n_stars(M_tot, imf)                                                     # estimate the number of stars to generate
+    if (n_stars == 0) & (M_tot == 0):
+        warnings.warn('Input mass and number of stars cannot be zero simultaneously. Using n_stars=10', SyntaxWarning)
+        n_stars = 10
+    elif (n_stars == 0):
+        # a total mass is given, estimate the number of stars to generate
+        n_stars = conv.m_tot_to_n_stars(M_tot, imf)
         
-    # mass
-    M_init = dist.kroupa_imf(N_stars, imf)                                                           # assign initial masses using IMF
-    M_tot_gen = np.sum(M_init)                                                                      # total generated mass (will differ from input mass, if given)
+    # assign initial masses using IMF
+    M_init = dist.kroupa_imf(n_stars, imf)
+    M_tot_gen = np.sum(M_init)  # total generated mass (will differ from input mass, if given)
     
     if (M_tot != 0):
         M_diff = M_tot_gen - M_tot
     else:
-        M_tot_est = conv.n_stars_to_m_tot(N_stars, imf)
-        M_diff = M_tot_gen - M_tot_est                                                              # will give the difference to the estimated total mass for n stars
+        M_tot_est = conv.n_stars_to_m_tot(n_stars, imf)
+        M_diff = M_tot_gen - M_tot_est  # gives the difference with the estimated total mass for n stars
         
     return M_init, M_diff
 
 
 def star_form_history(max_age, min_age=1, sfr='exp', Z=0.014, tau=1e10):
-    """Finds the relative number of stars to give each (logarithmic) age step up to a 
-    maximum given age (starting from a minimum age if desired).
+    """Finds the relative number of stars to give each (logarithmic) age step
+    up to a maximum given age (starting from a minimum age if desired).
     The star formation rate (sfr) can be 'exp' or 'lin-exp'.
     tau is the decay timescale of the star formation (in yr).
     """
@@ -1160,8 +1159,9 @@ def star_form_history(max_age, min_age=1, sfr='exp', Z=0.014, tau=1e10):
         sfr = np.full_like(max_age, sfr, dtype='U10')
     if not hasattr(tau, '__len__'):
         tau = np.full_like(max_age, tau, dtype=float)
-    
-    if np.all(max_age > 12):                                                                        # determine if logarithm or not
+
+    # determine if logarithm or not
+    if np.all(max_age > 12):
         max_age = np.log10(max_age)
     if np.all(min_age > 12):
         min_age = np.log10(min_age)
@@ -1169,28 +1169,31 @@ def star_form_history(max_age, min_age=1, sfr='exp', Z=0.014, tau=1e10):
     rel_num = np.array([])
     log_ages_used = np.array([])
     for i in range(len(max_age)):
-        log_ages = np.unique(utils.open_isochrones_file(Z[i], columns=['log_age']))                   # avaiable ages
+        log_ages = np.unique(utils.open_isochrones_file(Z[i], columns=['log_age']))  # avaiable ages
         uni_log_ages = np.unique(log_ages)
-        log_ages_used_i = uni_log_ages[(uni_log_ages <= max_age[i]) & (uni_log_ages >= min_age[i])] # log t's to use (between min/max ages)
-        ages_used = 10**log_ages_used_i                                                             # age of each SSP
+        # log t's to use (between min/max ages)
+        log_ages_used_i = uni_log_ages[(uni_log_ages <= max_age[i]) & (uni_log_ages >= min_age[i])]
+        ages_used = 10**log_ages_used_i  # age of each SSP
     
         if (sfr[i] == 'exp'):
-            psi = np.exp((ages_used - 10**min_age[i])/tau[i])                                       # Star formation rates (relative)
+            # relative star formation rates
+            psi = np.exp((ages_used - 10**min_age[i]) / tau[i])
         elif(sfr[i] == 'lin-exp'):
-            t0 = 10**np.max(uni_log_ages)                                                           # represents the start of time
-            psi = ((t0 - ages_used - 10**min_age[i])
-                   /tau[i]*np.exp((ages_used - 10**min_age[i])/tau[i]))                             # Star formation rates (relative)
+            t0 = 10**np.max(uni_log_ages)  # represents the start of time
+            # relative star formation rates
+            psi = ((t0 - ages_used - 10**min_age[i]) / tau[i]*np.exp((ages_used - 10**min_age[i]) / tau[i]))
         else:
             # for when None is given
             log_ages_used_i = max_age[i]
             psi = 1
-        
-        rel_num = np.append(rel_num, psi/np.sum(psi))                                               # relative number in each generation
+
+        # relative number of stars in each generation
+        rel_num = np.append(rel_num, psi/np.sum(psi))
         log_ages_used = np.append(log_ages_used, log_ages_used_i)
     return rel_num, log_ages_used
 
 
-def find_spectral_type(T_eff, Lum, Mass):
+def find_spectral_type(T_eff, lum, mass):
     """Finds the spectral type of a star from its properties using a table.
     T_eff: effective temperature (K)
     Lum: logarithm of the luminosity in Lsun
@@ -1202,25 +1205,25 @@ def find_spectral_type(T_eff, Lum, Mass):
     # None            Mstar/Msun  Lstar/Lsun	Rstar/Rsun   K       Color	Mag	Corr	 Mag
     
     with open(os.path.join('tables', 'all_stars.txt')) as file:
-        spec_tbl_names  = np.array(file.readline()[:-1].split('\t'))                                # read in the column names
-    spec_tbl_names = {name: i for i, name in enumerate(spec_tbl_names[1:])}                         # make a dict for ease of use
+        spec_tbl_names = np.array(file.readline()[:-1].split('\t'))  # read in the column names
+    spec_tbl_names = {name: i for i, name in enumerate(spec_tbl_names[1:])}  # make a dict for ease of use
     
-    spec_tbl_types = np.loadtxt(os.path.join('tables', 'all_stars.txt'), dtype=str, 
-                                usecols=[0], unpack=True)
-    spec_tbl = np.loadtxt(os.path.join('tables', 'all_stars.txt'), dtype=float, 
-                          usecols=[1,2,3,4,5,6,7,8], unpack=True)
-    
-    spec_letter = ['M', 'K', 'G', 'F', 'A', 'B', 'O']                                               # basic spectral letters (increasing temperature)
+    spec_tbl_types = np.loadtxt(os.path.join('tables', 'all_stars.txt'), dtype=str, usecols=[0], unpack=True)
+    spec_tbl = np.loadtxt(os.path.join('tables', 'all_stars.txt'), dtype=float, usecols=[1,2,3,4,5,6,7,8], unpack=True)
+
+    # basic spectral letters (increasing temperature)
+    spec_letter = ['M', 'K', 'G', 'F', 'A', 'B', 'O']
     
     # collect the relevant spectral types 
     # (C, R, N, W, S and most D are disregarded, 
-    # includes DC - WD with no strong spectral features, also leaves out subdwarfs)
+    # includes DC - WD with no strong spectral features, also leaves out sub-dwarfs)
     T_tbl, L_tbl, M_tbl, type_selection = [], [], [], []
     for i, type in enumerate(spec_tbl_types):
         if ((type[0] in spec_letter) | (type[:2] == 'DC')) & (type[2:] != 'VI'):
             type_selection.append(type)
             T_tbl.append(np.log10(spec_tbl[spec_tbl_names['Temp'], i]))
-            L_tbl.append(0.4*(M_bol_sun - spec_tbl[spec_tbl_names['Mbol'], i]))                     # convert to L from Mbol (to avoid L=0 in tbl)              
+            # convert to L from Mbol (to avoid L=0 in tbl)
+            L_tbl.append(0.4*(M_bol_sun - spec_tbl[spec_tbl_names['Mbol'], i]))
             M_tbl.append(np.log10(spec_tbl[spec_tbl_names['Mass'], i]))
     
     type_selection = np.array(type_selection)
@@ -1228,52 +1231,20 @@ def find_spectral_type(T_eff, Lum, Mass):
     L_tbl = np.array(L_tbl)
     M_tbl = np.array(M_tbl)
     
-    data_points = np.column_stack([T_eff, Lum, Mass])
-    tbl_grid = np.column_stack([T_tbl, L_tbl, M_tbl])                                               # 3d data grid with points (T, L, M)
-    tbl_tree = sps.cKDTree(tbl_grid)                                                                # K-Dimensional lookup Tree
-    dists, indices = tbl_tree.query(data_points, k=1)                                               # the distances to and indices of the closest points
-    
-    indices[dists == np.inf] = np.where(type_selection == 'DC9')[0][0]                              # correct for missing neighbours
+    data_points = np.column_stack([T_eff, lum, mass])
+    tbl_grid = np.column_stack([T_tbl, L_tbl, M_tbl])  # 3d data grid with points (T, L, M)
+    tbl_tree = sps.cKDTree(tbl_grid)  # K-Dimensional lookup Tree
+    dists, indices = tbl_tree.query(data_points, k=1)  # the distances to and indices of the closest points
+
+    # correct for missing neighbours
+    indices[dists == np.inf] = np.where(type_selection == 'DC9')[0][0]
     
     # WD are taken care of this way, but what to do with NS/BH? 
     # (now they would probably get WD spectra)
     return indices, type_selection
 
 
-def compactify(compact_mode, n_stars, mag_limit, imf=None):
-    """Reduces the total amount of stars generated by decreasing the range of stellar initial masses."""
-    if not imf:
-        imf = default_imf_par
-
-    # check if compact mode is on
-    fraction_generated = np.ones_like(self.n_stars, dtype=float)  # set to ones initially
-    mass_limit = np.copy(self.imf_param[:])  # set to imf params initially
-
-    if (mag_limit is None):
-        mag_limit = default_mag_lim  # if not specified, use default
-
-    for i, pop_num in enumerate(self.n_stars):
-        if (compact_mode == 'mag'):
-            mass_limit[i] = magnitude_limited(self.ages[i], self.metal[i], mag_lim=mag_limit, distance=self.d_lum,
-                                              ext=self.extinction, filter='Ks')
-        else:
-            mass_limit[i] = number_limited(self.n_stars, self.ages[i], self.metal[i], imf=self.imf_param[i])
-
-        if (mass_limit[i, 1] > imf[i, 1]):
-            # don't increase the upper limit!
-            mass_limit[i, 1] = imf[i, 1]
-
-        fraction_generated[i] = form.mass_fraction_from_limits(mass_limit[i], imf=imf[i])
-    if np.any(mass_limit[:, 0] > mass_limit[:, 1]):
-        raise RuntimeError('compacting failed, '
-                           'mass limit raised above upper mass.')  # lower limit > upper limit!
-    elif np.any(n_stars*fraction_generated < 10):  # don't want too few stars
-        raise RuntimeError('Population compacted to <10, '
-                           'try not compacting or generating a higher number of stars.')
-    return mass_limit, fraction_generated
-
-
-def number_limited(N, age, Z, imf=None):
+def number_limited(n, age, Z, imf=None):
     """Retrieves the lower mass limit for which the number of stars does not exceed 10**7. 
     Will also give an upper mass limit based on the values in the isochrone.
     The intended number of generated stars, age and metallicity are needed.
@@ -1281,10 +1252,12 @@ def number_limited(N, age, Z, imf=None):
     if not imf:
         imf = default_imf_par
 
-    fraction = np.clip(limiting_number/N, 0, 1)                                                     # fraction of the total number of stars to generate
-    
-    M_ini = utils.stellar_isochrone(age, Z, columns=['M_initial'])                                   # get the isochrone values
-    mass_lim_high = M_ini[-1]                                                                       # highest value in the isochrone
+    # fraction of the total number of stars to generate
+    fraction = np.clip(limiting_number / n, 0, 1)
+
+    # get the isochrone values and find the highest value in the isochrone
+    M_ini = utils.stellar_isochrone(age, Z, columns=['M_initial'])
+    mass_lim_high = M_ini[-1]
     
     mass_lim_low = form.mass_limit_from_fraction(fraction, M_max=mass_lim_high, imf=imf)
     
@@ -1292,6 +1265,7 @@ def number_limited(N, age, Z, imf=None):
 
 
 def magnitude_limited(age, Z, mag_lim=default_mag_lim, distance=10, ext=0, filter='Ks'):
+    # todo: change filter to filter_name
     """Retrieves the lower mass limit for which the given magnitude threshold is met. 
     Will also give an upper mass limit based on the values in the isochrone.
     Works only for resolved stars. 
