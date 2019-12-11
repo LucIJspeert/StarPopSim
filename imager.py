@@ -25,7 +25,7 @@ default_ao = 'scao'
 def Image(astobj, exp_time, ndit, filter_name, view_mode, chip_mode, ao_mode, savename):
     """Image the given object."""
     if isinstance(astobj, str):
-        astobj = obg.AstObject.LoadFrom(astobj)
+        astobj = obg.AstObject.load_from(astobj)
     
     src = img.MakeSource(astobj, filter=filter_name)
     
@@ -136,7 +136,7 @@ def LoadAstObj(astobj_name=''):
         file_name = utils.while_ask('Which astronomical object file do you want to load?',
                              '{}'.format(default), add_opt=fnames_list, function='LoadAstObj')
     
-    astobj = obg.AstObject.LoadFrom(file_name)
+    astobj = obg.AstObject.load_from(file_name)
     return astobj, file_name
 
 

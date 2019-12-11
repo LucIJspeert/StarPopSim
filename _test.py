@@ -646,8 +646,8 @@ ast_obj = aoc.AstObject(struct='ellipsoid', N_obj=10000, M_tot=0, age=[9, 8, 6.7
 
 vis.hr_diagram(10 ** ast_obj.log_Te, ast_obj.log_L)
 
-print(ast_obj.TotalLuminosity())
-print(ast_obj.HalfLumRadius())
+print(ast_obj.total_luminosity())
+print(ast_obj.half_lum_radius())
 print(form.distance_3d(ast_obj.objects))
 
 
@@ -1047,10 +1047,10 @@ plt.show()
 
 ## half something radius
 astobj = aoc.AstObject(N_obj=10000, age=[8], Z=[0.019])
-hlr = astobj.HalfLumRadius()
-hmr = astobj.HalfMassRadius()
-hlr2 = astobj.HalfLumRadius(spher=False)
-hmr2 = astobj.HalfMassRadius(spher=False)
+hlr = astobj.half_lum_radius()
+hmr = astobj.half_mass_radius()
+hlr2 = astobj.half_lum_radius(spher=False)
+hmr2 = astobj.half_mass_radius(spher=False)
 radii = astobj.ObjRadii()
 
 print('sph: HMR={0:2.3f}, HLR={1:2.3f} \ncyl: HMR={6:2.3f}, HLR={7:2.3f} \n  min= {2:2.3f}, max = {3:2.3f} \n  mean={4:2.3f}, median={5:2.3f}'
@@ -1179,9 +1179,9 @@ with open('company_data.pkl', 'rb') as input:
 ##
 astobj = aoc.AstObject(N_obj=1000, age=[8], Z=[0.019], distance=10**6)
 
-aoc.AstObject.SaveTo(astobj, 'astobj1-test.pkl')        # or astobj.SaveTo('astobj1-test.pkl')
+aoc.AstObject.save_to(astobj, 'astobj1-test.pkl')        # or astobj.save_to('astobj1-test.pkl')
 
-astobj2 = aoc.AstObject.LoadFrom('astobj1-test.pkl')
+astobj2 = aoc.AstObject.load_from('astobj1-test.pkl')
 
 ## calling from Pyzo shell
 import sys
@@ -2233,7 +2233,7 @@ for age in ages:
     r_light = []
     for r in r_par:
         astobj = obg.AstObject(N_obj=10**5, age=[8], metal=[0.014], distance=10**4, r_dist='KingGlobular', r_dist_par=r)
-        r_light.append(astobj.HalfLumRadius(spher=False))
+        r_light.append(astobj.half_lum_radius(spher=False))
         
     r_light_age.append(r_light)
 
@@ -2293,12 +2293,12 @@ par_grid[:, 0:2] = np.log10(par_grid[:, 0:2])
 def objsaver(pars):
     M, D, r = pars              # M, D in 10log
     astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r)
-    astobj.SaveTo('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+    astobj.save_to('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     return
     
 def imgsaver(pars):
     M, D, r = pars              # M, D in 10log
-    astobj = obg.AstObject.LoadFrom('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+    astobj = obg.AstObject.load_from('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     src = img.MakeSource(astobj, filter='J')
     image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     return
@@ -2733,7 +2733,7 @@ print(astobj.N_obj, len(astobj.M_init))
 ##
 M, D, r = np.log10(5*10**6), np.log10(0.8*10**6), 0.345              # M, D in 10log
 astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r)
-astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
@@ -2742,7 +2742,7 @@ image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', fi
 # fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom'.format(M, D, r), grid=False)
 ##
 astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, mag_lim=29, compact=True)
-astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r))
+astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r))
 fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r), grid=False)
@@ -2753,7 +2753,7 @@ image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', fi
 ##
 # D = np.log10(8*10**5)
 astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True)
-astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r))
+astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r))
 fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r), grid=False)
@@ -2798,7 +2798,7 @@ print(form.mass_fraction_from_limits([M_lim, M_ini[-1]]))
 ##
 M, D, r = np.log10(5*10**6), np.log10(15*10**6), 0.345              # M, D in 10log
 astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True, tot_lum=True)
-astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r))
+astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r))
 fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r), grid=False)
@@ -2810,7 +2810,7 @@ image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', fi
 # static mag lim
 M, D, r = np.log10(5*10**6), np.log10(0.8*10**6), 0.345              # M, D in 10log
 astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True)
-astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r))
+astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r))
 fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r), grid=False)
@@ -2835,7 +2835,7 @@ plt.show()
 # number lim
 M, D, r = np.log10(5*10**6), np.log10(0.8*10**6), 0.345              # M, D in 10log
 astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True, cp_mode='num')
-astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r))
+astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r))
 fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r), grid=False)
@@ -2846,7 +2846,7 @@ image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', fi
 ##
 N, D, r = np.log10(2*10**8), np.log10(15*10**6), 0.345              # M, D in 10log
 astobj = obg.AstObject(N_obj=10**N, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True, cp_mode='num')
-astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r))
+astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r))
 fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r), grid=False)
@@ -2868,7 +2868,7 @@ def GetData(filename, index=0):
 
 M, D, r = par_grid[-10]
 
-astobj = obg.AstObject.LoadFrom('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+astobj = obg.AstObject.load_from('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 ##
@@ -2927,7 +2927,7 @@ par_grid[:, 0:2] = np.log10(par_grid[:, 0:2])
 def objsaver(pars):
     M, D, r = pars              # M, D in 10log
     astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r)
-    astobj.SaveTo('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+    astobj.save_to('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     return
     
 def imgsaver(pars, int=None, ret_int=False):
@@ -2940,7 +2940,7 @@ def imgsaver(pars, int=None, ret_int=False):
     obj_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r)
     img_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, f)
     
-    astobj = obg.AstObject.LoadFrom(obj_name)
+    astobj = obg.AstObject.load_from(obj_name)
     src = img.MakeSource(astobj, filter=f)
     if ret_int:
         image, internals = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode='scao', filename=img_name, return_int=ret_int)
@@ -2983,7 +2983,7 @@ fh.plot_fits('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
 
 ## more filters for grid-7.004-5.903-2.069
 M, D, r = 7.004,  5.903, 2.069
-astobj = obg.AstObject.LoadFrom('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+astobj = obg.AstObject.load_from('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 filters = ['U', 'B', 'V', 'R', 'I', 'H', 'Ks']
 
 for fil in filters:
@@ -3070,7 +3070,7 @@ par_grid[:, 0:2] = np.log10(par_grid[:, 0:2])
 def objsaver(pars):
     M, D, r = pars              # M, D in 10log
     astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r)
-    astobj.SaveTo('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+    astobj.save_to('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     return
     
 def imgsaver(pars, int=None, ret_int=False):
@@ -3084,7 +3084,7 @@ def imgsaver(pars, int=None, ret_int=False):
     obj_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r)
     img_name = 'grid-fv-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, f)
     
-    astobj = obg.AstObject.LoadFrom(obj_name)
+    astobj = obg.AstObject.load_from(obj_name)
     src = img.MakeSource(astobj, filter=f)
     if ret_int:
         image, internals = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, return_int=ret_int)
@@ -4086,7 +4086,7 @@ def imgsaver(pars, int=None, ret_int=False):
     obj_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r)
     img_name = 'grid-long-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, f)
     
-    astobj = obg.AstObject.LoadFrom(obj_name)
+    astobj = obg.AstObject.load_from(obj_name)
     src = img.MakeSource(astobj, filter=f)
     if ret_int:
         image, internals = img.MakeImage(src, exposure=exp, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, return_int=ret_int)

@@ -79,7 +79,7 @@ class Stars():
     M_init (array of float): the individual masses of the stars in Msol.
     M_diff (array of float): difference between given and generated mass per population (only when n_stars=0).
     mag_names (array of str): the filter names of the corresponding default set of supported magnitudes.
-    spec_names (array of str): spectral type names corresponding to the reference numbers in spectral_types.
+    _spec_names (array of str): spectral type names corresponding to the reference numbers in _spectral_types.
     fraction_generated (array of float): part of the total number of stars that has actually been generated
         per population (when compact mode is used).
 
@@ -122,13 +122,21 @@ class Stars():
         self.M_init = np.array([])
         self.M_diff = np.zeros(n_pop)
         self.mag_names = utils.get_supported_filters()
-        self.spec_names = np.array([])
         
         # compact mode parameters
         self.compact_mode = compact_mode
         self.fraction_generated = np.ones(n_pop)
         
         # semi-private
+        self._current_masses = None
+        self._stellar_radii = None
+        self._surface_gravity = None
+        self._log_luminosities = None
+        self._log_temperatures = None
+        self._absolute_magnitudes = None
+        self._spectral_types = None
+        self._spec_names = None
+        self._remnants = None
         # the actual imf parameters to use for each population (limits imposed by compacting)
         self.gen_imf_param = self.imf_param
         # actually generated number of stars per population (for compact mode/sfhist)
@@ -139,36 +147,34 @@ class Stars():
 
     def __repr__(self):
         """Unambiguous representation of what this object is."""
-        repr = (f'Stars(N_stars={self.n_stars!r}, M_tot_init={self.M_tot_init!r}, '
-                f'ages={self.ages!r}, metal={self.metal!r}, sfh={self.sfhist!r}, '
-                f'min_ages={self.min_ages!r}, tau_sfh={self.tau_sfh!r}, '
-                f'imf_par={self.imf_param!r}, incl={self.inclination!r}, '
-                f'r_dist={self.r_dist_types!r}, r_dist_par={self.r_dist_param!r}, '
-                f'ellipse_axes={self.ellipse_axes!r}, spiral_arms={self.spiral_arms!r}, '
-                f'spiral_bulge={self.spiral_bulge!r}, spiral_bar={self.spiral_bar!r}, '
-                f'compact_mode={self.compact_mode!r})')
-        return repr
+        r = (f'Stars(N_stars={self.n_stars!r}, M_tot_init={self.M_tot_init!r}, ages={self.ages!r}, '
+             f'metal={self.metal!r}, sfh={self.sfhist!r}, min_ages={self.min_ages!r}, tau_sfh={self.tau_sfh!r}, '
+             f'imf_par={self.imf_param!r}, incl={self.inclination!r}, r_dist={self.r_dist_types!r}, '
+             f'r_dist_par={self.r_dist_param!r}, ellipse_axes={self.ellipse_axes!r}, '
+             f'spiral_arms={self.spiral_arms!r}, spiral_bulge={self.spiral_bulge!r}, '
+             f'spiral_bar={self.spiral_bar!r}, compact_mode={self.compact_mode!r})')
+        return r
     
     def __str__(self):
         """Nice-to-read representation of what this object is"""
-        string = ('Stars object with parameters:\n'
-                  f'N_stars:        {self.n_stars!s}\n'
-                  f'M_tot_init:     {np.round(self.M_tot_init, 1)!s}\n'
-                  f'ages:           {self.ages!s}\n'
-                  f'metal:          {self.metal!s}\n'
-                  f'sfh:            {self.sfhist!s}\n'
-                  f'min_ages:       {self.min_ages!s}\n'
-                  f'tau_sfh:        {self.tau_sfh!s}\n'
-                  f'imf_par:        {[list(item) for item in self.imf_param]!s}\n'
-                  f'incl:           {self.inclination!s}\n'
-                  f'r_dist:         {self.r_dist_types!s}\n'
-                  f'r_dist_par:     {self.r_dist_param!s}\n'
-                  f'ellipse_axes:   {[list(item) for item in self.ellipse_axes]!s}\n'
-                  f'spiral_arms:    {self.spiral_arms!s}\n'
-                  f'spiral_bulge:   {self.spiral_bulge!s}\n'
-                  f'spiral_bar:     {self.spiral_bar!s}\n'
-                  f'compact_mode:   {self.compact_mode!s}\n')
-        return string
+        s = ('Stars object with parameters:\n'
+             f'N_stars:        {self.n_stars!s}\n'
+             f'M_tot_init:     {np.round(self.M_tot_init, 1)!s}\n'
+             f'ages:           {self.ages!s}\n'
+             f'metal:          {self.metal!s}\n'
+             f'sfh:            {self.sfhist!s}\n'
+             f'min_ages:       {self.min_ages!s}\n'
+             f'tau_sfh:        {self.tau_sfh!s}\n'
+             f'imf_par:        {[list(item) for item in self.imf_param]!s}\n'
+             f'incl:           {self.inclination!s}\n'
+             f'r_dist:         {self.r_dist_types!s}\n'
+             f'r_dist_par:     {self.r_dist_param!s}\n'
+             f'ellipse_axes:   {[list(item) for item in self.ellipse_axes]!s}\n'
+             f'spiral_arms:    {self.spiral_arms!s}\n'
+             f'spiral_bulge:   {self.spiral_bulge!s}\n'
+             f'spiral_bar:     {self.spiral_bar!s}\n'
+             f'compact_mode:   {self.compact_mode!s}\n')
+        return s
         
     def __add__(self, other):
         """Appends two Stars objects to each other."""
@@ -199,49 +205,51 @@ class Stars():
         self.gen_imf_param = np.append(self.gen_imf_param, other.gen_imf_param, axis=0)
         self.gen_n_stars = np.append(self.gen_n_stars, other.gen_n_stars)
         self.gen_ages = np.append(self.gen_ages, other.gen_ages)
-        # check if both have performance mode attributes (if not, deletes attributes from self)
-        if (hasattr(self, 'current_masses') & hasattr(other, 'current_masses')):
-            self.current_masses = np.append(self.current_masses, other.current_masses)
-        elif hasattr(self, 'current_masses'):
-            del self.current_masses
+        # check if both have performance mode attributes (if not, reset to None)
+        if self._current_masses and other._current_masses:
+            self._current_masses = np.append(self._current_masses, other._current_masses)
+        else:
+            self._current_masses = None
             
-        if (hasattr(self, 'stellar_radii') & hasattr(other, 'stellar_radii')):
-            self.stellar_radii = np.append(self.stellar_radii, other.stellar_radii)
-        elif hasattr(self, 'stellar_radii'):
-            del self.stellar_radii
+        if self._stellar_radii and other._stellar_radii:
+            self._stellar_radii = np.append(self._stellar_radii, other._stellar_radii)
+        elif hasattr(self, '_stellar_radii'):
+            del self._stellar_radii
+
+        if self._surface_gravity and other._surface_gravity:
+            self._surface_gravity = np.append(self._surface_gravity, other._surface_gravity)
+        elif hasattr(self, '_surface_gravity'):
+            del self._surface_gravity
         
-        if (hasattr(self, 'log_luminosities') & hasattr(other, 'log_luminosities')):
-            self.log_luminosities = np.append(self.log_luminosities, other.log_luminosities)
-        elif hasattr(self, 'log_luminosities'):
-            del self.log_luminosities
+        if self._log_luminosities and other._log_luminosities:
+            self._log_luminosities = np.append(self._log_luminosities, other._log_luminosities)
+        elif hasattr(self, '_log_luminosities'):
+            del self._log_luminosities
         
-        if (hasattr(self, 'log_temperatures') & hasattr(other, 'log_temperatures')):
-            self.log_temperatures = np.append(self.log_temperatures, other.log_temperatures)
-        elif hasattr(self, 'log_temperatures'):
-            del self.log_temperatures
+        if self._log_temperatures and other._log_temperatures:
+            self._log_temperatures = np.append(self._log_temperatures, other._log_temperatures)
+        elif hasattr(self, '_log_temperatures'):
+            del self._log_temperatures
         
-        if (hasattr(self, 'absolute_magnitudes') & hasattr(other, 'absolute_magnitudes') &
-            np.all(self.mag_names == other.mag_names)):
-            self.absolute_magnitudes = np.append(self.absolute_magnitudes, 
-                                                 other.absolute_magnitudes)
-        elif hasattr(self, 'absolute_magnitudes'):
-            del self.absolute_magnitudes
-        
-        if (hasattr(self, 'apparent_magniutdes') & hasattr(other, 'apparent_magniutdes') &
-            np.all(self.mag_names == other.mag_names)):
-            self.apparent_magniutdes = np.append(self.apparent_magniutdes, 
-                                                 other.apparent_magniutdes)
-        elif hasattr(self, 'apparent_magniutdes'):
-            del self.apparent_magniutdes
+        if self._absolute_magnitudes and other._absolute_magnitudes and np.all(self.mag_names == other.mag_names):
+            self._absolute_magnitudes = np.append(self._absolute_magnitudes, other._absolute_magnitudes)
+        elif hasattr(self, '_absolute_magnitudes'):
+            del self._absolute_magnitudes
+
         self.mag_names = np.unique(np.append(self.mag_names, other.mag_names))
         
-        if (hasattr(self, 'spectral_types') & hasattr(other, 'spectral_types') &
-            np.all(self.spec_names == other.spec_names)):
-            self.spectral_types = np.append(self.spectral_types, other.spectral_types)
-        elif hasattr(self, 'spectral_types'):
-            del self.spectral_types
-        self.spec_names = np.unique(np.append(self.spec_names, other.spec_names))
-        
+        if self._spectral_types and other._spectral_types & np.all(self._spec_names == other.spec_names):
+            self._spectral_types = np.append(self._spectral_types, other._spectral_types)
+        elif hasattr(self, '_spectral_types'):
+            del self._spectral_types
+
+        self._spec_names = np.unique(np.append(self._spec_names, other._spec_names))
+
+        if self._remnants and other._remnants:
+            self._remnants = np.append(self._remnants, other._remnants)
+        elif hasattr(self, '_remnants'):
+            del self._remnants
+
         return self
         
     # def __radd__(self, other):
@@ -251,7 +259,7 @@ class Stars():
     #     else:
     #         return self.__add__(other)
     
-    def GenerateStars(self, d_lum=None, extinction=None):
+    def generate_stars(self, d_lum=None, extinction=None):
         """Generate the masses and positions of the stars. Not automatically done on initiate."""
         # assign the right values for generation (start of generating sequence)
         if self.compact_mode:
@@ -270,18 +278,19 @@ class Stars():
             M_init_i, M_diff_i = gen_star_masses(pop_num, 0, imf=self.gen_imf_param[i])
             self.coords = np.append(self.coords, coords_i, axis=0)                           
             self.M_init = np.append(self.M_init, M_init_i)
-            self.M_diff += M_diff_i                                                                 # gen_star_masses already gives diff in Mass (=estimate since no mass was given)
+            # gen_star_masses already gives diff in Mass (=estimate since no mass was given)
+            self.M_diff += M_diff_i
         
         # if only N_stars was given, set M_tot_init to the total generated mass
         mass_generated = np.sum(self.M_init)
         if (self.M_tot_init == 0):
             self.M_tot_init = mass_generated
         else:
-            self.M_diff = mass_generated - self.M_tot_init                                          # if negative: too little mass generated, else too much
-            self.M_tot_init = mass_generated                                                        # set to actual initial mass
+            self.M_diff = mass_generated - self.M_tot_init  # if negative: too little mass generated, else too much
+            self.M_tot_init = mass_generated  # set to actual initial mass
         return
         
-    def AddInclination(self, incl):
+    def add_inclination(self, incl):
         """Put the object at an inclination w.r.t. the observer, in radians. 
         The given angle is measured from the x-axis towards the z-axis (which is the l.o.s.).
         Can be specified for each population separately or for all at once.
@@ -299,17 +308,16 @@ class Stars():
             
         if np.any(self.inclination > 2*np.pi):
             if np.any(incl > 2*np.pi):
-                warnings.warn('objectgenerator//AddInclination: inclination angle over 2pi '
-                              'detected, make sure to use radians!')
+                warnings.warn('Inclination angle over 2pi detected, make sure to use radians!')
             self.inclination = np.mod(self.inclination, 2*np.pi)
         
         # rotate the XZ plane (x axis towards positive z)
         if not np.all(self.inclination == 0):
-            indices = np.repeat(np.arange(n_pop), self.n_stars)                                  # population index per star
+            indices = np.repeat(np.arange(n_pop), self.n_stars)  # population index per star
             self.coords = conv.rotate_xz(self.coords, self.inclination[indices])
         return
         
-    def AddEllipticity(self, axes):
+    def add_ellipticity(self, axes):
         """Give the object axes (cartesian) different relative proportions. 
         The given axes (a,b,c) are taken as relative sizes, the volume of the object is conserved.
         Can be specified for each population separately or for all at once.
@@ -326,16 +334,6 @@ class Stars():
         else:
             self.ellipse_axes = axes
         
-        # if (len(np.unique(self.ellipse_axes)) == 1):
-        #     return                                               # no relative change is made
-        # elif (axes_shape[0] == 1):
-        #     self.coords = self.coords*axes/np.prod(axes)**(1/3)  # convert to ellipsoid (keeps volume conserved)
-        # else:
-        #     index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
-        #     for i, axes_i in enumerate(self.ellipse_axes):
-        #         ind_1, ind_2 = index[i], index[i+1]
-        #         self.coords[ind_1:ind_2] = self.coords[ind_1:ind_2]*axes_i/np.prod(axes_i)**(1/3)
-        
         if not (len(np.unique(axes)) == 1):
             # population index per star
             indices = np.repeat(np.arange(n_pop), self.n_stars)
@@ -343,7 +341,7 @@ class Stars():
             self.coords = self.coords * (axes / np.prod(axes)**(1 / 3))[indices]
         return
         
-    def AddTranslation(self, translation):
+    def add_translation(self, translation):
         """Translate the origin of the stellar distribution.
         Can be specified for each population separately or for all at once.
         """
@@ -358,166 +356,237 @@ class Stars():
         self.coords = self.coords + translation[indices].T
         return
     
-    def CurrentMasses(self, realistic_remnants=True):
+    def current_masses(self, realistic_remnants=True, performance_mode=True):
         """Gives the current masses of the stars in Msun.
         Uses isochrone files and the given initial masses of the stars.
         Stars should not have a lower initial mass than the lowest mass in the isochrone file.
+            (goes for all functions that use the isochrones)
+        performance_mode: save the data returned by this function in memory for faster access later.
         """
-        if hasattr(self, 'current_masses'):
-            M_cur = self.current_masses
+        if self._current_masses:
+            M_cur = self._current_masses
         else:
             M_cur = np.array([])
-            index = np.cumsum(np.append([0], self.gen_n_stars))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
-                iso_M_ini, iso_M_act = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial', 'M_current'])   # get the isochrone values
+                iso_M_ini, iso_M_act = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial', 'M_current'])
+                # select the masses of one population
                 M_init_i = self.M_init[index[i]:index[i+1]]
-                M_cur_i = np.interp(M_init_i, iso_M_ini, iso_M_act, right=0)                        # (right) return 0 for stars heavier than available in isoc file (dead stars)
+                # arg 'right': return 0 for stars heavier than available in isoc file (dead stars)
+                M_cur_i = np.interp(M_init_i, iso_M_ini, iso_M_act, right=0)
                 
                 # give estimates for remnant masses (replacing the 0 above)
                 if realistic_remnants:
                     remnants_i = remnants_single_pop(M_init_i, age, self.metal[i])
-                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses (depend on Z)
-                    M_cur_i[remnants_i] = r_M_cur_i                                                 # fill in the values
+                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])
+                    M_cur_i[remnants_i] = r_M_cur_i
                 
-                M_cur = np.append(M_cur, M_cur_i)  
-        
+                M_cur = np.append(M_cur, M_cur_i)
+
+        # turn performance mode on or off (meaning to save or to delete the data from memory)
+        if performance_mode and not self._current_masses:
+            self._current_masses = M_cur
+        elif not performance_mode and self._current_masses:
+            self._current_masses = None
         return M_cur
         
-    def StellarRadii(self, realistic_remnants=True):
+    def stellar_radii(self, realistic_remnants=True, performance_mode=True):
         """Gives the stellar radii of the stars in Rsun.
         Uses isochrone files and the given initial masses of the stars.
-        Stars should not have a lower initial mass than the lowest mass in the isochrone file.
+        performance_mode: save the data returned by this function in memory for faster access later.
         """
-        if hasattr(self, 'stellar_radii'):
-            R_cur = self.stellar_radii
+        if self._stellar_radii:
+            R_cur = self._stellar_radii
         else:
             R_cur = np.array([])
-            index = np.cumsum(np.append([0], self.gen_n_stars))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
-                iso_M_ini, iso_log_g = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial', 'log_g'])       # get the isochrone values
+                iso_M_ini, iso_log_g = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial', 'log_g'])
                 iso_R_cur = conv.gravity_to_radius(iso_log_g, iso_M_ini)
                 M_init_i = self.M_init[index[i]:index[i+1]]
-                R_cur_i = np.interp(M_init_i, iso_M_ini, iso_R_cur, right=0)                        # (right) return 0 for stars heavier than available in isoc file (dead stars)
+                # arg 'right': return 0 for stars heavier than available in isoc file (dead stars)
+                R_cur_i = np.interp(M_init_i, iso_M_ini, iso_R_cur, right=0)
                 
                 # give estimates for remnant radii (replacing the 0 above)
                 if realistic_remnants:
                     remnants_i = remnants_single_pop(M_init_i, age, self.metal[i])
-                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses (depend on Z)
-                    r_R_cur_i = form.remnant_radius(r_M_cur_i)                                       # approx. remnant radii
-                    R_cur_i[remnants_i] = r_R_cur_i                                                 # fill in the values
+                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])
+                    r_R_cur_i = form.remnant_radius(r_M_cur_i)
+                    R_cur_i[remnants_i] = r_R_cur_i
                 
-                R_cur = np.append(R_cur, R_cur_i)  
-        
+                R_cur = np.append(R_cur, R_cur_i)
+
+        # turn performance mode on or off (meaning to save or to delete the data from memory)
+        if performance_mode and not self._stellar_radii:
+            self._stellar_radii = R_cur
+        elif not performance_mode and self._stellar_radii:
+            self._stellar_radii = None
         return R_cur
+
+    def surface_gravity(self, realistic_remnants=True, performance_mode=True):
+        """Gives the logarithm of the surface gravity of the stars (in log cgs units).
+        Uses isochrone files and the given initial masses of the stars.
+        performance_mode: save the data returned by this function in memory for faster access later.
+        """
+        if self._surface_gravity:
+            log_g = self._surface_gravity
+        else:
+            log_g = np.array([])
+            index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
+
+            for i, age in enumerate(self.ages):
+                # use the isochrone files to interpolate properties
+                iso_M_ini, iso_log_g = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial', 'log_g'])
+                M_init_i = self.M_init[index[i]:index[i + 1]]
+                # arg 'right': return 0 for stars heavier than available in isoc file (dead stars)
+                log_g_i = np.interp(M_init_i, iso_M_ini, iso_log_g, right=0)
+
+                # give estimates for remnant radii (replacing the 0 above)
+                if realistic_remnants:
+                    remnants_i = remnants_single_pop(M_init_i, age, self.metal[i])
+                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])
+                    r_R_cur_i = form.remnant_radius(r_M_cur_i)
+                    r_log_g_i = conv.radius_to_gravity(r_R_cur_i, r_M_cur_i)
+                    log_g_i[remnants_i] = r_log_g_i
+
+                log_g = np.append(log_g, log_g_i)
+
+        # turn performance mode on or off (meaning to save or to delete the data from memory)
+        if performance_mode and not self._surface_gravity:
+            self._surface_gravity = log_g
+        elif not performance_mode and self._surface_gravity:
+            self._surface_gravity = None
+        return log_g
         
-    def LogLuminosities(self, realistic_remnants=True):
+    def log_luminosities(self, realistic_remnants=True, performance_mode=True):
         """Gives the logarithm of the luminosity of the stars in Lsun.
         Uses isochrone files and the given initial masses of the stars.
         realistic_remnants gives estimates for remnant luminosities. Set False to save time.
-        Stars should not have a lower initial mass than the lowest mass in the isochrone file.
+        performance_mode: save the data returned by this function in memory for faster access later.
         """
-        if hasattr(self, 'log_luminosities'):
-            log_L = self.log_luminosities
+        if self._log_luminosities:
+            log_L = self._log_luminosities
         else:
             log_L = np.array([])
-            index = np.cumsum(np.append([0], self.gen_n_stars))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
-                iso_M_ini, iso_log_L = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial', 'log_L'])       # get the isochrone values
+                iso_M_ini, iso_log_L = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial', 'log_L'])
                 M_init_i = self.M_init[index[i]:index[i+1]]
-                log_L_i = np.interp(M_init_i, iso_M_ini, iso_log_L, right=-9)                       # (right) return -9 --> L = 10**-9 Lsun (for stars heavier than available)
+                # arg 'right': return -9 --> L = 10**-9 Lsun (for stars heavier than available)
+                log_L_i = np.interp(M_init_i, iso_M_ini, iso_log_L, right=-9)
                 
                 # give estimates for remnant luminosities (replacing the -9 above)
                 if realistic_remnants:
                     remnants_i = remnants_single_pop(M_init_i, age, self.metal[i])
-                    remnant_time = form.remnant_time(M_init_i[remnants_i], age, self.metal[i])       # approx. time that the remnant had to cool
-                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
-                    r_R_cur_i = form.remnant_radius(r_M_cur_i)                                       # approx. remnant radii
-                    r_Te_i = form.remnant_temperature(r_M_cur_i, r_R_cur_i, remnant_time)                   # approx. remnant temperatures
-                    r_log_L_i = np.log10(form.bb_luminosity(r_Te_i, r_R_cur_i))                      # remnant luminosity := BB radiation
-                    log_L_i[remnants_i] = r_log_L_i                                                 # fill in the values
+                    remnant_time = form.remnant_time(M_init_i[remnants_i], age, self.metal[i])
+                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])
+                    r_R_cur_i = form.remnant_radius(r_M_cur_i)
+                    r_Te_i = form.remnant_temperature(r_M_cur_i, r_R_cur_i, remnant_time)
+                    r_log_L_i = np.log10(form.bb_luminosity(r_Te_i, r_R_cur_i))  # remnant luminosity := BB radiation
+                    log_L_i[remnants_i] = r_log_L_i
                 
-                log_L = np.append(log_L, log_L_i)  
-            
+                log_L = np.append(log_L, log_L_i)
+
+        # turn performance mode on or off (meaning to save or to delete the data from memory)
+        if performance_mode and not self._log_luminosities:
+            self._log_luminosities = log_L
+        elif not performance_mode and self._log_luminosities:
+            self._log_luminosities = None
         return log_L
         
-    def LogTemperatures(self, realistic_remnants=True):
+    def log_temperatures(self, realistic_remnants=True, performance_mode=True):
         """Gives the logarithm of the effective temperature of the stars in K.
         Uses isochrone files and the given initial masses of the stars.
         realistic_remnants gives estimates for remnant temperatures. Set False to save time.
-        Stars should not have a lower initial mass than the lowest mass in the isochrone file.
+        performance_mode: save the data returned by this function in memory for faster access later.
         """
-        if hasattr(self, 'log_temperatures'):
-            log_Te = self.log_temperatures
+        if self._log_temperatures:
+            log_Te = self._log_temperatures
         else:
             log_Te = np.array([])
-            index = np.cumsum(np.append([0], self.gen_n_stars))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
-                iso_M_ini, iso_log_Te = utils.stellar_isochrone(age, self.metal[i],
-                                                                columns=['M_initial', 'log_Te'])     # get the isochrone values
+                iso_M_ini, iso_log_Te = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial', 'log_Te'])
                 M_init_i = self.M_init[index[i]:index[i+1]]
-                log_Te_i = np.interp(M_init_i, iso_M_ini, iso_log_Te, right=1)                      # (right) return 1 --> Te = 10 K (for stars heavier than available)
+                # arg 'right': return 1 --> Te = 10 K (for stars heavier than available)
+                log_Te_i = np.interp(M_init_i, iso_M_ini, iso_log_Te, right=1)
                 
                 # give estimates for remnant temperatures (replacing the 1 above)
                 if realistic_remnants:
                     remnants_i = remnants_single_pop(M_init_i, age, self.metal[i])
-                    remnant_time = form.remnant_time(M_init_i[remnants_i], age, self.metal[i])       # approx. time that the remnant had to cool
-                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
-                    r_R_cur_i = form.remnant_radius(r_M_cur_i)                                       # approx. remnant radii
-                    r_log_Te_i = np.log10(form.remnant_temperature(r_M_cur_i, r_R_cur_i, remnant_time))     # approx. remnant temperatures
-                    log_Te_i[remnants_i] = r_log_Te_i                                               # fill in the values
+                    remnant_time = form.remnant_time(M_init_i[remnants_i], age, self.metal[i])
+                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])
+                    r_R_cur_i = form.remnant_radius(r_M_cur_i)
+                    r_log_Te_i = np.log10(form.remnant_temperature(r_M_cur_i, r_R_cur_i, remnant_time))
+                    log_Te_i[remnants_i] = r_log_Te_i
                 
                 log_Te = np.append(log_Te, log_Te_i)  
-        
+
+        # turn performance mode on or off (meaning to save or to delete the data from memory)
+        if performance_mode and not self._log_temperatures:
+            self._log_temperatures = log_Te
+        elif not performance_mode and self._log_temperatures:
+            self._log_temperatures = None
         return log_Te
         
-    def AbsoluteMagnitudes(self, filters=None, realistic_remnants=True):
+    def absolute_magnitudes(self, filters=None, realistic_remnants=True, performance_mode=True):
         """Gives the absolute magnitudes of the stars using isochrone files and the initial masses.
         A list of filters can be specified; None will result in all available magnitudes.
         Realistic remnants can be emulated by using black body spectra.
-        Stars should not have a lower initial mass than the lowest mass in the isochrone file.
+        performance_mode: save the data returned by this function in memory for faster access later.
         """
         if filters is None:
             filters = self.mag_names
         
-        if hasattr(self, 'absolute_magnitudes'):
-            abs_mag = self.absolute_magnitudes[:, utils.get_filter_mask(filters)]
+        if self._absolute_magnitudes:
+            abs_mag = self._absolute_magnitudes[:, utils.get_filter_mask(filters)]
             if (len(filters) == 1):
-                abs_mag = abs_mag.flatten()                                                         # correct for 2D array
+                abs_mag = abs_mag.flatten()  # correct for 2D array
         else:
             abs_mag = np.empty((0,) + (len(filters),)*(len(filters) != 1))
-            index = np.cumsum(np.append([0], self.gen_n_stars))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 # use the isochrone files to interpolate properties
                 iso_M_ini = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial'])
-                iso_mag = utils.stellar_isochrone(age, self.metal[i], columns=filters).T             # get the isochrone values
-                
-                M_init_i = self.M_init[index[i]:index[i+1]]                                         # select the masses of one population
-                interper = spi.interp1d(iso_M_ini, iso_mag, bounds_error=False, 
-                                        fill_value=30, axis=0)                                      # (fill) return 30 --> L of less than 10**-9 (for stars heavier than available)
+                iso_mag = utils.stellar_isochrone(age, self.metal[i], columns=filters).T
+                M_init_i = self.M_init[index[i]:index[i+1]]
+                # arg fill_value: return 30 --> L of less than 10**-9 (for stars heavier than available)
+                interper = spi.interp1d(iso_M_ini, iso_mag, bounds_error=False, fill_value=30, axis=0)
                 mag_i = interper(M_init_i)
                 
                 if realistic_remnants:
                     remnants_i = remnants_single_pop(M_init_i, age, self.metal[i])
-                    remnant_time = form.remnant_time(M_init_i[remnants_i], age, self.metal[i])       # approx. time that the remnant had to cool
-                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])               # approx. remnant masses
-                    r_R_cur_i = form.remnant_radius(r_M_cur_i)                                       # approx. remnant radii
-                    r_Te_i = form.remnant_temperature(r_M_cur_i, r_R_cur_i, remnant_time)                   # approx. remnant temperatures
-                    mag_i[remnants_i] = form.bb_magnitude(r_Te_i, r_R_cur_i, filters)                # approx. remnant magnitudes
+                    remnant_time = form.remnant_time(M_init_i[remnants_i], age, self.metal[i])
+                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])
+                    r_R_cur_i = form.remnant_radius(r_M_cur_i)
+                    r_Te_i = form.remnant_temperature(r_M_cur_i, r_R_cur_i, remnant_time)
+                    mag_i[remnants_i] = form.bb_magnitude(r_Te_i, r_R_cur_i, filters)
                 
                 abs_mag = np.append(abs_mag, mag_i, axis=0)
-        
+
+        # turn performance mode on or off (meaning to save or to delete the data from memory)
+        if performance_mode and not self._absolute_magnitudes:
+            # to avoid confusing behavior and nontrivial code, save all of the magnitudes
+            if (filters != self.mag_names):
+                all_abs_mag = self.absolute_magnitudes(filters=None, realistic_remnants=realistic_remnants,
+                                                       performance_mode=False)
+            else:
+                all_abs_mag = abs_mag
+            self._absolute_magnitudes = all_abs_mag
+        elif not performance_mode and self._absolute_magnitudes:
+            self._absolute_magnitudes = None
         return abs_mag
     
-    def ApparentMagnitudes(self, distance, filters=None, extinction=0, add_redshift=False, redshift=None):
+    def apparent_magnitudes(self, distance, filters=None, extinction=0, add_redshift=False, redshift=None):
         """Computes the apparent magnitude from the absolute magnitude and the individual distances 
         (in pc). Needs the luminosity distance to the astronomical object (in pc).
         A list of filters can be specified; None will result in all available magnitudes.
@@ -527,133 +596,147 @@ class Stars():
             filters = self.mag_names
 
         if (distance > 100*np.abs(np.min(self.coords[:, 2]))):  # distance 'much larger' than individual variations
-            true_dist = distance - self.coords[:, 2]  # approximate the individual distance_3d to each star with the z-coordinate
+            # approximate the distances to each star using the z-coordinate
+            true_dist = distance - self.coords[:, 2]
         else:
-            true_dist = form.distance_3d(self.coords, np.array([0, 0, distance]))  # distance is now properly calculated for each star
+            # calculate the distances for each star properly
+            true_dist = form.distance_3d(self.coords, np.array([0, 0, distance]))
 
         true_dist = true_dist.reshape((len(true_dist),) + (1,)*(len(filters) > 1))  # fix dimension for broadcast
 
-        if hasattr(self, 'absolute_magnitudes'):
-            abs_mag = self.absolute_magnitudes[:, utils.get_filter_mask(filters)]
+        if self._absolute_magnitudes:
+            abs_mag = self._absolute_magnitudes[:, utils.get_filter_mask(filters)]
             if (len(filters) == 1):
-                abs_mag = abs_mag.flatten()                                                         # correct for 2D array
+                abs_mag = abs_mag.flatten()  # correct for 2D array
         else:
             # add redshift (rough approach)
             if add_redshift:
                 filter_means = utils.open_photometric_data(columns=['mean'], filters=filters)
                 shifted_filters = (1 + redshift)*filter_means
-                R_cur = self.StellarRadii(realistic_remnants=True)
-                T_eff = 10**self.LogTemperatures(realistic_remnants=True)
+                R_cur = self.stellar_radii(realistic_remnants=True)
+                T_eff = 10**self.log_temperatures(realistic_remnants=True)
                 abs_mag = form.bb_magnitude(T_eff, R_cur, filters, filter_means=shifted_filters)
             else:
-                abs_mag = self.AbsoluteMagnitudes(filters=filters)
+                abs_mag = self.absolute_magnitudes(filters=filters)
 
         app_mag = form.apparent_magnitude(abs_mag, true_dist, ext=extinction)  # true_dist in pc!
         return app_mag
         
-    def SpectralTypes(self, realistic_remnants=True):
+    def spectral_types(self, realistic_remnants=True, performance_mode=True):
         """Gives the spectral types (as indices, to conserve memory) for the stars and
         the corresponding spectral type names.
         Uses isochrone files and the given initial masses of the stars.
-        Stars should not have a lower initial mass than the lowest mass in the isochrone file.
+        performance_mode: save the data returned by this function in memory for faster access later.
         """
-        if hasattr(self, 'spectral_types'):
-            spec_indices = self.spectral_types
-            spec_names = self.spec_names
+        if self._spectral_types:
+            spec_indices = self._spectral_types
+            spec_names = self._spec_names
         else:
-            log_T_eff = self.LogTemperatures(realistic_remnants=realistic_remnants)
-            log_L = self.LogLuminosities(realistic_remnants=realistic_remnants)
-            log_M_cur = np.log10(self.CurrentMasses(realistic_remnants=realistic_remnants))
-            
-            spec_indices, spec_names = find_spectral_type(log_T_eff, log_L, log_M_cur)                # assign spectra to the stars
+            log_T_eff = self.log_temperatures(realistic_remnants=realistic_remnants)
+            log_L = self.log_luminosities(realistic_remnants=realistic_remnants)
+            log_M_cur = np.log10(self.current_masses(realistic_remnants=realistic_remnants))
+            # assign spectra to the stars
+            spec_indices, spec_names = find_spectral_type(log_T_eff, log_L, log_M_cur)
             
             # if this is run for the first time, save the spectral names
-            if len(self.spec_names == 0):
-                self.spec_names = spec_names
-        
+            if not self._spec_names:
+                self._spec_names = spec_names
+
+        # turn performance mode on or off (meaning to save or to delete the data from memory)
+        if performance_mode and not self._spectral_types:
+            self._spectral_types = spec_indices
+        elif not performance_mode and self._spectral_types:
+            self._spectral_types = None
         return spec_indices, spec_names
     
-    def Remnants(self):
+    def remnants(self, performance_mode=True):
         """Gives the indices of the positions of remnants (not white dwarfs) as a boolean array. 
         (WD should be handled with the right isochrone files, but NS/BHs are not)
+        performance_mode: save the data returned by this function in memory for faster access later.
         """
-        if hasattr(self, 'remnants'):
-            remnants = self.remnants
+        if hasattr(self, '_remnants'):
+            remnants = self._remnants
         else:
             remnants = np.array([], dtype=bool)
-            index = np.cumsum(np.append([0], self.gen_n_stars))                                  # indices defining the different populations
+            index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
             
             for i, age in enumerate(self.ages):
                 iso_M_ini = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial'])
-                max_mass = np.max(iso_M_ini)                                                        # maximum initial mass in isoc file
+                max_mass = np.max(iso_M_ini)  # maximum initial mass in isoc file
                 remnants_i = (self.M_init[index[i]:index[i+1]] > max_mass)
                 remnants = np.append(remnants, remnants_i)
-        
+
+        # turn performance mode on or off (meaning to save or to delete the data from memory)
+        if performance_mode and not self._remnants:
+            self._remnants = remnants
+        elif not performance_mode and self._remnants:
+            self._remnants = None
         return remnants
     
-    def TotalCurrentMass(self):
+    def total_current_mass(self):
         """Returns the total current mass in stars (in Msun)."""
-        return np.sum(self.CurrentMasses())
+        return np.sum(self.current_masses())
     
-    def TotalLuminosity(self):
+    def total_luminosity(self):
         """Returns log of the total luminosity from stars (in Lsun)."""
-        return np.log10(np.sum(10**self.LogLuminosities(realistic_remnants=False)))                 # remnants don't add much, so leave them as is
+        # remnants don't add much, so leave them out to save some computation time
+        return np.log10(np.sum(10**self.log_luminosities(realistic_remnants=False)))
         
-    def CoordsArcsec(self, distance):
+    def coords_arcsec(self, distance):
         """Returns coordinates converted to arcseconds (from pc). Needs the angular distance
         to the object (in pc).
         """
         return conv.parsec_to_arcsec(self.coords, distance)
         
-    def OrbitalRadii(self, distance, unit='pc', spher=False):
+    def orbital_radii(self, distance=None, unit='pc', spher=False):
         """Returns the radial coordinate of the stars (spherical or cylindrical) in pc/as."""
         if spher:
             radii = form.distance_3d(self.coords)
         else:
             radii = form.distance_2d(self.coords)
         
-        if (unit == 'as'):                                                                          # convert to arcsec if wanted
+        if (unit == 'as'):
+            # convert to arcsec if wanted
             radii = conv.parsec_to_arcsec(radii, distance)
         
         return radii
     
-    def OrbitalVelocities(self):
+    def orbital_velocities(self):
         """"""
         # todo: make this
     
-    def HalfMassRadius(self, spher=False):
+    def half_mass_radius(self, spher=False):
         """Returns the (spherical or cylindrical) half mass radius in pc/as."""
-        M_cur = self.CurrentMasses()
-        tot_mass = np.sum(M_cur)                                                                    # do this locally, to avoid unnecesairy overhead
+        M_cur = self.current_masses()
+        tot_mass = np.sum(M_cur)  # do this locally, to avoid unnecessary overhead (we already have M_cur anyway)
         
         if spher:
-            r_star = form.distance_3d(self.coords)                                                     # spherical radii of the stars
+            r_star = form.distance_3d(self.coords)
         else:
-            r_star = form.distance_2d(self.coords)                                                   # cylindrical radii of the stars
+            r_star = form.distance_2d(self.coords)
             
-        indices = np.argsort(r_star)                                                                # indices that sort the radii
-        r_sorted = r_star[indices]                                                                  # sorted radii
-        mass_sorted = M_cur[indices]                                                                # masses sorted for radius
-        mass_sum = np.cumsum(mass_sorted)                                                           # cumulative sum of sorted masses
-        hmr = np.max(r_sorted[mass_sum <= tot_mass/2])                                              # 2D/3D radius at half the mass
+        indices = np.argsort(r_star)
+        r_sorted = r_star[indices]
+        mass_sorted = M_cur[indices]  # masses sorted by radius
+        mass_sum = np.cumsum(mass_sorted)  # cumulative sum of sorted masses
+        hmr = r_sorted[mass_sum <= tot_mass/2][-1]  # 2D/3D radius at half the mass
         return hmr
         
-    def HalfLumRadius(self, spher=False):
+    def half_lum_radius(self, spher=False):
         """Returns the (spherical or cylindrical) half luminosity radius in pc/as."""
-        lum = 10**self.LogLuminosities(realistic_remnants=False)
-        
-        tot_lum = np.sum(lum)                                                                       # do this locally, to avoid unnecesairy overhead
+        lum = 10**self.log_luminosities(realistic_remnants=False)
+        tot_lum = np.sum(lum)  # do this locally, to avoid unnecessary overhead (we already have lum anyway)
         
         if spher:
-            r_star = form.distance_3d(self.coords)                                                     # spherical radii of the stars
+            r_star = form.distance_3d(self.coords)
         else:
-            r_star = form.distance_2d(self.coords)                                                   # cylindrical radii of the stars
+            r_star = form.distance_2d(self.coords)
             
-        indices = np.argsort(r_star)                                                                # indices that sort the radii
-        r_sorted = r_star[indices]                                                                  # sorted radii
-        lum_sorted = lum[indices]                                                                   # luminosities sorted for radius
-        lum_sum = np.cumsum(lum_sorted)                                                             # cumulative sum of sorted luminosities
-        hlr = np.max(r_sorted[lum_sum <= tot_lum/2])                                                # 2D/3D radius at half the luminosity
+        indices = np.argsort(r_star)
+        r_sorted = r_star[indices]
+        lum_sorted = lum[indices]  # luminosities sorted by radius
+        lum_sum = np.cumsum(lum_sorted)  # cumulative sum of sorted luminosities
+        hlr = r_sorted[lum_sum <= tot_lum/2][-1]  # 2D/3D radius at half the luminosity
         return hlr
 
     def compact_parameters(self, mag_limit=None, d_lum=None, extinction=None):
@@ -668,7 +751,7 @@ class Stars():
         for i, pop_num in enumerate(self.n_stars):
             if (self.compact_mode == 'mag'):
                 mass_limit[i] = magnitude_limited(self.ages[i], self.metal[i], mag_lim=mag_limit,
-                                                  distance=d_lum, ext=extinction, filter='Ks')
+                                                  distance=d_lum, ext=extinction, filter_name='Ks')
             else:
                 mass_limit[i] = number_limited(self.n_stars, self.ages[i], self.metal[i], imf=self.imf_param[i])
 
@@ -687,44 +770,6 @@ class Stars():
                                'generating a higher number of stars.')
         return mass_limit, fraction_generated
 
-    def PerformanceMode(self, full=False, turn_off=False):
-        """Sacrifices memory usage for performance during the simulation of images or other tasks.
-        The full set of variables like luminosity and temperature can be stored or only
-            a selection needed for imaging, by setting full to True or False.
-        If for some reason this mode has to be turned off (delete stored data), set turn_off=True.
-        """
-        if (not hasattr(self, 'current_masses') & full):
-            self.current_masses = self.CurrentMasses(realistic_remnants=True)
-        elif (turn_off & full):
-            del self.current_masses
-            
-        if (not hasattr(self, 'stellar_radii') & full):
-            self.stellar_radii = self.StellarRadii(realistic_remnants=True)
-        elif (turn_off & full):
-            del self.stellar_radii
-            
-        if (not hasattr(self, 'log_luminosities') & full):
-            self.log_luminosities = self.LogLuminosities(realistic_remnants=True)
-        elif (turn_off & full):
-            del self.log_luminosities
-            
-        if (not hasattr(self, 'log_temperatures') & full):
-            self.log_temperatures = self.LogTemperatures(realistic_remnants=True)
-        elif (turn_off & (full == True)):
-            del self.log_temperatures
-        
-        if (not hasattr(self, 'absolute_magnitudes') & full):
-            self.absolute_magnitudes = self.AbsoluteMagnitudes(realistic_remnants=True)
-        elif (turn_off & full):
-            del self.absolute_magnitudes
-        
-        if not hasattr(self, 'spectral_types'):
-            self.spectral_types, names = self.SpectralTypes(realistic_remnants=True)
-        elif turn_off:
-            del self.spectral_types
-        
-        return
-
 
 class Gas():
     """"""
@@ -740,14 +785,14 @@ class Gas():
     def __add__(self):
         pass
     
-    def AddInclination(self, incl):
+    def add_inclination(self, incl):
         """Put the object at an inclination w.r.t. the observer, in radians. 
         The given angle is measured from the x-axis towards the z-axis (which is the l.o.s.).
         Can be specified for each cloud separately or for all at once.
         This is additive (given angles stack with previous ones).
         """
     
-    def AddEllipticity(self, axes):
+    def add_ellipticity(self, axes):
         """Give the object axes (cartesian) different relative proportions. 
         The given axes (a,b,c) are taken as relative sizes, the volume of the object is conserved.
         Can be specified for each cloud separately or for all at once.
@@ -769,14 +814,14 @@ class Dust():
     def __add__(self):
         pass
     
-    def AddInclination(self, incl):
+    def add_inclination(self, incl):
         """Put the object at an inclination w.r.t. the observer, in radians. 
         The given angle is measured from the x-axis towards the z-axis (which is the l.o.s.).
         Can be specified for each cloud separately or for all at once.
         This is additive (given angles stack with previous ones).
         """
     
-    def AddEllipticity(self, axes):
+    def add_ellipticity(self, axes):
         """Give the object axes (cartesian) different relative proportions. 
         The given axes (a,b,c) are taken as relative sizes, the volume of the object is conserved.
         Can be specified for each cloud separately or for all at once.
@@ -796,15 +841,16 @@ class AstronomicalObject():
         
     Arguments
     ---------
-
     distance
-    d_type
-    extinct
+    d_type: distance type [l for luminosity, z for redshift]
+    extinct: extinction between source and observer
     **kwargs: the kwargs are used in initiation of the component classes (see Stars, Gas and Dust)
     
     Attributes
     ----------
-
+    redshift: redshift for the object
+    d_lum: luminosity distance to the object (in pc)
+    d_ang: angular distance for the object (in pc)
     AddFieldStars
     AddBackGround
     AddNGS
@@ -814,35 +860,38 @@ class AstronomicalObject():
     """
     def __init__(self, distance=10, d_type='l', extinct=0, **kwargs):
         
-        self.d_type = d_type                                                                        # distance type [l for luminosity, z for redshift]
+        self.d_type = d_type
         if (self.d_type == 'z'):
-            self.redshift = distance                                                                # redshift for the object
-            self.d_lum = form.d_luminosity(self.redshift)                                            # luminosity distance to the object (in pc)
+            self.redshift = distance
+            self.d_lum = form.d_luminosity(self.redshift)
         else:
-            self.d_lum = distance                                                                   # luminosity distance to the object (in pc)
-            self.redshift = form.d_luminosity_to_redshift(self.d_lum)                                           # redshift for the object
+            self.d_lum = distance
+            self.redshift = form.d_luminosity_to_redshift(self.d_lum)
         
-        self.d_ang = form.d_angular(self.redshift)                                                   # angular distance (in pc)
-        self.extinction = extinct                                                                   # extinction between source and observer
+        self.d_ang = form.d_angular(self.redshift)
+        self.extinction = extinct
         
         # initialise the component classes (pop the right kwargs per object)
         stars_args = [k for k, v in inspect.signature(Stars).parameters.items()]
         stars_dict = {k: kwargs.pop(k) for k in dict(kwargs) if k in stars_args}
         if stars_dict:
-            self.stars = Stars(**stars_dict)                                                        # the stellar component
-            self.stars.GenerateStars()
+            # the stellar component
+            self.stars = Stars(**stars_dict)
+            self.stars.generate_stars()
         
         gas_args = [k for k, v in inspect.signature(Gas).parameters.items()]
         gas_dict = {k: kwargs.pop(k) for k in dict(kwargs) if k in gas_args}
         if gas_dict:
-            self.gas = Gas(**gas_dict)                                                              # the gaseous component
+            # the gaseous component
+            self.gas = Gas(**gas_dict)
         
         dust_args = [k for k, v in inspect.signature(Dust).parameters.items()]
         dust_dict = {k: kwargs.pop(k) for k in dict(kwargs) if k in dust_args}
         if dust_dict:
-            self.dust = Dust(**dust_dict)                                                           # the dusty component
+            # the dusty component
+            self.dust = Dust(**dust_dict)
         
-        super().__init__(**kwargs)                                                                  # inheritance
+        super().__init__(**kwargs)
         return
     
     def __repr__(self):
@@ -858,7 +907,7 @@ class AstronomicalObject():
         """Convert a length (pc) to angular size on the sky (as). Can be used for coordinates and radii."""
         return conv.parsec_to_arcsec(length, self.d_ang)
 
-    def AddFieldStars(self, n=10, fov=53, sky_coords=None):
+    def add_field_stars(self, n=10, fov=53, sky_coords=None):
         """Adds (Milky Way) field stars to the object in the given f.o.v (in as).
         [WIP] Nothing is done with sky_coords at the moment.
         """
@@ -869,17 +918,17 @@ class AstronomicalObject():
         fov_rad = fov*as_rad
         phi = dist.uniform(n=n, min_val=0, max_val=2*np.pi, power=1)
         theta = dist.angle_theta(n=n)
-        radius = dist.uniform(n=n, min_val=10, max_val=10**3, power=3)                                      # uniform between 10 pc and a kpc
+        radius = dist.uniform(n=n, min_val=10, max_val=10**3, power=3)  # uniform between 10 pc and a kpc
         coords = conv.spher_to_cart(radius, theta, phi)
         distance = self.d_lum - np.abs(coords[:,3])
         
-        mag = dist.uniform(n=n, min_val=5, max_val=20, power=1)                                             # placeholder for magnitudes
-        filt = np.full_like(mag, 'V', dtype='U5')                                                   # placeholder for filter
-        spec_types = np.full_like(mag, 'G0V', dtype='U5')                                           # placeholder for spectral types
+        mag = dist.uniform(n=n, min_val=5, max_val=20, power=1)  # placeholder for magnitudes
+        filt = np.full_like(mag, 'V', dtype='U5')  # placeholder for filter
+        spec_types = np.full_like(mag, 'G0V', dtype='U5')  # placeholder for spectral types
         self.field_stars = np.array([coords[:,0], coords[:,1], mag, filt, spec_types])
         return
         
-    def AddBackGround(self, n=10, fov=53):
+    def add_back_ground(self, n=10, fov=53):
         """Adds additional structures to the background, like more clusters or galaxies. 
         These will be unresolved. Give the imaging f.o.v (in as).
         """
@@ -887,7 +936,7 @@ class AstronomicalObject():
         # todo: WIP
         return
         
-    def AddNGS(self, mag=13, filter='V', pos_x=None, pos_y=None, spec_types='G0V'):
+    def add_ngs(self, mag=13, filter_name='V', pos_x=None, pos_y=None, spec_types='G0V'):
         """Adds one or more natural guide star(s) for the adaptive optics.
         The SCAO mode can only use one NGS that has to be within a magnitude of 10-16 (optical).
         The MCAO mode can track multiple stars. Positions can be specified manually (in as!),
@@ -911,12 +960,12 @@ class AstronomicalObject():
                 pos_y = np.array([pos_y])
         elif (len(mag) == 1):
             # just outside fov for 1.5 mas/p scale, but inside patrol field of scao
-            pos_x = np.array([7.1])                                                                 # x position in as
-            pos_y = np.array([10.6])                                                                # y position in as
+            pos_x = np.array([7.1])  # x position in as
+            pos_y = np.array([10.6])  # y position in as
         else:
             # assume we are using MCAO now. generate random positions within patrol field
             angle = dist.angle_phi(n=len(mag))
-            radius = dist.uniform(n=len(mag), min_val=46, max_val=90, power=2)                              # radius of patrol field in as
+            radius = dist.uniform(n=len(mag), min_val=46, max_val=90, power=2)  # radius of patrol field in as
             pos_x_y = conv.pol_to_cart(radius, angle)
             pos_x = pos_x_y[0]
             pos_y = pos_x_y[1]
@@ -927,30 +976,30 @@ class AstronomicalObject():
         elif hasattr(spec_types, '__len__'):
             spec_types = np.array(spec_types)
         else:
-            spec_types = np.full_like(mag, 'G0V', dtype='U5')                                           
+            spec_types = np.full_like(mag, 'G0V', dtype='U5')
+        # the guide stars can be in a different filter than the observations
+        filters = np.full_like(mag, filter_name, dtype='U5')
         
-        filt = np.full_like(mag, filter, dtype='U5')                                                # the guide stars can be in a different filter than the observations 
-        
-        self.natural_guide_stars = [pos_x, pos_y, mag, filt, spec_types]
+        self.natural_guide_stars = [pos_x, pos_y, mag, filters, spec_types]
         return
 
-    def PlotStars2D(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', filter='V', theme='dark1',
-                    show=True):
+    def plot_stars_2d(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', filter_name='V',
+                      theme='dark1', show=True):
         """Make a plot of the object positions in two dimensions
         Set colour to 'temperature' for a temperature representation.
-        Set filter to None to avoid markers scaling in size with magnitude.
+        Set filter_name to None to avoid markers scaling in size with magnitude.
         Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but
             saveable dark plot, 'fits' for a plot that resembles a .fits image,
             and None for normal light colours.
         """
         # todo: fix the plotting functions for their new class
-        if (filter is not None):
-            mags = self.stars.ApparentMagnitudes(self.d_lum, filters=filter)
+        if (filter_name is not None):
+            mags = self.stars.apparent_magnitudes(self.d_lum, filters=filter_name)
         else:
             mags = None
 
         if (colour == 'temperature'):
-            temps = 10**self.stars.LogTemperatures()
+            temps = 10**self.stars.log_temperatures()
         else:
             temps = None
 
@@ -958,20 +1007,21 @@ class AstronomicalObject():
                        T_eff=temps, mag=mags, theme=theme, show=show)
         return
 
-    def PlotStars3D(self, title='Scatter', xlabel='x', ylabel='y', colour='blue', filter='V', theme='dark1', show=True):
+    def plot_stars_3d(self, title='Scatter', xlabel='x', ylabel='y', colour='blue', filter_name='V', theme='dark1',
+                      show=True):
         """Make a plot of the object positions in three dimensions.
         Set colour to 'temperature' for a temperature representation.
-        Set filter to None to avoid markers scaling in size with magnitude.
+        Set filter_name to None to avoid markers scaling in size with magnitude.
         Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but
             saveable dark plot, and None for normal light colours.
         """
-        if (filter is not None):
-            mags = self.stars.ApparentMagnitudes(self.d_lum, filters=filter)
+        if (filter_name is not None):
+            mags = self.stars.apparent_magnitudes(self.d_lum, filters=filter_name)
         else:
             mags = None
 
         if (colour == 'temperature'):
-            temps = 10**self.stars.LogTemperatures()
+            temps = 10**self.stars.log_temperatures()
         else:
             temps = None
 
@@ -979,28 +1029,28 @@ class AstronomicalObject():
                        mag=mags, theme=theme, show=show)
         return
 
-    def PlotHRD(self, title='hr_diagram', colour='temperature', theme='dark1', show=True):
+    def plot_hrd(self, title='hr_diagram', colour='temperature', theme='dark1', show=True):
         """Make a plot of stars in an HR diagram.
         Set colour to 'temperature' for a temperature representation.
         Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but
             saveable dark plot, and None for normal light colours.
         """
-        r_mask = np.invert(self.stars.Remnants())
-        temps = 10**self.stars.LogTemperatures()
-        lums = self.stars.LogLuminosities()
+        r_mask = np.invert(self.stars.remnants())
+        temps = 10**self.stars.log_temperatures()
+        lums = self.stars.log_luminosities()
 
         vis.hr_diagram(T_eff=temps, log_lum=lums, title=title, xlabel='Temperature (K)',
                        ylabel=r'Luminosity log($L/L_\odot$)', colour=colour, theme=theme, mask=r_mask, show=show)
         return
 
-    def PlotCMD(self, x='B-V', y='V', title='cm_diagram', colour='blue', theme=None, show=True):
+    def plot_cmd(self, x='B-V', y='V', title='cm_diagram', colour='blue', theme=None, show=True):
         """Make a plot of the stars in a cm_diagram
         Set x and y to the colour and magnitude to be used (x needs format 'A-B')
         Set colour to 'temperature' for a temperature representation.
         """
         x_filters = x.split('-')
-        mag_A = self.stars.ApparentMagnitudes(self.d_lum, filters=x_filters[0])
-        mag_B = self.stars.ApparentMagnitudes(self.d_lum, filters=x_filters[1])
+        mag_A = self.stars.apparent_magnitudes(self.d_lum, filters=x_filters[0])
+        mag_B = self.stars.apparent_magnitudes(self.d_lum, filters=x_filters[1])
         c_mag = mag_A - mag_B
 
         if (y == x_filters[0]):
@@ -1008,13 +1058,13 @@ class AstronomicalObject():
         elif (y == x_filters[1]):
             mag = mag_B
         else:
-            mag = self.stars.ApparentMagnitudes(self.d_lum, filters=y)
+            mag = self.stars.apparent_magnitudes(self.d_lum, filters=y)
 
         vis.cm_diagram(c_mag, mag, title=title, xlabel=x, ylabel=y,
                        colour=colour, T_eff=None, theme=theme, adapt_axes=True, mask=None, show=show)
         return
 
-    def SaveTo(self, filename):
+    def save_to(self, filename):
         """Saves the class to a file."""
         if (filename[-4:] != '.pkl'):
             filename += '.pkl'
@@ -1022,13 +1072,14 @@ class AstronomicalObject():
         if os.path.isdir('objects'):
             with open(os.path.join('objects', filename), 'wb') as output:
                 pickle.dump(self, output, -1)
-        else:                                                                                       # if for some reason the objects folder isn't there
+        else:
+            # if for some reason the 'objects' folder isn't there
             with open(filename, 'wb') as output:
                 pickle.dump(self, output, -1)
         return
 
     @staticmethod
-    def LoadFrom(filename):
+    def load_from(filename):
         """Loads the class from a file."""
         if (filename[-4:] != '.pkl'):
             filename += '.pkl'
@@ -1264,9 +1315,8 @@ def number_limited(n, age, Z, imf=None):
     return mass_lim_low, mass_lim_high
 
 
-def magnitude_limited(age, Z, mag_lim=default_mag_lim, distance=10, ext=0, filter='Ks'):
-    # todo: change filter to filter_name
-    """Retrieves the lower mass limit for which the given magnitude threshold is met. 
+def magnitude_limited(age, Z, mag_lim=default_mag_lim, distance=10, ext=0, filter_name='Ks'):
+    """Retrieves the lower mass limit for which the given magnitude threshold is met.
     Will also give an upper mass limit based on the values in the isochrone.
     Works only for resolved stars. 
     If light is integrated along the line of sight (crowded fields), 
@@ -1274,27 +1324,29 @@ def magnitude_limited(age, Z, mag_lim=default_mag_lim, distance=10, ext=0, filte
     distance, age, metallicity and extinction of the population of stars are needed.
     A filter must be specified in which the given limiting magnitude is measured.
     """
-    iso_M_ini = utils.stellar_isochrone(age, Z, columns=['M_initial'])                               # get the isochrone values
-    mag_vals = utils.stellar_isochrone(age, Z, columns=[filter])
+    # get the isochrone values
+    iso_M_ini = utils.stellar_isochrone(age, Z, columns=['M_initial'])
+    mag_vals = utils.stellar_isochrone(age, Z, columns=[filter_name])
 
-    abs_mag_lim = form.absolute_magnitude(mag_lim, distance, ext=ext)                                             # calculate the limiting absolute magnitude
-    mask = (mag_vals < abs_mag_lim + 0.1)                                                           # take all mag_vals below the limit
+    # calculate the limiting absolute magnitude and take all mag_vals below the limit
+    abs_mag_lim = form.absolute_magnitude(mag_lim, distance, ext=ext)
+    mask = (mag_vals < abs_mag_lim + 0.1)
     if not mask.any():
-        mask = (mag_vals == np.min(mag_vals))                                                       # if limit too high (too low in mag) then it will break
-        warnings.warn(('objectgenerator//magnitude_limited: compacting will not work, '
-                       'distance too large.'), RuntimeWarning)
+        # if limit too high (too low in mag) then it will break
+        mask = (mag_vals == np.min(mag_vals))
+        warnings.warn(f'Compacting will not work, distance ({distance} pc) too large.', RuntimeWarning)
 
-    mass_lim_low = iso_M_ini[mask][0]                                                               # the lowest mass where mask==True
-    
-    mass_lim_high = iso_M_ini[-1]                                                                   # highest value in the isochrone
-    
+    # now take the lowest mass where mask==True and the highest mass in the isochrone
+    mass_lim_low = np.min(iso_M_ini[mask])
+    mass_lim_high = np.max(iso_M_ini)
     return mass_lim_low, mass_lim_high
 
 
 def remnants_single_pop(M_init, age, Z):
     """Gives the positions of the remnants in a single population (as a boolean mask)."""
     iso_M_ini = utils.stellar_isochrone(age, Z, columns=['M_initial'])
-    max_mass = np.max(iso_M_ini)                                                                    # maximum initial mass in isoc file
+    # maximum initial mass in isoc file
+    max_mass = np.max(iso_M_ini)
     return (M_init > max_mass)
 
 

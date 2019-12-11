@@ -99,7 +99,7 @@ def DynamicConstruct():
                            mag_lim=None,
                            )
     
-    astobj.SaveTo(savename + '.pkl')                                                                # save the object
+    astobj.save_to(savename + '.pkl')                                                                # save the object
     
     command = OneLineCommand(astobj, N, M, IMF, savename)
     print('')
@@ -876,7 +876,7 @@ if __name__ == '__main__':
                                mag_lim=args.limit,
                                )
         
-        astobj.SaveTo(args.save)
+        astobj.save_to(args.save)
     
     
     

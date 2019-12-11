@@ -18,12 +18,12 @@ def MakeSource(astobj, filter='V'):
     """Makes a SimCADO Source object from an AstObj.
     filter determines what magnitudes are used (corresponding to that filter).
     """
-    coords_as = astobj.CoordsArcsec()
+    coords_as = astobj.coords_arcsec()
     x_as = coords_as[:, 0]
     y_as = coords_as[:, 1]
     
-    magnitudes = astobj.ApparentMagnitudes(filter=filter)
-    spec_i, spec_names = astobj.SpectralTypes()
+    magnitudes = astobj.apparent_magnitudes(filter=filter)
+    spec_i, spec_names = astobj.spectral_types()
     
     src = sim.source.stars(mags=magnitudes, x=x_as, y=y_as, filter=filter, 
                            spec_types=spec_names[spec_i])
