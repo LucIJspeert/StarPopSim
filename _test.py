@@ -4207,7 +4207,7 @@ print('')
 lam_arr = np.linspace(phot_dat['mean']-phot_dat['width']/2, phot_dat['mean']+phot_dat['width']/2, 10).T
 # lam_arr = lam_arr[0]
 temps = np.array([5000, 5300, 5770, 6000])
-integral = np.trapz(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*len(np.shape(lam_arr))), var='wavl'), x=lam_arr, axis=-1)      # W/sr^1/m^2
+integral = np.trapz(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*np.ndim(lam_arr)), var='wavl'), x=lam_arr, axis=-1)      # W/sr^1/m^2
 intensity = np.pi*integral                                                                          # W/m^2
 luminosity = intensity*4*np.pi*(np.array([1,2,1,1]).reshape((4,) + (1,)*(len(phot_dat['mean']) > 1))*R_sun)**2                                                           # W
 magnitude = conv.lum_to_mag(luminosity/L_sun)
@@ -4215,7 +4215,7 @@ print(magnitude)
 # print(', '.join(['{0}= {1}'.format(name, num) for name,num in zip(phot_dat['alt_name'], magnitude)]))
 
 temps = np.array([5770])
-spec_radiance = np.mean(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*len(np.shape(lam_arr))), var='wavl'), axis=-1)     # W/sr^1/m^3
+spec_radiance = np.mean(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*np.ndim(lam_arr)), var='wavl'), axis=-1)     # W/sr^1/m^3
 spec_flux = np.pi*spec_radiance                                                                     # W/m^3
 # translation to 10 pc
 integrated = spec_flux*(np.array([1,2,1,1]).reshape((4,) + (1,)*(len(phot_dat['mean']) > 1))*R_sun)**2
@@ -4225,7 +4225,7 @@ print(magnitude)
 
 # try integrated, then divided by filter width [does not change it much]
 temps = np.array([5770])
-spec_radiance = np.trapz(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*len(np.shape(lam_arr))), var='wavl'), x=lam_arr, axis=-1)/phot_dat['width']     # W/sr^1/m^3
+spec_radiance = np.trapz(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*np.ndim(lam_arr)), var='wavl'), x=lam_arr, axis=-1)/phot_dat['width']     # W/sr^1/m^3
 spec_flux = np.pi*spec_radiance                                                                     # W/m^3
 # translation to 10 pc
 integrated = spec_flux*(np.array([1,2,1,1]).reshape((4,) + (1,)*(len(phot_dat['mean']) > 1))*R_sun)**2

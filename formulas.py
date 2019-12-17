@@ -83,9 +83,9 @@ def bb_magnitude(T_eff, R, filters, filter_means=None):
     
     # make shapes broadcastable, if not dealing with single numbers
     if hasattr(T_eff, '__len__'):
-        T_eff = T_eff.reshape((len(T_eff),) + (1,)*(len(np.shape(lam_arr)) - (len(filters) == 1)))
+        T_eff = T_eff.reshape((len(T_eff),) + (1,)*(np.ndim(lam_arr) - (len(filters) == 1)))
     if hasattr(R, '__len__'):
-        R = R.reshape((len(R),) + (1,)*(len(np.shape(lam)) - (len(filters) == 1)))
+        R = R.reshape((len(R),) + (1,)*(np.ndim(lam) - (len(filters) == 1)))
     
     spec_radiance = plank_bb(lam_arr, T_eff, var='wavl')        # W/sr^1/m^3
     spec_radiance = np.mean(spec_radiance, axis=-1)             # take the mean

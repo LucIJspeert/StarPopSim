@@ -151,7 +151,7 @@ def stellar_isochrone(age, Z, columns=None):
     data = open_isochrones_file(Z, columns=columns)
     where_t = select_age(age, Z)
 
-    if (len(np.shape(data)) == 1):
+    if (np.ndim(data) == 1):
         data = data[where_t]
     else:
         data = data[:, where_t]

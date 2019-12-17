@@ -417,7 +417,7 @@ def dist_histogram(dist, title='Histogram', xlabel='parameter', ylabel='relative
     type can be linear, linlog, loglin (x,y) and loglog. Step=False will give a plot instead.
     """
     # see if multiple dists given
-    dim = len(np.shape(dist))
+    dim = np.ndim(dist)
     if (dim != 1):
         num_dists = np.shape(dist)[0]
         if not labels:
