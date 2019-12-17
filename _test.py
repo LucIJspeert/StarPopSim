@@ -4316,6 +4316,11 @@ plt.show()
 
 # https://arxiv.org/pdf/1404.0402.pdf
 
+
+## deconvolve an image
+image = fh.get_data()
+
+
 ##
 # from importlib import reload
 

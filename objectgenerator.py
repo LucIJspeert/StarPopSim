@@ -1064,6 +1064,10 @@ class AstronomicalObject():
                        colour=colour, T_eff=None, theme=theme, adapt_axes=True, mask=None, show=show)
         return
 
+    def quick_image(self):
+        """"A quick look at what the image might look like."""
+        # todo: use scipy.signal.convolve2d
+
     def save_to(self, filename):
         """Saves the class to a file."""
         if (filename[-4:] != '.pkl'):
