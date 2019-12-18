@@ -657,7 +657,9 @@ def cast_ellipse_axes(axes, n_pop):
     
     shape_axes = np.shape(axes)
     if ((len(shape_axes) == 1) & (len(axes) % 3 == 0)):
-        axes = axes.reshape(len(axes)//3, 3)
+        axes = axes.reshape(len(axes) // 3, 3)
+    elif ((len(shape_axes) == 1) & (shape_axes[0] == 1)):
+        axes = np.zeros([n_pop, 3])
     elif (len(shape_axes) == 1):
         raise ValueError('Wrong number of arguments for axes, must be multiple of 3.')
     
@@ -677,14 +679,18 @@ def cast_translation(translation, n_pop):
     """Cast input for coordinate translation into the right format.
     :rtype: np.ndarray
     """
-    if hasattr(translation, '__len__'):
-        translation = np.array(translation)
-    else:
-        translation = np.array([translation])
+    # if hasattr(translation, '__len__'):
+    #     translation = np.array(translation)
+    # else:
+    #     translation = np.array([translation])
+    translation = np.atleast_1d(translation)
+    # todo: could use 2d ... requires rebuilding
 
     shape_trans = np.shape(translation)
     if ((len(shape_trans) == 1) & (len(translation) % 3 == 0)):
-        translation = translation.reshape(len(translation)//3, 3)
+        translation = translation.reshape(len(translation) // 3, 3)
+    elif ((len(shape_trans) == 1) & (shape_trans[0] == 1)):
+        translation = np.zeros([n_pop, 3])
     elif (len(shape_trans) == 1):
         raise ValueError('Wrong number of arguments for translation, must be multiple of 3.')
 

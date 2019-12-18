@@ -4318,7 +4318,18 @@ plt.show()
 
 
 ## deconvolve an image
-image = fh.get_data()
+astobj = obg.AstronomicalObject(n_stars=[1000], ages=[9], metal=[0.0014], distance=1e5, r_dist='KingGlobular')
+f = 'Ks'
+view = 'wide'  # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
+chip = 'centre'  # read out, small middle bit, centre chip or full detector
+exp = 14400  # exposure time in s
+ao = 'scao'  # ao mode PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
+img_name = 'conv_test'
+src = img.MakeSource(astobj, filter=f)
+image = img.MakeImage(src, exposure=exp, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name,
+                      internals=int)
+
+
 
 
 ##
