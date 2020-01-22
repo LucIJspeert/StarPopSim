@@ -88,8 +88,11 @@ def m_tot_to_n_stars(M, imf=None):
     """Converts from mass in a cluster (per single stellar population)
     to number of objects using the implemented IMF.
     """
+    M = np.atleast_1d(M)
     if not imf:
-        imf = default_imf_par
+        imf = np.full([len(M), len(default_imf_par)], default_imf_par)
+    else:
+        imf = np.atleast_2d(imf)
     M_low, M_high = imf[:, 0], imf[:, 1]
     M_mid = 0.5  # fixed turnover position (where slope changes)
     c_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
@@ -103,15 +106,18 @@ def n_stars_to_m_tot(N, imf=None):
     """Converts from number of objects in a cluster (one stellar population) 
     to total mass using the implemented IMF.
     """
+    N = np.atleast_1d(N)
     if not imf:
-        imf = default_imf_par
-    M_low, M_high = imf
+        imf = np.full([len(N), len(default_imf_par)], default_imf_par)
+    else:
+        imf = np.atleast_2d(imf)
+    M_low, M_high = imf[:, 0], imf[:, 1]
     M_mid = 0.5  # fixed turnover position (where slope changes)
-    c_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
-    d_mid = (1/0.35 + 1/0.65)*M_mid**(0.65)
-    c_low = 1/(1/0.35*M_low**(-0.35) + c_mid - M_mid/1.35*M_high**(-1.35))
-    M_mean = c_low*(d_mid - 1/0.65*M_low**(0.65) - M_mid/0.35*M_high**(-0.35))
-    return N*M_mean
+    c_mid = (1/1.35 - 1/0.35) * M_mid**(-0.35)
+    d_mid = (1/0.35 + 1/0.65) * M_mid**(0.65)
+    c_low = 1/(1/0.35 * M_low**(-0.35) + c_mid - M_mid/1.35 * M_high**(-1.35))
+    M_mean = c_low * (d_mid - 1/0.65 * M_low**(0.65) - M_mid/0.35 * M_high**(-0.35))
+    return N * M_mean
 
 
 def gravity_to_radius(log_g, M):

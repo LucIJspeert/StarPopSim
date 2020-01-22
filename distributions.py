@@ -14,35 +14,53 @@ def pdf_kroupa_imf(M, imf=None):
     """(Forward) Initial Mass Function (=probability density function), 
     normalized to 1 probability.
     Modified Salpeter IMF; actually Kroupa IMF above 0.08 solar mass.
+
+    M: int or array of float
+    imf: 1D or 2D array of float (in pairs of 2), optional
+
+    out:
+        array of float
     """
+    M = np.atleast_1d(M)
     if not imf:
-        imf = default_imf_par
-    M_low, M_high = imf
+        imf = np.full([len(M), len(default_imf_par)], default_imf_par)
+    else:
+        imf = np.atleast_2d(imf)
+    M_low, M_high = imf[:, 0], imf[:, 1]
     M_mid = 0.5  # fixed turnover position (where slope changes)
-    c_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
-    c_low = (1/0.35*M_low**(-0.35) + c_mid - M_mid/1.35*M_high**(-1.35))**-1
-    c_high = c_low*M_mid
-    return (M < M_mid)*c_low*M**(-1.35) + (M >= M_mid)*c_high*M**(-2.35)
+    c_mid = (1/1.35 - 1/0.35) * M_mid**(-0.35)
+    c_low = (1/0.35 * M_low**(-0.35) + c_mid - M_mid/1.35 * M_high**(-1.35))**-1
+    c_high = c_low * M_mid
+    return (M < M_mid) * c_low * M**(-1.35) + (M >= M_mid) * c_high * M**(-2.35)
 
 
 def kroupa_imf(n=1, imf=None):
-    """Generate masses distributed like the Kroupa Initial Mass Function. 
+    """Generate masses distributed like the Kroupa Initial Mass Function.
     Spits out n masses between lower and upper bound in 'imf'.
+
+    n: int or array of int
+    imf: 1D or 2D array of float (in pairs of 2), optional
+
+    out:
+        array of float
     """
+    n = np.atleast_1d(n).astype(int)
     if not imf:
-        imf = default_imf_par
-    M_low, M_high = imf
+        imf = np.full([len(n), len(default_imf_par)], default_imf_par)
+    else:
+        imf = np.atleast_2d(imf)
+    M_low, M_high = imf[:, 0], imf[:, 1]
     M_mid = 0.5  # fixed turnover position (where slope changes)
-    n_uniform = np.random.rand(int(n))
+    n_uniform = np.random.random_sample(n)
     # same constants as are in the IMF:
-    c_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
-    c_low = (1/0.35*M_low**(-0.35) + c_mid - M_mid/1.35*M_high**(-1.35))**-1
+    c_mid = (1/1.35 - 1/0.35) * M_mid**(-0.35)
+    c_low = (1/0.35 * M_low**(-0.35) + c_mid - M_mid/1.35 * M_high**(-1.35))**-1
     # the mid value in the CDF
-    n_mid = c_low/0.35*(M_low**(-0.35) - M_mid**(-0.35))
+    n_mid = c_low/0.35 * (M_low**(-0.35) - M_mid**(-0.35))
     # the inverted CDF (for masses below M_mid (a) and for masses above M_mid (b))
-    M_a = (M_low**(-0.35) - 0.35*n_uniform/c_low)**(-1/0.35)
-    M_b = ((1.35/0.35*M_low**(-0.35) - M_mid**(-0.35)/0.35 - 1.35*n_uniform/c_low)/M_mid)**(-1/1.35)
-    return (n_uniform < n_mid)*M_a + (n_uniform >= n_mid)*M_b
+    M_a = (M_low**(-0.35) - 0.35 * n_uniform/c_low)**(-1/0.35)
+    M_b = ((1.35/0.35 * M_low**(-0.35) - M_mid**(-0.35)/0.35 - 1.35 * n_uniform/c_low)/M_mid)**(-1/1.35)
+    return (n_uniform < n_mid) * M_a + (n_uniform >= n_mid) * M_b
 
 
 # below: general distributions (i.e. for Cartesian coordinates)

@@ -47,41 +47,90 @@ class Stars():
     'array' here means numpy.ndarray, while lists (or even single entries) are also accepted
     # https://quantecon.org/wiki-py-docstrings/
 
+
     Arguments
     ---------
-    n_stars (array of int): the total number of stars to make per stellar population.
-    M_tot_init (array of float): the total mass in stars to produce per population (in Msol).
-    ages (array of float): stellar age for each population (in linear or 10log yr).
+    n_stars: array of int
+        the total number of stars to make per stellar population.
+
+    M_tot_init (array of float):
+        the total mass in stars to produce per population (in Msol).
+
+    ages (array of float):
+        stellar age for each population (in linear or 10log yr).
         This is the maximum age when sfh is used.
-    metal (array of float): metallicity for each population.
-    sfh (array of str and None, optional): type of star formation history to use per population.
-    min_ages (array of float): minimum ages to use in star formation histories, per population
-    tau_sfh (array of float): characteristic timescales for star formation per population
-    imf_par (array of float, optional): 2D array of two parameters per stellar population.
+
+    metal (array of float):
+        metallicity for each population.
+
+    sfh (array of str and None, optional):
+        type of star formation history to use per population.
+
+    min_ages (array of float):
+        minimum ages to use in star formation histories, per population
+
+    tau_sfh (array of float):
+        characteristic timescales for star formation per population
+
+    imf_par (array of float, optional):
+        2D array of two parameters per stellar population.
         First parameter is lowest mass, second is highest mass to make.
-    r_dist (array of str): type of radial distribution to use per population.
-    r_dist_par (array of dict): parameter values for the radial distributions specified
+
+    r_dist (array of str):
+        type of radial distribution to use per population.
+
+    r_dist_par (array of dict):
+        parameter values for the radial distributions specified
         (one dictionary per population).
-    incl (array of float): inclination values per population (in radians)
-    ellipse_axes (array of float): 2D array of one set of axes per population.
+
+    incl (array of float):
+        inclination values per population (in radians)
+
+    ellipse_axes (array of float):
+        2D array of one set of axes per population.
         Relative (x,y,z)-sizes to stretch the distributions; volume is kept constant.
-    spiral_arms (array of int): number of spiral arms (per population).
-    spiral_bulge (array of float): relative proportion of the central bulge (per population).
-    spiral_bar (array of float): relative proportion of the central bar (per population).
-    compact_mode (array of str and None): generate only a fraction of the total number of stars.
+
+    spiral_arms (array of int):
+        number of spiral arms (per population).
+
+    spiral_bulge (array of float):
+        relative proportion of the central bulge (per population).
+
+    spiral_bar (array of float):
+        relative proportion of the central bar (per population).
+
+    compact_mode (array of str and None):
+        generate only a fraction of the total number of stars.
         choose 'num' or 'mag' for number or magnitude limited.
+
 
     Attributes
     ----------
-    All of the arguments described above are stored as attributes.
-    origin (array of float): origin of the stellar distribution (for each population). Shape is [3, n_pop]
-    coords (array of float): 2D array of the cartesian coordinates of the stars. Shape is [3, n_stars].
-    M_init (array of float): the individual masses of the stars in Msol.
-    M_diff (array of float): difference between given and generated mass per population (only when n_stars=0).
-    mag_names (array of str): the filter names of the corresponding default set of supported magnitudes.
-    _spec_names (array of str): spectral type names corresponding to the reference numbers in _spectral_types.
-    fraction_generated (array of float): part of the total number of stars that has actually been generated
+    Most of the arguments described above are stored as attributes.
+    (exceptions: M_tot_init)
+
+    origin (array of float):
+        origin of the stellar distribution (for each population). Shape is [3, n_pop]
+
+    coords (array of float):
+        2D array of the cartesian coordinates of the stars. Shape is [3, n_stars].
+
+    M_init (array of float):
+        the individual masses of the stars in Msol.
+
+    M_diff (array of float):
+        difference between given and generated mass per population (only when n_stars=0).
+
+    mag_names (array of str):
+        the filter names of the corresponding default set of supported magnitudes.
+
+    _spec_names (array of str):
+        spectral type names corresponding to the reference numbers in _spectral_types.
+
+    fraction_generated (array of float):
+        part of the total number of stars that has actually been generated
         per population (when compact mode is used).
+
 
     Returns
     -------
@@ -89,10 +138,9 @@ class Stars():
         Contains all information about the stars. Stars are not yet generated when the object is initialized.
 
     """    
-    def __init__(self, n_stars=0, M_tot_init=0, ages=None, metal=None, imf_par=None, sfh=None,
-                 min_ages=None, tau_sfh=None, origin=None, incl=None, r_dist=None, r_dist_par=None,
-                 ellipse_axes=None, spiral_arms=None, spiral_bulge=None, spiral_bar=None,
-                 compact_mode=None):
+    def __init__(self, n_stars=0, M_tot_init=0, ages=None, metal=None, imf_par=None, sfh=None, min_ages=None,
+                 tau_sfh=None, origin=None, incl=None, r_dist=None, r_dist_par=None, ellipse_axes=None,
+                 spiral_arms=None, spiral_bulge=None, spiral_bar=None, compact_mode=None):
 
         # cast input to right formats, and perform some checks. first find the intended number of populations
         n_pop = utils.check_number_of_populations(n_stars, M_tot_init, ages, metal)
@@ -100,8 +148,8 @@ class Stars():
         self.metal = utils.cast_metallicities(metal, n_pop)
         self.imf_param = utils.cast_imf_parameters(imf_par, n_pop, fill_value=default_imf_par)
         self.imf_param = utils.check_lowest_imf_mass(self.imf_param, self.ages, self.metal)
-        self.M_tot_init = utils.cast_m_total(M_tot_init, n_pop)
-        self.n_stars = utils.check_and_cast_n_stars(n_stars, self.M_tot_init, n_pop, self.imf_param)
+        M_tot_init = utils.cast_m_total(M_tot_init, n_pop)
+        self.n_stars = utils.check_and_cast_n_stars(n_stars, M_tot_init, n_pop, self.imf_param)
         self.sfhist = utils.cast_sfhistory(sfh, n_pop)
         self.min_ages = min_ages
         self.tau_sfh = tau_sfh
@@ -147,19 +195,27 @@ class Stars():
 
     def __repr__(self):
         """Unambiguous representation of what this object is."""
-        r = (f'Stars(N_stars={self.n_stars!r}, M_tot_init={self.M_tot_init!r}, ages={self.ages!r}, '
-             f'metal={self.metal!r}, sfh={self.sfhist!r}, min_ages={self.min_ages!r}, tau_sfh={self.tau_sfh!r}, '
-             f'imf_par={self.imf_param!r}, incl={self.inclination!r}, r_dist={self.r_dist_types!r}, '
-             f'r_dist_par={self.r_dist_param!r}, ellipse_axes={self.ellipse_axes!r}, '
-             f'spiral_arms={self.spiral_arms!r}, spiral_bulge={self.spiral_bulge!r}, '
-             f'spiral_bar={self.spiral_bar!r}, compact_mode={self.compact_mode!r})')
+        r = (f'Stars(N_stars={self.n_stars!r}, '
+             f'ages={self.ages!r}, '
+             f'metal={self.metal!r}, '
+             f'sfh={self.sfhist!r}, '
+             f'min_ages={self.min_ages!r}, '
+             f'tau_sfh={self.tau_sfh!r}, '
+             f'imf_par={self.imf_param!r}, '
+             f'incl={self.inclination!r}, '
+             f'r_dist={self.r_dist_types!r}, '
+             f'r_dist_par={self.r_dist_param!r}, '
+             f'ellipse_axes={self.ellipse_axes!r}, '
+             f'spiral_arms={self.spiral_arms!r}, '
+             f'spiral_bulge={self.spiral_bulge!r}, '
+             f'spiral_bar={self.spiral_bar!r}, '
+             f'compact_mode={self.compact_mode!r})')
         return r
     
     def __str__(self):
         """Nice-to-read representation of what this object is"""
         s = ('Stars object with parameters:\n'
              f'N_stars:        {self.n_stars!s}\n'
-             f'M_tot_init:     {np.round(self.M_tot_init, 1)!s}\n'
              f'ages:           {self.ages!s}\n'
              f'metal:          {self.metal!s}\n'
              f'sfh:            {self.sfhist!s}\n'
@@ -180,7 +236,6 @@ class Stars():
         """Appends two Stars objects to each other."""
         # Need to append all the properties.
         self.n_stars = np.append(self.n_stars, other.n_stars)
-        self.M_tot_init = np.append(self.M_tot_init, other.M_tot_init)
         self.ages = np.append(self.ages, other.ages)
         self.metal = np.append(self.metal, other.metal)
         self.rel_number = np.append(self.rel_number, other.rel_number)
@@ -264,30 +319,17 @@ class Stars():
         # assign the right values for generation (start of generating sequence)
         if self.compact_mode:
             self.gen_imf_param, self.fraction_generated = self.compact_parameters(d_lum=d_lum, extinction=extinction)
-            self.gen_n_stars = np.rint(self.n_stars*self.fraction_generated).astype(int)
+            self.gen_n_stars = np.rint(self.n_stars * self.fraction_generated).astype(int)
 
         if not np.all(self.sfhist == None):
             rel_num, ages = star_form_history(self.gen_ages, min_age=self.min_ages, sfr=self.sfhist,
                                               Z=self.metal, tau=self.tau_sfh)
-            self.gen_n_stars = np.rint(rel_num*self.n_stars).astype(int)
+            self.gen_n_stars = np.rint(rel_num * self.n_stars).astype(int)
             self.gen_ages = ages
         
         # generate the positions, masses   
-        for i, pop_num in enumerate(self.gen_n_stars):
-            coords_i = gen_spherical(pop_num, dist_type=self.r_dist_types[i], **self.r_dist_param[i])
-            M_init_i, M_diff_i = gen_star_masses(pop_num, 0, imf=self.gen_imf_param[i])
-            self.coords = np.append(self.coords, coords_i, axis=0)                           
-            self.M_init = np.append(self.M_init, M_init_i)
-            # gen_star_masses already gives diff in Mass (=estimate since no mass was given)
-            self.M_diff += M_diff_i
-        
-        # if only N_stars was given, set M_tot_init to the total generated mass
-        mass_generated = np.sum(self.M_init)
-        if (self.M_tot_init == 0):
-            self.M_tot_init = mass_generated
-        else:
-            self.M_diff = mass_generated - self.M_tot_init  # if negative: too little mass generated, else too much
-            self.M_tot_init = mass_generated  # set to actual initial mass
+        self.coords = gen_spherical(self.gen_n_stars, dist_types=self.r_dist_types, kwargs_list=self.r_dist_param)
+        self.M_init = gen_star_masses(self.gen_n_stars, imf=self.gen_imf_param)
         return
         
     def add_inclination(self, incl):
@@ -672,7 +714,11 @@ class Stars():
         elif not performance_mode and self._remnants:
             self._remnants = None
         return remnants
-    
+
+    def total_initial_mass(self):
+        """Returns the total initial mass in stars (in Msun)."""
+        return np.sum(self.M_init)
+
     def total_current_mass(self):
         """Returns the total current mass in stars (in Msun)."""
         return np.sum(self.current_masses())
@@ -836,16 +882,17 @@ class AstronomicalObject():
     
     Notes
     -----
+    takes in all the kwargs necessary for the component classes (Stars, Gas and Dust)
 
-    takes in all the kwargs necessary for the component classes
-        
+
     Arguments
     ---------
     distance
     d_type: distance type [l for luminosity, z for redshift]
     extinct: extinction between source and observer
     **kwargs: the kwargs are used in initiation of the component classes (see Stars, Gas and Dust)
-    
+
+
     Attributes
     ----------
     redshift: redshift for the object
@@ -859,7 +906,7 @@ class AstronomicalObject():
 
     """
     def __init__(self, distance=10, d_type='l', extinct=0, **kwargs):
-        
+        # set some distance measures
         self.d_type = d_type
         if (self.d_type == 'z'):
             self.redshift = distance
@@ -867,7 +914,7 @@ class AstronomicalObject():
         else:
             self.d_lum = distance
             self.redshift = form.d_luminosity_to_redshift(self.d_lum)
-        
+
         self.d_ang = form.d_angular(self.redshift)
         self.extinction = extinct
         
@@ -912,7 +959,7 @@ class AstronomicalObject():
         [WIP] Nothing is done with sky_coords at the moment.
         """
         # self.field_stars = np.array([pos_x, pos_y, mag, filt, spec_types])
-        # todo: WIP
+        # todo: WIP add_field_stars
         # add like a query to Gaia data, 
         # default: some random distribution in the shape of the fov
         fov_rad = fov*as_rad
@@ -933,7 +980,7 @@ class AstronomicalObject():
         These will be unresolved. Give the imaging f.o.v (in as).
         """
         # self.back_ground = 
-        # todo: WIP
+        # todo: WIP add_back_ground
         return
         
     def add_ngs(self, mag=13, filter_name='V', pos_x=None, pos_y=None, spec_types='G0V'):
@@ -983,16 +1030,15 @@ class AstronomicalObject():
         self.natural_guide_stars = [pos_x, pos_y, mag, filters, spec_types]
         return
 
-    def plot_stars_2d(self, title='Scatter', xlabel='x', ylabel='y', axes='xy', colour='blue', filter_name='V',
-                      theme='dark1', show=True):
+    def plot_stars_2d(self, title='Scatter', xlabel='x (pc)', ylabel='y (pc)', axes='xy', colour='blue',
+                      filter_name='V', theme='dark1', show=True):
         """Make a plot of the object positions in two dimensions
         Set colour to 'temperature' for a temperature representation.
         Set filter_name to None to avoid markers scaling in size with magnitude.
         Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but
-            saveable dark plot, 'fits' for a plot that resembles a .fits image,
+            save-able dark plot, 'fits' for a plot that resembles a .fits image,
             and None for normal light colours.
         """
-        # todo: fix the plotting functions for their new class
         if (filter_name is not None):
             mags = self.stars.apparent_magnitudes(self.d_lum, filters=filter_name)
         else:
@@ -1007,13 +1053,13 @@ class AstronomicalObject():
                        T_eff=temps, mag=mags, theme=theme, show=show)
         return
 
-    def plot_stars_3d(self, title='Scatter', xlabel='x', ylabel='y', colour='blue', filter_name='V', theme='dark1',
-                      show=True):
+    def plot_stars_3d(self, title='Scatter', xlabel='x (pc)', ylabel='y (pc)', zlabel='z (pc)', colour='blue',
+                      filter_name='V', theme='dark1', show=True):
         """Make a plot of the object positions in three dimensions.
         Set colour to 'temperature' for a temperature representation.
         Set filter_name to None to avoid markers scaling in size with magnitude.
         Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but
-            saveable dark plot, and None for normal light colours.
+            save-able dark plot, and None for normal light colours.
         """
         if (filter_name is not None):
             mags = self.stars.apparent_magnitudes(self.d_lum, filters=filter_name)
@@ -1025,15 +1071,16 @@ class AstronomicalObject():
         else:
             temps = None
 
-        vis.scatter_3d(self.stars.coords, title=title, xlabel=xlabel, ylabel=ylabel, colour=colour, T_eff=temps,
-                       mag=mags, theme=theme, show=show)
+        vis.scatter_3d(self.stars.coords, title=title, xlabel=xlabel, ylabel=ylabel, zlabel=zlabel,
+                       colour=colour, T_eff=temps, mag=mags, theme=theme, show=show)
         return
 
     def plot_hrd(self, title='hr_diagram', colour='temperature', theme='dark1', show=True):
         """Make a plot of stars in an HR diagram.
         Set colour to 'temperature' for a temperature representation.
         Set theme to 'dark1' for a fancy dark plot, 'dark2' for a less fancy but
-            saveable dark plot, and None for normal light colours.
+            save-able dark plot, and None for normal light colours.
+        Remnants are not plotted.
         """
         r_mask = np.invert(self.stars.remnants())
         temps = 10**self.stars.log_temperatures()
@@ -1047,6 +1094,7 @@ class AstronomicalObject():
         """Make a plot of the stars in a cm_diagram
         Set x and y to the colour and magnitude to be used (x needs format 'A-B')
         Set colour to 'temperature' for a temperature representation.
+        Remnants are not plotted.
         """
         x_filters = x.split('-')
         mag_A = self.stars.apparent_magnitudes(self.d_lum, filters=x_filters[0])
@@ -1060,11 +1108,12 @@ class AstronomicalObject():
         else:
             mag = self.stars.apparent_magnitudes(self.d_lum, filters=y)
 
-        vis.cm_diagram(c_mag, mag, title=title, xlabel=x, ylabel=y,
-                       colour=colour, T_eff=None, theme=theme, adapt_axes=True, mask=None, show=show)
+        r_mask = np.invert(self.stars.remnants())
+        vis.cm_diagram(c_mag, mag, title=title, xlabel=x, ylabel=y, colour=colour, T_eff=None, theme=theme,
+                       adapt_axes=True, mask=r_mask, show=show)
         return
 
-    def quick_image(self):
+    def quick_image(self, filter_name='V'):
         """"A quick look at what the image might look like."""
         # todo: use scipy.signal.convolve2d
 
@@ -1122,31 +1171,45 @@ class SpiralGalaxy(AstronomicalObject):
         return
 
 
-def gen_spherical(n_stars, dist_type=default_rdist, **kwargs):
+def gen_spherical(n_stars, dist_types=default_rdist, kwargs_list=None):
     """Make a spherical distribution of stars using the given radial distribution type.
     Takes additional parameters for the r-distribution function (i.e. scale length s).
+
+    n_stars: int or array of int
+    dist_types: str or array of str
+    kwargs_list: dict or array of dict
+
+    out:
+        2D array of float, shape [3, sum(n_stars)]
     """
     # check if the dist type exists (add the r to the end for radial version, if not already there)
-    if (dist_type[-2:] != '_r'):
-        dist_type += '_r'
-        
-    dist_list = list(set(fnmatch.filter(dir(dist), '*_r')))
+    n_stars = np.atleast_1d(n_stars)
+    dist_types = np.atleast_1d(dist_types)
+    dist_list = list(set(fnmatch.filter(dir(dist), '*_r')))  # list of available distributions
+
+    n_total = np.sum(n_stars)
+    index = np.cumsum(np.append([0], n_stars))  # indices defining the different populations
+    r_dist = np.zeros(n_total)  # the radial distribution
+    for i, dist_type in enumerate(dist_types):
+        if (dist_type[-2:] != '_r'):
+            dist_types[i] += '_r'
     
-    if (dist_type not in dist_list):
-        warnings.warn(f'Specified distribution type does not exist. Using default (={default_rdist})', SyntaxWarning)
-        dist_type = default_rdist + '_r'
+        if (dist_type not in dist_list):
+            warnings.warn(f'Specified distribution type \'{dist_type}\' does not exist. '
+                          + f'Using default (={default_rdist})', SyntaxWarning)
+            dist_types = default_rdist + '_r'
     
-    # check if right parameters given    
-    sig = inspect.signature(getattr(dist, dist_type))  # parameters of the dist function (includes n)
-    dict = kwargs.copy()
-    for key in dict:
-        if key not in sig.parameters:
-            warnings.warn(('Wrong keyword given in distribution parameters. Deleted entry.\n '
-                           f'  {key} = {kwargs.pop(key, None)}'), SyntaxWarning)
+        # check if right parameters given
+        sig = inspect.signature(getattr(dist, dist_type))  # parameters of the dist function (includes n)
+        key_dict = kwargs_list[i].copy()
+        for key in key_dict:
+            if key not in sig.parameters:
+                warnings.warn(('Wrong keyword given in distribution parameters. Deleted entry.\n '
+                               f'  {key} = {kwargs_list[i].pop(key, None)}'), SyntaxWarning)
     
-    r_dist = getattr(dist, dist_type)(n=n_stars, **kwargs)  # the radial distribution
-    phi_dist = dist.angle_phi(n_stars)  # distribution for angle with x axis
-    theta_dist = dist.angle_theta(n_stars)  # distribution for angle with z axis
+        r_dist[index[i]:index[i+1]] = getattr(dist, dist_type)(n=n_stars[i], **kwargs_list[i])
+    phi_dist = dist.angle_phi(n_total)  # distribution for angle with x axis
+    theta_dist = dist.angle_theta(n_total)  # distribution for angle with z axis
     return conv.spher_to_cart(r_dist, theta_dist, phi_dist)
 
 
@@ -1167,31 +1230,33 @@ def gen_star_masses(n_stars=0, M_tot=0, imf=None):
     """Generate masses using the Initial Mass Function. 
     Either number of stars or total mass should be given.
     imf defines the lower and upper bound to the masses generated in the IMF.
-    Also gives the difference between the total generated mass and the input mass 
-        (or estimated mass when using N_stars).
+    Note: total generated mass will differ (slightly) from requested mass.
+
+    n_stars: int or array-like of int
+    M_tot: int or array-like of int
+    imf: 1D or 2D array of float (in pairs of 2), optional
+
+    out:
+        array of float
     """
+    n_stars = np.atleast_1d(n_stars)
+    M_tot = np.atleast_1d(M_tot)
     if not imf:
-        imf = default_imf_par
+        length = max(len(n_stars), len(M_tot))
+        imf = np.full([length, len(default_imf_par)], default_imf_par)
+    else:
+        imf = np.atleast_2d(imf)
 
     # check input (N_stars or M_tot?)
-    if (n_stars == 0) & (M_tot == 0):
-        warnings.warn('Input mass and number of stars cannot be zero simultaneously. Using n_stars=10', SyntaxWarning)
-        n_stars = 10
-    elif (n_stars == 0):
+    if np.all(n_stars == 0) & np.all(M_tot == 0):
+        raise SyntaxError('Input mass and number of stars cannot be zero simultaneously.')
+    elif np.all(n_stars == 0):
         # a total mass is given, estimate the number of stars to generate
         n_stars = conv.m_tot_to_n_stars(M_tot, imf)
         
     # assign initial masses using IMF
     M_init = dist.kroupa_imf(n_stars, imf)
-    M_tot_gen = np.sum(M_init)  # total generated mass (will differ from input mass, if given)
-    
-    if (M_tot != 0):
-        M_diff = M_tot_gen - M_tot
-    else:
-        M_tot_est = conv.n_stars_to_m_tot(n_stars, imf)
-        M_diff = M_tot_gen - M_tot_est  # gives the difference with the estimated total mass for n stars
-        
-    return M_init, M_diff
+    return M_init
 
 
 def star_form_history(max_age, min_age=1, sfr='exp', Z=0.014, tau=1e10):

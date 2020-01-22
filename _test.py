@@ -830,12 +830,12 @@ plt.show()
 # take care to remove the '_r' appending code
 objects = obg.Ellipsoid(100000, dist_type='exponential')
 objects2 = obg.Ellipsoid(100000, dist_type='exponential_r')
-# objects = obg.Ellipsoid(100000, dist_type='normal')
-# objects2 = obg.Ellipsoid(100000, dist_type='normal_r')
+# objects = obg.Ellipsoid(100000, dist_types='normal')
+# objects2 = obg.Ellipsoid(100000, dist_types='normal_r')
 
-# objects = obg.Ellipsoid(100000, dist_type='squared_cauchy_r')
+# objects = obg.Ellipsoid(100000, dist_types='squared_cauchy_r')
 
-# objects2 = obg.Ellipsoid(100000, dist_type='pearson_vii_r')
+# objects2 = obg.Ellipsoid(100000, dist_types='pearson_vii_r')
 
 vis.scatter_2d(objects)
 vis.scatter_2d(objects2)
