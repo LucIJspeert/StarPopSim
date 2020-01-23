@@ -118,9 +118,6 @@ class Stars():
     M_init (array of float):
         the individual masses of the stars in Msol.
 
-    M_diff (array of float):
-        difference between given and generated mass per population (only when n_stars=0).
-
     mag_names (array of str):
         the filter names of the corresponding default set of supported magnitudes.
 
@@ -144,20 +141,24 @@ class Stars():
 
         # cast input to right formats, and perform some checks. first find the intended number of populations
         n_pop = utils.check_number_of_populations(n_stars, M_tot_init, ages, metal)
-        self.ages = utils.cast_ages(ages, n_pop)
-        self.metal = utils.cast_metallicities(metal, n_pop)
+        self.ages = utils.cast_simple_array(ages, n_pop, error='No age was defined.')
+        self.metal = utils.cast_simple_array(metal, n_pop, error='No metallicity was defined.')
         self.imf_param = utils.cast_imf_parameters(imf_par, n_pop, fill_value=default_imf_par)
         self.imf_param = utils.check_lowest_imf_mass(self.imf_param, self.ages, self.metal)
-        M_tot_init = utils.cast_m_total(M_tot_init, n_pop)
-        self.n_stars = utils.check_and_cast_n_stars(n_stars, M_tot_init, n_pop, self.imf_param)
-        self.sfhist = utils.cast_sfhistory(sfh, n_pop)
-        self.min_ages = min_ages
-        self.tau_sfh = tau_sfh
+        self.n_stars = utils.cast_and_check_n_stars(n_stars, M_tot_init, n_pop, self.imf_param)
+        self.sfhist = utils.cast_simple_array(sfh, n_pop, fill_value=None,
+                                              warning='Excess SFH types discarded.')
+        self.min_ages = utils.cast_simple_array(min_ages, n_pop, fill_value=None,
+                                                warning='Excess minimum ages discarded.')
+        self.tau_sfh = utils.cast_simple_array(tau_sfh, n_pop, fill_value=None,
+                                               warning='Excess tau sfh values discarded.')
 
         # parameters defining the shape
         self.origin = utils.cast_translation(origin, n_pop).T
-        self.inclination = utils.cast_inclination(incl, n_pop)
-        self.r_dist_types = utils.cast_radial_dist_type(r_dist, n_pop)
+        self.inclination = utils.cast_simple_array(incl, n_pop, fill_value=0,
+                                                   warning='Excess inclination values discarded.')
+        self.r_dist_types = utils.cast_simple_array(r_dist, n_pop, fill_value=default_rdist,
+                                                    warning='Excess radial distribution types discarded.')
         self.r_dist_types = utils.check_radial_dist_type(self.r_dist_types)
         self.r_dist_param = utils.cast_radial_dist_param(r_dist_par, self.r_dist_types, n_pop)
         self.ellipse_axes = utils.cast_ellipse_axes(ellipse_axes, n_pop)
@@ -168,7 +169,6 @@ class Stars():
         # properties that are derived/generated
         self.coords = np.empty([3, 0])
         self.M_init = np.array([])
-        self.M_diff = np.zeros(n_pop)
         self.mag_names = utils.get_supported_filters()
         
         # compact mode parameters
@@ -235,76 +235,34 @@ class Stars():
     def __add__(self, other):
         """Appends two Stars objects to each other."""
         # Need to append all the properties.
-        self.n_stars = np.append(self.n_stars, other.n_stars)
-        self.ages = np.append(self.ages, other.ages)
-        self.metal = np.append(self.metal, other.metal)
-        self.rel_number = np.append(self.rel_number, other.rel_number)
-        self.sfhist = np.append(self.sfhist, other.sfhist)
-        self.min_ages = np.append(self.min_ages, other.min_ages)
-        self.tau_sfh = np.append(self.tau_sfh, other.tau_sfh)
-        self.imf_param = np.append(self.imf_param, other.imf_param, axis=0)
-        self.origin = np.append(self.origin, other.origin, axis=0)
-        self.inclination = np.append(self.inclination, other.inclination)
-        self.r_dist_types = np.append(self.r_dist_types, other.r_dist_types)
-        self.r_dist_param = np.append(self.r_dist_param, other.r_dist_param)
-        self.ellipse_axes = np.append(self.ellipse_axes, other.ellipse_axes, axis=0)
-        self.spiral_arms = np.append(self.spiral_arms, other.spiral_arms)
-        self.spiral_bulge = np.append(self.spiral_bulge, other.spiral_bulge)
-        self.spiral_bar = np.append(self.spiral_bar, other.spiral_bar)
-        self.compact_mode = np.append(self.compact_mode, other.compact_mode)
-        # non-user defined:
-        self.coords = np.append(self.coords, other.coords, axis=0)
-        self.M_init = np.append(self.M_init, other.M_init)
-        self.M_diff = np.append(self.M_diff, other.M_diff)
-        self.fraction_generated = np.append(self.fraction_generated, other.fraction_generated)
-        self.gen_imf_param = np.append(self.gen_imf_param, other.gen_imf_param, axis=0)
-        self.gen_n_stars = np.append(self.gen_n_stars, other.gen_n_stars)
-        self.gen_ages = np.append(self.gen_ages, other.gen_ages)
-        # check if both have performance mode attributes (if not, reset to None)
-        if self._current_masses and other._current_masses:
-            self._current_masses = np.append(self._current_masses, other._current_masses)
-        else:
-            self._current_masses = None
-            
-        if self._stellar_radii and other._stellar_radii:
-            self._stellar_radii = np.append(self._stellar_radii, other._stellar_radii)
-        elif hasattr(self, '_stellar_radii'):
-            del self._stellar_radii
+        # the ones below can be appended in a simple append
+        append = ['n_stars', 'ages', 'metal', 'rel_number', 'sfhist', 'min_ages', 'tau_sfh', 'inclination',
+                  'r_dist_types', 'r_dist_param', 'spiral_arms', 'spiral_bulge', 'spiral_bar', 'compact_mode',
+                  'M_init', 'fraction_generated', 'gen_n_stars', 'gen_ages']
+        # the ones below need axis 0 specified
+        append_axis_zero = ['imf_param', 'origin', 'ellipse_axes', 'coords', 'gen_imf_param']
+        # the ones below need to be checked for non-None value
+        append_if = ['_current_masses', '_stellar_radii', '_surface_gravity', '_log_luminosities',
+                     '_log_temperatures', '_remnants']
+        # the ones below need the extra check of having all columns/names exist
+        append_if_all = ['_absolute_magnitudes', '_spectral_types']
+        # these are never appended since their equality is ensured (but need to correspond 1to1 with append_if_all)
+        append_names = ['mag_names', '_spec_names']
 
-        if self._surface_gravity and other._surface_gravity:
-            self._surface_gravity = np.append(self._surface_gravity, other._surface_gravity)
-        elif hasattr(self, '_surface_gravity'):
-            del self._surface_gravity
-        
-        if self._log_luminosities and other._log_luminosities:
-            self._log_luminosities = np.append(self._log_luminosities, other._log_luminosities)
-        elif hasattr(self, '_log_luminosities'):
-            del self._log_luminosities
-        
-        if self._log_temperatures and other._log_temperatures:
-            self._log_temperatures = np.append(self._log_temperatures, other._log_temperatures)
-        elif hasattr(self, '_log_temperatures'):
-            del self._log_temperatures
-        
-        if self._absolute_magnitudes and other._absolute_magnitudes and np.all(self.mag_names == other.mag_names):
-            self._absolute_magnitudes = np.append(self._absolute_magnitudes, other._absolute_magnitudes)
-        elif hasattr(self, '_absolute_magnitudes'):
-            del self._absolute_magnitudes
-
-        self.mag_names = np.unique(np.append(self.mag_names, other.mag_names))
-        
-        if self._spectral_types and other._spectral_types & np.all(self._spec_names == other.spec_names):
-            self._spectral_types = np.append(self._spectral_types, other._spectral_types)
-        elif hasattr(self, '_spectral_types'):
-            del self._spectral_types
-
-        self._spec_names = np.unique(np.append(self._spec_names, other._spec_names))
-
-        if self._remnants and other._remnants:
-            self._remnants = np.append(self._remnants, other._remnants)
-        elif hasattr(self, '_remnants'):
-            del self._remnants
-
+        for attr in append:
+            setattr(self, attr, np.append(getattr(self, attr), getattr(other, attr)))
+        for attr in append_axis_zero:
+            setattr(self, attr, np.append(getattr(self, attr), getattr(other, attr), axis=0))
+        for attr in append_if:
+            if getattr(self, attr) and getattr(other, attr):
+                setattr(self, attr, np.append(getattr(self, attr), getattr(other, attr)))
+            else:
+                setattr(self, attr, None)
+        for attr, names in zip(append_if_all, append_names):
+            if getattr(self, attr) and getattr(other, attr) and np.all(getattr(self, names) == getattr(other, names)):
+                setattr(self, attr, np.append(getattr(self, attr), getattr(other, attr)))
+            else:
+                setattr(self, attr, None)
         return self
         
     # def __radd__(self, other):
@@ -340,7 +298,7 @@ class Stars():
         """
         # check the input, make sure it is an array of the right size
         n_pop = len(self.n_stars)
-        incl = utils.cast_inclination(incl, n_pop)
+        incl = utils.cast_simple_array(incl, n_pop, fill_value=0, warning='Excess inclination values discarded.')
         
         # check for existing inclination and record the new one
         if hasattr(self, 'inclination'):
@@ -793,7 +751,7 @@ class Stars():
 
         if not mag_limit:
             mag_limit = default_mag_lim  # if not specified, use default
-
+        # todo: take away for loop (requires isochrones)
         for i, pop_num in enumerate(self.n_stars):
             if (self.compact_mode == 'mag'):
                 mass_limit[i] = magnitude_limited(self.ages[i], self.metal[i], mag_lim=mag_limit,
@@ -810,7 +768,7 @@ class Stars():
         if np.any(mass_limit[:, 0] > mass_limit[:, 1]):
             # lower limit > upper limit!
             raise RuntimeError('compacting failed, mass limit raised above upper mass.')
-        elif np.any(self.n_stars*fraction_generated < 10):
+        elif np.any(self.n_stars * fraction_generated < 10):
             # don't want too few stars
             raise RuntimeError('Population compacted to <10, try not compacting or '
                                'generating a higher number of stars.')
@@ -1196,7 +1154,7 @@ def gen_spherical(n_stars, dist_types=default_rdist, kwargs_list=None):
     
         if (dist_type not in dist_list):
             warnings.warn(f'Specified distribution type \'{dist_type}\' does not exist. '
-                          + f'Using default (={default_rdist})', SyntaxWarning)
+                          + f'Using default (={default_rdist})', UserWarning)
             dist_types = default_rdist + '_r'
     
         # check if right parameters given
@@ -1205,7 +1163,7 @@ def gen_spherical(n_stars, dist_types=default_rdist, kwargs_list=None):
         for key in key_dict:
             if key not in sig.parameters:
                 warnings.warn(('Wrong keyword given in distribution parameters. Deleted entry.\n '
-                               f'  {key} = {kwargs_list[i].pop(key, None)}'), SyntaxWarning)
+                               f'  {key} = {kwargs_list[i].pop(key, None)}'), UserWarning)
     
         r_dist[index[i]:index[i+1]] = getattr(dist, dist_type)(n=n_stars[i], **kwargs_list[i])
     phi_dist = dist.angle_phi(n_total)  # distribution for angle with x axis
@@ -1249,7 +1207,7 @@ def gen_star_masses(n_stars=0, M_tot=0, imf=None):
 
     # check input (N_stars or M_tot?)
     if np.all(n_stars == 0) & np.all(M_tot == 0):
-        raise SyntaxError('Input mass and number of stars cannot be zero simultaneously.')
+        raise ValueError('Input mass and number of stars cannot be zero simultaneously.')
     elif np.all(n_stars == 0):
         # a total mass is given, estimate the number of stars to generate
         n_stars = conv.m_tot_to_n_stars(M_tot, imf)
@@ -1289,7 +1247,7 @@ def star_form_history(max_age, min_age=1, sfr='exp', Z=0.014, tau=1e10):
     rel_num = np.array([])
     log_ages_used = np.array([])
     for i in range(len(max_age)):
-        log_ages = np.unique(utils.open_isochrones_file(Z[i], columns=['log_age']))  # avaiable ages
+        log_ages = np.unique(utils.open_isochrones_file(Z[i], columns=['log_age']))  # available ages
         uni_log_ages = np.unique(log_ages)
         # log t's to use (between min/max ages)
         log_ages_used_i = uni_log_ages[(uni_log_ages <= max_age[i]) & (uni_log_ages >= min_age[i])]

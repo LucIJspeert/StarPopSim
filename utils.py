@@ -390,58 +390,39 @@ def check_number_of_populations(N, M_tot, ages, metal):
     len_array = np.array([len_N, len_M, len_ages, len_metal])
     n_pop = max(len_array)
     if (sum(len_array == n_pop) < (len(len_array) - sum(len_array == 1))):
-        warnings.warn(f'Input of ages, metallicityies or relative number did not match 1 or {n_pop}. '
-                      'Unexpected behaviour might occur', SyntaxWarning)
+        warnings.warn(f'Input of ages, metallicities or relative number did not match 1 or {n_pop}. '
+                      'Unexpected behaviour might occur', UserWarning)
     return n_pop
 
 
-def cast_simple_array(arr, length, fill_value='last', warning=None):
+def cast_simple_array(arr, length, fill_value='last', warning=None, error=None):
     """Cast input for a 1D array into the right format.
     Needs the input as well as the intended lenght of the array.
     Optionally a fill value can be given to fill up missing values, default is last value in arr.
         a warning message can be supplied for when too many values are given.
+    An error message can be given to display when arr is empty.
+
     :rtype: np.ndarray
     """
-    if hasattr(arr, '__len__'):
-        arr = np.array(arr)
-    else:
-        arr = np.array([arr])
-    
+    arr = np.atleast_1d(arr)
+    len_arr = len(arr)
+
     if (fill_value == 'last'):
-        # fill with last value by default
-        fill_value = arr[-1]
+        if (len_arr == 0):
+            raise ValueError(error)  # cannot resolve this conflict internally
+        fill_value = arr[-1]  # fill with last value by default
 
     # correct the array length
-    len_arr = len(arr)
     if ((length > 1) & (len_arr == 1)):
         arr = np.full(length, arr[0])
     elif (len_arr < length):
         arr = np.append(arr, np.full(length - len_arr, fill_value))
     elif (len_arr > length):
         if warning:
-            warnings.warn(warning, SyntaxWarning)
+            # if no warning given, arr is shortened silently
+            warnings.warn(warning, UserWarning)
         arr = arr[:length]
     return arr
-
-
-def cast_ages(ages, n_pop):
-    """Cast input for ages into the right format.
-    :rtype: np.ndarray
-    """
-    if (not ages):
-        raise ValueError('No age was defined.')
-    ages = cast_simple_array(ages, n_pop, fill_value='last')
-    return ages
-
-
-def cast_metallicities(metal, n_pop):
-    """Cast input for metalicities into the right format.
-    :rtype: np.ndarray
-    """
-    if (not metal):
-        raise ValueError('No metallicity was defined.')
-    metal = cast_simple_array(metal, n_pop, fill_value='last')
-    return metal
 
 
 def cast_imf_parameters(imf_par, n_pop, fill_value='default'):
@@ -456,7 +437,7 @@ def cast_imf_parameters(imf_par, n_pop, fill_value='default'):
     elif hasattr(imf_par, '__len__'):
         imf_par = np.array(imf_par)
     else:
-        warnings.warn(f'Incorrect input type for imf_par; using default (={default_imf_par}).', SyntaxWarning)
+        warnings.warn(f'Incorrect input type for imf_par; using default (={default_imf_par}).', UserWarning)
         imf_par = np.full([n_pop, len(fill_value)], fill_value)
     
     shape_imf_par = np.shape(imf_par)
@@ -471,7 +452,7 @@ def cast_imf_parameters(imf_par, n_pop, fill_value='default'):
         extension = np.full([n_pop - shape_imf_par[0]//default_len, default_len], imf_par[-1])
         imf_par = np.append(imf_par, extension, axis=0)
     elif (len(shape_imf_par) == 1):
-        warnings.warn(f'Incorrect input for imf_par; using default (={fill_value}).', SyntaxWarning)
+        warnings.warn(f'Incorrect input for imf_par; using default (={fill_value}).', UserWarning)
         imf_par = np.full([n_pop, len(fill_value)], fill_value)
         # otherwise (below): assume a 2D shape with correct inner axis length 
     elif ((n_pop > 1) & (shape_imf_par[0] == 1)):
@@ -480,7 +461,7 @@ def cast_imf_parameters(imf_par, n_pop, fill_value='default'):
         extension = np.full([n_pop - shape_imf_par[0], default_len], imf_par[-1])
         imf_par = np.append(imf_par, extension, axis=0)
     elif (shape_imf_par[0] > n_pop):
-        warnings.warn('Too many arguments for imf_par. Excess discarded.', SyntaxWarning)
+        warnings.warn('Too many arguments for imf_par. Excess discarded.', UserWarning)
         imf_par = imf_par[:n_pop]
     return imf_par
 
@@ -499,43 +480,33 @@ def check_lowest_imf_mass(imf_par, ages, metal):
     return imf_par
 
 
-def cast_m_total(M_tot, n_pop):
-    """Cast input for total initial mass per population into the right format.
+def cast_and_check_n_stars(n_stars, M_tot, n_pop, imf_par):
+    """Check if we got values for number of stars (per population), or calculate them from M_tot.
     :rtype: np.ndarray
     """
-    if hasattr(M_tot, '__len__'):
-        M_tot = np.array(M_tot)
-    else:
-        M_tot = np.array([M_tot])
-    
+    # first cast M_tot
+    M_tot = np.atleast_1d(M_tot)
+
     len_M_tot = len(M_tot)
     if ((n_pop > 1) & (len_M_tot == 1)):
         # the mass is divided equally among the populations
-        M_tot = np.full(n_pop, M_tot[0])/n_pop
+        M_tot = np.full(n_pop, M_tot[0]) / n_pop
     elif (len_M_tot < n_pop):
         # extend length (dividing mass among pops)
         M_tot = np.append(M_tot, np.full(n_pop - len_M_tot, M_tot[-1]))
         M_tot[len_M_tot:] /= (n_pop - len_M_tot)
     elif (len_M_tot > n_pop):
-        warnings.warn('Too many values received for M_tot_init. Discarded excess', SyntaxWarning)
+        warnings.warn('Too many values received for M_tot_init. Discarded excess', UserWarning)
         M_tot = M_tot[:n_pop]
-    return M_tot
 
-
-def check_and_cast_n_stars(n_stars, M_tot, n_pop, imf_par):
-    """Check if we got values for number of stars (per population), or calculate them.
-    :rtype: np.ndarray
-    """
+    # now get on with n_stars
     if (np.all(n_stars == 0) & np.all(M_tot == 0)):
         raise ValueError('Input mass and number of stars cannot be zero simultaneously.')
     elif np.all(n_stars == 0):
         # estimate of the number of stars to generate
         n_stars = conv.m_tot_to_n_stars(M_tot, imf=imf_par)
     else:
-        if hasattr(n_stars, '__len__'):
-            n_stars = np.array(n_stars)
-        else:
-            n_stars = np.array([n_stars])
+        n_stars = np.atleast_1d(n_stars)
         
         len_N_stars = len(n_stars)
         if ((n_pop > 1) & (len_N_stars == 1)):
@@ -546,43 +517,12 @@ def check_and_cast_n_stars(n_stars, M_tot, n_pop, imf_par):
             n_stars = np.append(n_stars, np.full(n_pop - len_N_stars, n_stars[-1]))
             n_stars[len_N_stars:] /= (n_pop - len_N_stars)
         elif (len_N_stars > n_pop):
-            warnings.warn('utils//check_n_stars: too many values received for N_stars', SyntaxWarning)
+            warnings.warn('utils//check_n_stars: too many values received for N_stars', UserWarning)
             n_stars = n_stars[:n_pop]
 
     # make sure they are int, and add up nicely
     n_stars = fix_total(np.rint(n_stars).astype(int), np.sum(n_stars))
     return n_stars
-
-
-def cast_sfhistory(sfhist, n_pop):
-    """Cast input for sf-history into the right format.
-    :rtype: np.ndarray
-    """
-    if not sfhist:
-        sfhist = np.full(n_pop, None)
-    sfhist = cast_simple_array(sfhist, n_pop, fill_value=None, warning='Too many sfh types given. Excess discarded.')
-    return sfhist
-
-
-def cast_inclination(incl, n_pop):
-    """Cast input for inclination into the right format.
-    :rtype: np.ndarray
-    """
-    if not incl:
-        incl = np.zeros(n_pop)
-    incl = cast_simple_array(incl, n_pop, fill_value=0, warning='Too many incl values given. Excess discarded.')
-    return incl
-
-
-def cast_radial_dist_type(r_dist, n_pop):
-    """Cast input for radial distribution type into the right format.
-    :rtype: np.ndarray
-    """
-    if not r_dist:
-        r_dist = np.full(n_pop, default_rdist)
-    r_dist = cast_simple_array(r_dist, n_pop, fill_value=default_rdist,
-                               warning='Too many radial distribution types given. Excess discarded.')
-    return r_dist
     
 
 def check_radial_dist_type(r_dist):
@@ -599,7 +539,7 @@ def check_radial_dist_type(r_dist):
         
         if (r_dist[i] not in dist_list):
             warnings.warn(f'Specified distribution <{r_dist[i]}> type does not exist. Using default '
-                          f'(=<{default_rdist}>)', SyntaxWarning)
+                          f'(=<{default_rdist}>)', UserWarning)
             r_dist[i] = default_rdist + '_r'*(not default_rdist.endswith('_r'))
     return r_dist
 
@@ -628,7 +568,7 @@ def cast_radial_dist_param(r_dist_par, r_dist, n_pop):
     elif (len_param < n_pop):
         r_dist_par = np.append(r_dist_par, np.full(n_pop - len_param, r_dist_par[-1]))
     elif (len_param > n_pop):
-        warnings.warn('Too many radial distribution parameters given. Excess discarded.', SyntaxWarning)
+        warnings.warn('Too many radial distribution parameters given. Excess discarded.', UserWarning)
         r_dist_par = r_dist_par[:n_pop]
         
     # some final typecasting
@@ -656,11 +596,11 @@ def cast_ellipse_axes(axes, n_pop):
         axes = np.ones([n_pop, 3])
     
     shape_axes = np.shape(axes)
-    if ((len(shape_axes) == 1) & (len(axes) % 3 == 0)):
+    if ((axes.ndim == 1) & (len(axes) % 3 == 0)):
         axes = axes.reshape(len(axes) // 3, 3)
-    elif ((len(shape_axes) == 1) & (shape_axes[0] == 1)):
+    elif ((axes.ndim == 1) & (shape_axes[0] == 1)):
         axes = np.zeros([n_pop, 3])
-    elif (len(shape_axes) == 1):
+    elif (axes.ndim == 1):
         raise ValueError('Wrong number of arguments for axes, must be multiple of 3.')
     
     shape_axes = np.shape(axes)
@@ -669,7 +609,7 @@ def cast_ellipse_axes(axes, n_pop):
     elif (shape_axes[0] < n_pop):
         axes = np.append(axes, np.full(n_pop - shape_axes[0], np.ones(3)), axis=0)
     elif (shape_axes[0] > n_pop):
-        warnings.warn('Too many arguments for axes. Excess discarded.', SyntaxWarning)
+        warnings.warn('Too many arguments for axes. Excess discarded.', UserWarning)
         axes = axes[:n_pop]
     axes = axes.astype(float)
     return axes
@@ -679,19 +619,15 @@ def cast_translation(translation, n_pop):
     """Cast input for coordinate translation into the right format.
     :rtype: np.ndarray
     """
-    # if hasattr(translation, '__len__'):
-    #     translation = np.array(translation)
-    # else:
-    #     translation = np.array([translation])
     translation = np.atleast_1d(translation)
     # todo: could use 2d ... requires rebuilding
 
     shape_trans = np.shape(translation)
-    if ((len(shape_trans) == 1) & (len(translation) % 3 == 0)):
+    if ((translation.ndim == 1) & (len(translation) % 3 == 0)):
         translation = translation.reshape(len(translation) // 3, 3)
-    elif ((len(shape_trans) == 1) & (shape_trans[0] == 1)):
+    elif ((translation.ndim == 1) & (shape_trans[0] == 1)):
         translation = np.zeros([n_pop, 3])
-    elif (len(shape_trans) == 1):
+    elif (translation.ndim == 1):
         raise ValueError('Wrong number of arguments for translation, must be multiple of 3.')
 
     shape_trans = np.shape(translation)
@@ -700,7 +636,7 @@ def cast_translation(translation, n_pop):
     elif (shape_trans[0] < n_pop):
         translation = np.append(translation, np.full(n_pop - shape_trans[0], np.zeros(3)), axis=0)
     elif (shape_trans[0] > n_pop):
-        warnings.warn('Too many arguments for translation. Excess discarded.', SyntaxWarning)
+        warnings.warn('Too many arguments for translation. Excess discarded.', UserWarning)
         translation = translation[:n_pop]
     return translation
 
