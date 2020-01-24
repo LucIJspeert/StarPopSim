@@ -10,6 +10,7 @@ personal profiles might be added to the distributions module.
 import os
 import inspect
 import fnmatch
+import copy
 import pickle
 import warnings
 
@@ -162,9 +163,12 @@ class Stars():
         self.r_dist_types = utils.check_radial_dist_type(self.r_dist_types)
         self.r_dist_param = utils.cast_radial_dist_param(r_dist_par, self.r_dist_types, n_pop)
         self.ellipse_axes = utils.cast_ellipse_axes(ellipse_axes, n_pop)
-        self.spiral_arms = spiral_arms
-        self.spiral_bulge = spiral_bulge
-        self.spiral_bar = spiral_bar
+        self.spiral_arms = utils.cast_simple_array(spiral_arms, n_pop, fill_value=0,
+                                                   warning='Excess spiral arm values discarded.')
+        self.spiral_bulge = utils.cast_simple_array(spiral_bulge, n_pop, fill_value=0,
+                                                    warning='Excess spiral bulge values discarded.')
+        self.spiral_bar = utils.cast_simple_array(spiral_bar, n_pop, fill_value=0,
+                                                  warning='Excess spiral bar values discarded.')
         
         # properties that are derived/generated
         self.coords = np.empty([3, 0])
@@ -236,7 +240,7 @@ class Stars():
         """Appends two Stars objects to each other."""
         # Need to append all the properties.
         # the ones below can be appended in a simple append
-        append = ['n_stars', 'ages', 'metal', 'rel_number', 'sfhist', 'min_ages', 'tau_sfh', 'inclination',
+        append = ['n_stars', 'ages', 'metal', 'sfhist', 'min_ages', 'tau_sfh', 'inclination',
                   'r_dist_types', 'r_dist_param', 'spiral_arms', 'spiral_bulge', 'spiral_bar', 'compact_mode',
                   'M_init', 'fraction_generated', 'gen_n_stars', 'gen_ages']
         # the ones below need axis 0 specified
@@ -249,28 +253,29 @@ class Stars():
         # these are never appended since their equality is ensured (but need to correspond 1to1 with append_if_all)
         append_names = ['mag_names', '_spec_names']
 
+        sum = copy.copy(self)  # don't alter the original
         for attr in append:
-            setattr(self, attr, np.append(getattr(self, attr), getattr(other, attr)))
+            setattr(sum, attr, np.append(getattr(self, attr), getattr(other, attr)))
         for attr in append_axis_zero:
-            setattr(self, attr, np.append(getattr(self, attr), getattr(other, attr), axis=0))
+            setattr(sum, attr, np.append(getattr(self, attr), getattr(other, attr), axis=0))
         for attr in append_if:
             if getattr(self, attr) and getattr(other, attr):
-                setattr(self, attr, np.append(getattr(self, attr), getattr(other, attr)))
+                setattr(sum, attr, np.append(getattr(self, attr), getattr(other, attr)))
             else:
-                setattr(self, attr, None)
+                setattr(sum, attr, None)
         for attr, names in zip(append_if_all, append_names):
             if getattr(self, attr) and getattr(other, attr) and np.all(getattr(self, names) == getattr(other, names)):
-                setattr(self, attr, np.append(getattr(self, attr), getattr(other, attr)))
+                setattr(sum, attr, np.append(getattr(self, attr), getattr(other, attr)))
             else:
-                setattr(self, attr, None)
-        return self
+                setattr(sum, attr, None)
+        return sum
         
-    # def __radd__(self, other):
-    #     """Reverse add (for when adding doesn't work. e.g. in sum(a,b,c))."""
-    #     if other == 0:
-    #         return self
-    #     else:
-    #         return self.__add__(other)
+    def __radd__(self, other):
+        """Reverse add (for when adding doesn't work. e.g. in sum(a,b,c))."""
+        if other == 0:
+            return self
+        else:
+            return self.__add__(other)
     
     def generate_stars(self, d_lum=None, extinction=None):
         """Generate the masses and positions of the stars. Not automatically done on initiate."""

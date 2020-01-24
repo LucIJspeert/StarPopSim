@@ -533,6 +533,8 @@ def check_radial_dist_type(r_dist):
     # to make sure we can increase the string length
     r_dist = r_dist.astype(object)
     for i in range(len(r_dist)):
+        if not r_dist[i]:
+            r_dist[i] = default_rdist  # if none given, use default
         if (not r_dist[i].endswith('_r')):
             # add the r to the end for radial version of profile
             r_dist[i] = r_dist[i] + '_r'
@@ -540,7 +542,7 @@ def check_radial_dist_type(r_dist):
         if (r_dist[i] not in dist_list):
             warnings.warn(f'Specified distribution <{r_dist[i]}> type does not exist. Using default '
                           f'(=<{default_rdist}>)', UserWarning)
-            r_dist[i] = default_rdist + '_r'*(not default_rdist.endswith('_r'))
+            r_dist[i] = default_rdist + '_r' * (not default_rdist.endswith('_r'))
     return r_dist
 
 

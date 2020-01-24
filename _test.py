@@ -4251,6 +4251,11 @@ ax.plot(phot_data['mean'][mask], with_rs[nr])
 ax.invert_yaxis()
 plt.show()
 
+## test star addition
+stars1 = obg.Stars(n_stars=1000, ages=10, metal=0.0014)
+stars2 = obg.Stars(n_stars=1000, ages=10, metal=0.0014)
+s3 = stars1 + stars2
+
 
 ## star formation history
 def StarFormHistory(max_age, min_age=0, Z=0.014, sfr='exp', tau=1e10):
