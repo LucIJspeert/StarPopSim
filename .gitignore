@@ -26,6 +26,7 @@ wheels/
 MANIFEST
 
 # (user) data folders
+.idea
 objects/*.pkl
 images/*.fits
 images/*.png
