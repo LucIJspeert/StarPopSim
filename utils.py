@@ -27,7 +27,7 @@ def open_isochrones_file(Z, columns=None):
     file_name = f'isoc_Z{Z:1.{decimals}f}.dat'
     file_name = os.path.join('tables', file_name)
 
-    # check wether file for Z exists
+    # check whether file for Z exists
     if not os.path.isfile(file_name):
         # try one digit less
         file_name = f'isoc_Z{Z:1.{decimals - 1}f}.dat'
@@ -70,7 +70,8 @@ def open_isochrones_file(Z, columns=None):
 def open_photometric_data(columns=None, filters=None):
     """Gives the data in the file photometric_filters.dat as a structured array.
     Columns can be specified if less of the data is wanted (array of strings).
-    Filters can be specified to get only those rows (array of strings)
+    Filters can be specified to get only those rows (array of strings).
+    Note: array structure is removed if only one column is wanted.
     """
     file_name = os.path.join('tables', 'photometric_filters.dat')
     column_types = [('name', 'U16'),
@@ -102,11 +103,11 @@ def open_photometric_data(columns=None, filters=None):
 
     # some default conversions
     if ('mean' in np.array(used_types)[:, 0]):
-        phot_dat['mean'] = phot_dat['mean']*1e-9  # convert to m
+        phot_dat['mean'] = phot_dat['mean'] * 1e-9  # convert to m
     if ('width' in np.array(used_types)[:, 0]):
-        phot_dat['width'] = phot_dat['width']*1e-9  # convert to m
+        phot_dat['width'] = phot_dat['width'] * 1e-9  # convert to m
     if ('zp_flux' in np.array(used_types)[:, 0]):
-        phot_dat['zp_flux'] = phot_dat['zp_flux']*1e7  # convert to W/m^3
+        phot_dat['zp_flux'] = phot_dat['zp_flux'] * 1e7  # convert to W/m^3
     if reduce:
         phot_dat = phot_dat[columns[0]]  # get rid of the array structure
     return phot_dat
@@ -156,6 +157,13 @@ def stellar_isochrone(age, Z, columns=None):
     else:
         data = data[:, where_t]
     return data
+
+
+def stellar_track(mass, Z):
+    """Gives a stellar evolution track for the given mass and metallicity (Z).
+    columns: list of column names (see code_names), None will give all columns.
+    """
+    # todo: code idea... make stellar track with interpolation
 
 
 def get_supported_filters(alt_names=True):
@@ -235,13 +243,22 @@ def is_float(value, integer=False):
 
 def while_ask(question, options, add_opt=None, function='', check='str', help_arg=''):
     """Asks a question and checks input in a while loop.
-    :param question: string containing the question to ask
-    :param options: list of options separated by </>; can be an empty string
-    :param add_opt: list of additional options that are not printed (i.e. to define abbreviations)
-    :param function: the name of the calling function, for use in Help
-    :param check: type of answer to check for; can be <str>, <float> or <int>
-    :param help_arg: passed to Help function
-    :return: the answer to the question, as either <str>, <float> or <int>
+
+    question: str
+        string containing the question to ask
+    options: str
+        list of options separated by </>; can be an empty string
+    add_opt: list of str
+        list of additional options that are not printed (i.e. to define abbreviations)
+    function: str
+        the name of the calling function, for use in Help
+    check: str
+        type of answer to check for; can be <str>, <float> or <int>
+    help_arg: str
+        passed to Help function
+
+    returns
+        the answer to the question, as either <str>, <float> or <int>
     """
     if (add_opt is None):
         add_opt = []
