@@ -18,11 +18,32 @@ default_imf_par = [0.08, 150]   # M_sun     lower bound, upper bound on mass
 default_rdist = 'normal'        # see distributions module for a full list of options
 
 
+class isochrone_data():
+    """Store isochrone files in a useful data frame."""
+    def __init__(self, n_stars, ages, Z):
+        self.n_stars = n_stars
+        self.ages = ages
+        self.metal = Z
+
+        # open the relevant files
+        open_isochrones_file(Z)
+        return
+
+    # n_pop = len(self.n_stars)
+    # np.repeat(np.arange(n_pop), self.n_stars)  # population index per star
+    # index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
+    # iso_M_ini, iso_M_act = stellar_isochrone(age, self.metal[i], columns=['M_initial', 'M_current'])
+    # # select the masses of one population
+    # M_init_i = self.M_init[index[i]:index[i + 1]]
+    # # arg 'right': return 0 for stars heavier than available in isoc file (dead stars)
+    # M_cur_i = np.interp(M_init_i, iso_M_ini, iso_M_act, right=0)
+
+
 def open_isochrones_file(Z, columns=None):
     """Opens the isochrones file and gives the right columns.
     columns: list of column names (see code_names), None will give all columns.
     """
-    # check the file name (actual opening lateron)
+    # check the file name (actual opening later-on)
     decimals = -int(np.floor(np.log10(Z))) + 1
     file_name = f'isoc_Z{Z:1.{decimals}f}.dat'
     file_name = os.path.join('tables', file_name)

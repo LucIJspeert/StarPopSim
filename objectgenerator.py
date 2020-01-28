@@ -340,8 +340,7 @@ class Stars():
             self.ellipse_axes = axes
         
         if not (len(np.unique(axes)) == 1):
-            # population index per star
-            indices = np.repeat(np.arange(n_pop), self.n_stars)
+            indices = np.repeat(np.arange(n_pop), self.n_stars)  # population index per star
             # convert to ellipsoid (keeps volume conserved)
             self.coords = self.coords * (axes / np.prod(axes)**(1 / 3))[indices]
         return
@@ -353,10 +352,8 @@ class Stars():
         # check the input, make sure it is an array of the right size
         n_pop = len(self.n_stars)
         translation = utils.cast_translation(translation, n_pop)
-        # record the new translation
-        self.origin += translation.T
-        # population index per star
-        indices = np.repeat(np.arange(n_pop), self.n_stars)
+        self.origin += translation.T  # record the new translation
+        indices = np.repeat(np.arange(n_pop), self.n_stars)  # population index per star
         # move the stars (assuming shape (n_pop, 3) --> cast to (3, #stars))
         self.coords = self.coords + translation[indices].T
         return
