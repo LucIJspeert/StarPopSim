@@ -26,9 +26,17 @@ class isochrone_data():
         self.metal = Z
 
         # open the relevant files
-        open_isochrones_file(Z)
+        col_name_map = get_isoc_col_names()  # go from code names to isoc column names
+        n_cols = len(col_name_map)
+        pop_isoc_map = {}  # dictionary mapping population index to isoc length
+        isoc_data = np.empty([0, n_cols])  # isochrone data sheet (no cube for file length reasons)
+        for i, Z in enumerate(self.metal):
+            isoc_i = open_isochrones_file(Z)
+            pop_isoc_map.update({i: len(isoc_i)})
+            isoc_data = np.vstack([isoc_data, isoc_i])
         return
 
+    # def
     # n_pop = len(self.n_stars)
     # np.repeat(np.arange(n_pop), self.n_stars)  # population index per star
     # index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
@@ -56,17 +64,9 @@ def open_isochrones_file(Z, columns=None):
         if not os.path.isfile(file_name):
             raise FileNotFoundError(f'File {file_name} not found. Try a different metallicity.')
 
-    # mapping the names used in the code to the isoc file column names
-    alt_filter_names = get_supported_filters(alt_names=True)
-    full_filter_names = get_supported_filters(alt_names=False)
-    code_names, isoc_names = np.loadtxt(os.path.join('tables', 'column_names.dat'), dtype=str, unpack=True)
-    all_code_names = np.append(code_names, alt_filter_names)
-
-    # define the filter names that can be used in terms of the isochrone filter names
-    name_dict = {code: iso for code, iso in zip(alt_filter_names, full_filter_names)}
-    name_dict.update({iso: iso for iso in full_filter_names})
-    name_dict.update({code: iso for code, iso in zip(code_names, isoc_names)})
-    name_dict.update({iso: iso for iso in isoc_names})
+    # get the right column name mapping
+    name_dict = get_isoc_col_names()
+    all_code_names = name_dict.keys()
 
     # find the column names in the isoc file
     with open(file_name) as file:
@@ -144,9 +144,9 @@ def select_age(age, Z):
     else:
         log_age = np.log10(age)
 
-    log_t_min = np.min(log_t)  # minimum available age
-    log_t_max = np.max(log_t)  # maximum available age
     uni_log_t = np.unique(log_t)  # unique array of ages
+    log_t_min = np.min(uni_log_t)  # minimum available age
+    log_t_max = np.max(uni_log_t)  # maximum available age
 
     lim_min = (log_age < log_t_min - 0.01)
     lim_max = (log_age > log_t_max + 0.01)
@@ -162,8 +162,8 @@ def select_age(age, Z):
     b = t_steps - a  # a is downward step, b upward
     a = np.insert(a, 0, 0.01)  # need one extra step down for first t value
     b = np.append(b, 0.01)  # need one extra step up for last t value
-    log_closest = uni_log_t[(uni_log_t > log_age - a) & (uni_log_t <= log_age + b)]
-    return np.where(log_t == log_closest)[0]
+    log_closest = uni_log_t[(uni_log_t - a < log_age) & (uni_log_t + b >= log_age)]
+    return np.arange(len(log_t))[log_t == log_closest]
 
 
 def stellar_isochrone(age, Z, columns=None):
@@ -171,12 +171,8 @@ def stellar_isochrone(age, Z, columns=None):
     columns: list of column names (see code_names), None will give all columns.
     """
     data = open_isochrones_file(Z, columns=columns)
-    where_t = select_age(age, Z)
-
-    if (np.ndim(data) == 1):
-        data = data[where_t]
-    else:
-        data = data[:, where_t]
+    t_indices = select_age(age, Z)
+    data = data[..., t_indices]
     return data
 
 
@@ -185,6 +181,23 @@ def stellar_track(mass, Z):
     columns: list of column names (see code_names), None will give all columns.
     """
     # todo: code idea... make stellar track with interpolation
+
+
+def get_isoc_col_names():
+    """Returns a dictionary of all usable (in code) column names to the
+    appropriatre column names in the isochrone files.
+    """
+    # mapping the names used in the code to the isoc file column names
+    alt_filter_names = get_supported_filters(alt_names=True)
+    full_filter_names = get_supported_filters(alt_names=False)
+    code_names, isoc_names = np.loadtxt(os.path.join('tables', 'column_names.dat'), dtype=str, unpack=True)
+
+    # define the filter names that can be used in terms of the isochrone filter names
+    name_dict = {code: iso for code, iso in zip(alt_filter_names, full_filter_names)}
+    name_dict.update({iso: iso for iso in full_filter_names})
+    name_dict.update({code: iso for code, iso in zip(code_names, isoc_names)})
+    name_dict.update({iso: iso for iso in isoc_names})
+    return name_dict
 
 
 def get_supported_filters(alt_names=True):
