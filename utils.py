@@ -21,24 +21,61 @@ default_rdist = 'normal'        # see distributions module for a full list of op
 class isochrone_data():
     """Store isochrone files in a useful data frame."""
     def __init__(self, n_stars, ages, Z):
-        self.n_stars = n_stars
-        self.ages = ages
-        self.metal = Z
-
-        # open the relevant files
-        col_name_map = get_isoc_col_names()  # go from code names to isoc column names
-        n_cols = len(col_name_map)
-        pop_isoc_map = {}  # dictionary mapping population index to isoc length
-        isoc_data = np.empty([0, n_cols])  # isochrone data sheet (no cube for file length reasons)
+        self.n_stars = n_stars  # list of ages per population
+        self.ages = ages  # list of ages
+        self.metal = Z  # list of metallicities
+        self.pop_isoc_map = {}  # dictionary mapping population index to isoc length
+        # open the relevant files and store the data
+        self.col_name_map = get_isoc_col_names()  # go from code names to isoc column names
+        n_cols = len(self.col_name_map)
+        self.isoc_data = np.empty([0, n_cols])  # isochrone data sheet (no cube for file length reasons)
         for i, Z in enumerate(self.metal):
             isoc_i = open_isochrones_file(Z)
-            pop_isoc_map.update({i: len(isoc_i)})
-            isoc_data = np.vstack([isoc_data, isoc_i])
+            self.pop_isoc_map.update({i: len(isoc_i)})
+            self.isoc_data = np.vstack([self.isoc_data, isoc_i])
         return
+
+    def isochrone_mask(self, index):
+        """Returns a boolean mask that masks out all but one isochrone file in the isochrone data.
+        The input is the index of the wanted population
+        """
+        data_index = np.append([0], np.cumsum(self.pop_isoc_map.values()))  # indices defining the different isoc files
+        mask = np.zeros(data_index[-1], dtype=bool)
+        mask[data_index[index]:data_index[index + 1]] = True
+        return mask
+
+    def population_mask(self, index):
+        """Returns a boolean mask that masks out all but one population in the list of stars.
+        The input is the index of the wanted population
+        """
+        star_index = np.cumsum(np.append([0], self.n_stars))  # indices defining the different populations
+        mask = np.zeros(star_index[-1], dtype=bool)
+        mask[star_index[index]:star_index[index + 1]] = True
+        return mask
+
+    def interpolate(self, column, M_init, left=None, right=None):
+        """Gives the requested property of the stars by interpolating the isochrone grid.
+        Only works for a single data column at a time (give name as string).
+        """
+        col_i_map = {name: i for i, name in enumerate(self.col_name_map.keys())}  # map code names to column index
+        n_pop = len(self.n_stars)
+        qtt = np.empty(np.sum(self.n_stars))
+        for i in range(n_pop):
+            isoc_mask = self.isochrone_mask(i)
+            pop_mask = self.population_mask(i)
+            iso_M_ini_i, iso_qtt_i = self.isoc_data[isoc_mask, [0, col_i_map[column]]]
+            qtt[pop_mask] = np.interp(M_init[pop_mask], iso_M_ini_i, iso_qtt_i, left=left, right=right)
+        return qtt
+
+    def interpolate_mag(self, filters):
+        """Gives the magnitudes of the stars for the requested filters.
+        Essentially this would work for any set of columns (list of strings).
+        """
 
     # def
     # n_pop = len(self.n_stars)
     # np.repeat(np.arange(n_pop), self.n_stars)  # population index per star
+    # (convert things that are defined per population to things that are defined per star)
     # index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
     # iso_M_ini, iso_M_act = stellar_isochrone(age, self.metal[i], columns=['M_initial', 'M_current'])
     # # select the masses of one population
