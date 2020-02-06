@@ -2,6 +2,7 @@
 import os
 import warnings
 import numpy as np
+import scipy.interpolate as spi
 
 import fnmatch
 import inspect
@@ -35,18 +36,22 @@ class isochrone_data():
             self.isoc_data = np.vstack([self.isoc_data, isoc_i])
         return
 
-    def isochrone_mask(self, index):
+    def isochrone_mask(self, index, age=True):
         """Returns a boolean mask that masks out all but one isochrone file in the isochrone data.
-        The input is the index of the wanted population
+        The input is the index of the wanted population and whether to select its age.
         """
         data_index = np.append([0], np.cumsum(self.pop_isoc_map.values()))  # indices defining the different isoc files
         mask = np.zeros(data_index[-1], dtype=bool)
-        mask[data_index[index]:data_index[index + 1]] = True
+        if age:
+            age_mask = select_age(self.ages[index], self.metal[index])
+        else:
+            age_mask = np.ones(self.pop_isoc_map[index], dtype=bool)
+        mask[data_index[index]:data_index[index + 1]] = age_mask
         return mask
 
     def population_mask(self, index):
         """Returns a boolean mask that masks out all but one population in the list of stars.
-        The input is the index of the wanted population
+        The input is the index of the wanted population.
         """
         star_index = np.cumsum(np.append([0], self.n_stars))  # indices defining the different populations
         mask = np.zeros(star_index[-1], dtype=bool)
@@ -57,31 +62,33 @@ class isochrone_data():
         """Gives the requested property of the stars by interpolating the isochrone grid.
         Only works for a single data column at a time (give name as string).
         """
-        col_i_map = {name: i for i, name in enumerate(self.col_name_map.keys())}  # map code names to column index
         n_pop = len(self.n_stars)
+        col_i_map = {name: i for i, name in enumerate(self.col_name_map.keys())}  # map code names to column index
+        data_cols = [0, col_i_map[column]]
         qtt = np.empty(np.sum(self.n_stars))
         for i in range(n_pop):
-            isoc_mask = self.isochrone_mask(i)
+            isoc_mask = self.isochrone_mask(i, age=True)
             pop_mask = self.population_mask(i)
-            iso_M_ini_i, iso_qtt_i = self.isoc_data[isoc_mask, [0, col_i_map[column]]]
+            iso_M_ini_i, iso_qtt_i = self.isoc_data[isoc_mask, data_cols]
             qtt[pop_mask] = np.interp(M_init[pop_mask], iso_M_ini_i, iso_qtt_i, left=left, right=right)
         return qtt
 
-    def interpolate_mag(self, filters):
+    def interpolate_mag(self, filters, M_init, fill_value=None):
         """Gives the magnitudes of the stars for the requested filters.
         Essentially this would work for any set of columns (list of strings).
         """
-
-    # def
-    # n_pop = len(self.n_stars)
-    # np.repeat(np.arange(n_pop), self.n_stars)  # population index per star
-    # (convert things that are defined per population to things that are defined per star)
-    # index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
-    # iso_M_ini, iso_M_act = stellar_isochrone(age, self.metal[i], columns=['M_initial', 'M_current'])
-    # # select the masses of one population
-    # M_init_i = self.M_init[index[i]:index[i + 1]]
-    # # arg 'right': return 0 for stars heavier than available in isoc file (dead stars)
-    # M_cur_i = np.interp(M_init_i, iso_M_ini, iso_M_act, right=0)
+        n_pop = len(self.n_stars)
+        col_i_map = {name: i for i, name in enumerate(self.col_name_map.keys())}  # map code names to column index
+        data_cols = [col_i_map[col] for col in filters]
+        qtts = np.empty([len(filters), np.sum(self.n_stars)])
+        for i in range(n_pop):
+            isoc_mask = self.isochrone_mask(i, age=True)
+            pop_mask = self.population_mask(i)
+            iso_M_ini_i = self.isoc_data[isoc_mask, 0]
+            iso_qtt_i = self.isoc_data[isoc_mask, data_cols].T
+            interper = spi.interp1d(iso_M_ini_i, iso_qtt_i, bounds_error=False, fill_value=fill_value, axis=0)
+            qtts[pop_mask] = interper(M_init[pop_mask])
+        return qtts
 
 
 def open_isochrones_file(Z, columns=None):
@@ -200,7 +207,7 @@ def select_age(age, Z):
     a = np.insert(a, 0, 0.01)  # need one extra step down for first t value
     b = np.append(b, 0.01)  # need one extra step up for last t value
     log_closest = uni_log_t[(uni_log_t - a < log_age) & (uni_log_t + b >= log_age)]
-    return np.arange(len(log_t))[log_t == log_closest]
+    return log_t == log_closest
 
 
 def stellar_isochrone(age, Z, columns=None):
