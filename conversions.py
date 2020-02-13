@@ -89,7 +89,7 @@ def m_tot_to_n_stars(M, imf=None):
     to number of objects using the implemented IMF.
     """
     M = np.atleast_1d(M)
-    if not imf:
+    if imf is None:
         imf = np.full([len(M), len(default_imf_par)], default_imf_par)
     else:
         imf = np.atleast_2d(imf)
@@ -107,7 +107,7 @@ def n_stars_to_m_tot(N, imf=None):
     to total mass using the implemented IMF.
     """
     N = np.atleast_1d(N)
-    if not imf:
+    if imf is None:
         imf = np.full([len(N), len(default_imf_par)], default_imf_par)
     else:
         imf = np.atleast_2d(imf)

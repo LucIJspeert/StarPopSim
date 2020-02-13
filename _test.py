@@ -894,7 +894,7 @@ plt.legend()
 plt.show()
 
 ## King Globular
-def KingGlobular_r(r, s=1.0, R=None):
+def king_globular_r(r, s=1.0, R=None):
     """pdf of radial King distribution for Globular clusters."""
     if (R is None):
         R = 30*s                                                                                  # typical globular cluster has R/s ~ 30
@@ -904,7 +904,7 @@ def KingGlobular_r(r, s=1.0, R=None):
     C = (Rs**3/3/(1 + Rs2) + np.log(Rs + (1 + Rs2)**(1/2))/(1 + Rs2)**(1/2) - np.arctan(Rs))**-1
     return C/s*rs2*(1/(1 + rs2)**(1/2) - 1/(1 + Rs2)**(1/2))**2
     
-def N_KingGlobular_r(r, s=1.0, R=None):
+def N_king_globular_r(r, s=1.0, R=None):
     """cdf of radial King distribution for Globular clusters."""
     if (R is None):
         R = 30*s                                                                                  # typical globular cluster has R/s ~ 30
@@ -919,12 +919,12 @@ def N_KingGlobular_r(r, s=1.0, R=None):
 s = 2
 R = 100
 rvals = np.logspace(-2, np.log10(R), 1000)
-Nvals = N_KingGlobular_r(rvals, s, R)
+Nvals = N_king_globular_r(rvals, s, R)
 r_inter = np.interp(np.random.rand(1000000), Nvals, rvals)
 
 hist, bins = np.histogram(r_inter, bins='auto', density=True)
 # hist_ref1, bins_ref1 = np.histogram(dist.king_globular_r(N, s=s, R=R), bins=np.logspace(-0.5, 3.5, 50), density=True)
-# hist_ref2, bins_ref2 = np.histogram(dist.KingGlobular_rho(N, s=s, R=R), bins=np.logspace(-0.5, 3.5, 50), density=True)
+# hist_ref2, bins_ref2 = np.histogram(dist.king_globular_rho(N, s=s, R=R), bins=np.logspace(-0.5, 3.5, 50), density=True)
 
 fig, ax = plt.subplots()
 # ax.step(bins[1:], hist, label='King interp')
@@ -934,7 +934,7 @@ fig, ax = plt.subplots()
 # ax.plot(np.log10(rvals), np.log10(king_globular_r(rvals, s, R)), label='King')
 # log cartesian
 ax.step(np.log10(bins[1:]), np.log10(hist/bins[1:]**2), label='King interp')
-ax.plot(np.log10(rvals), np.log10(KingGlobular_r(rvals, s, R)/rvals**2), label='King')
+ax.plot(np.log10(rvals), np.log10(king_globular_r(rvals, s, R)/rvals**2), label='King')
 # ax.plot(np.log10(bins_ref1[1:]), np.log10(hist_ref1/bins_ref1[1:]**2), label='r')
 # ax.plot(np.log10(bins_ref2[1:]), np.log10(hist_ref2/bins_ref2[1:]**1), label='rho')
 ax.legend()
@@ -964,9 +964,9 @@ plt.show()
 R_1 = 1/2.9
 R_2 = 6/2.9
 R_3 = 21/2.9
-hist_ref1, bins_ref1 = np.histogram(dist.KingGlobular_rho(N, s=R_1), bins='auto', density=True)
-hist_ref2, bins_ref2 = np.histogram(dist.KingGlobular_rho(N, s=R_2), bins='auto', density=True)
-hist_ref3, bins_ref3 = np.histogram(dist.KingGlobular_rho(N, s=R_3), bins='auto', density=True)
+hist_ref1, bins_ref1 = np.histogram(dist.king_globular_rho(N, s=R_1), bins='auto', density=True)
+hist_ref2, bins_ref2 = np.histogram(dist.king_globular_rho(N, s=R_2), bins='auto', density=True)
+hist_ref3, bins_ref3 = np.histogram(dist.king_globular_rho(N, s=R_3), bins='auto', density=True)
 
 rvals_1 = np.logspace(-1.5, np.log10(30*R_1 - 0.1), 1000)
 rvals_2 = np.logspace(-1.0, np.log10(30*R_2 - 0.1), 1000)
@@ -1024,7 +1024,7 @@ ax.plot(rvals, dist.cdf_Exponential_r(rvals, s=s_exp), label='Exp, s={0}'.format
 ax.plot(rvals, dist.cdf_Normal_r(rvals, s=s_norm), label='normal, s={0}'.format(s_norm), c='blue', lw=0.7)
 ax.plot(rvals, dist.cdf_Squaredcauchy_r(rvals, s=s_cau), label='Cauchy, s={0}'.format(s_cau), c='purple', lw=0.7)
 ax.plot(rvals, dist.cdf_PearsonVII_r(rvals, s=s_pea), label='Pearson, s={0}'.format(s_pea), c='c', lw=0.7)
-ax.plot(rvals, dist.cdf_KingGlobular_r(rvals, s=s_king, R=3800), label='King, s={0}'.format(s_king), c='black', lw=0.7)
+ax.plot(rvals, dist.cdf_king_globular_r(rvals, s=s_king, R=3800), label='King, s={0}'.format(s_king), c='black', lw=0.7)
 
 dist1 = dist.exponential_r(N, s=s_exp)
 dist2 = dist.normal_r(N, s=s_norm)
@@ -1364,7 +1364,7 @@ plt.show()
 ## 2D distributions - King
 import matplotlib.pyplot as plt
 
-def pdf_KingGlobular_rho(r, s=1.0, R=None):
+def pdf_king_globular_rho(r, s=1.0, R=None):
     """pdf of 2D radial King distribution for Globular clusters."""
     if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
@@ -1373,7 +1373,7 @@ def pdf_KingGlobular_rho(r, s=1.0, R=None):
     C = (Rs2/2/(1 + Rs2) + np.log(1 + Rs2)/2 - 2)**(-1)
     return C/s*r/s*(1/(1 + rs2)**(1/2) - 1/(1 + Rs2)**(1/2))**2
     
-def cdf_KingGlobular_rho(r, s=1.0, R=None):
+def cdf_king_globular_rho(r, s=1.0, R=None):
     """cdf of 2D radial King distribution for Globular clusters."""
     if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
@@ -1384,30 +1384,30 @@ def cdf_KingGlobular_rho(r, s=1.0, R=None):
     C2 = 1/(1 + Rs2)**(1/2)
     return C*(np.log(1 + rs2)/2 - 2*C2*(1 + rs2)**(1/2) + C2**2*rs2/2)
     
-def KingGlobular_rho(n=1, s=1.0, R=None):
+def king_globular_rho(n=1, s=1.0, R=None):
     """2D Radial King distribution for globular clusters with scale height s and outter radius R. Draws n numbers."""
     if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
     rvals = np.logspace(-2, np.log10(R), 1000)
-    Nvals = cdf_KingGlobular_rho(rvals, s, R)
+    Nvals = cdf_king_globular_rho(rvals, s, R)
     return np.interp(np.random.rand(int(n)), Nvals, rvals)
     
 s = 2
 R = 100
 
-r_inter = KingGlobular_rho(n=1e6, s=s, R=R)
+r_inter = king_globular_rho(n=1e6, s=s, R=R)
 rvals = np.logspace(-2, np.log10(R), 1000)
 
 hist, bins = np.histogram(r_inter, bins='auto', density=True)
 
 fig, ax = plt.subplots()
 ax.step(np.log10(bins[:-1]), np.log10(hist/bins[:-1]), label='King interp')
-ax.plot(np.log10(rvals), np.log10(pdf_KingGlobular_rho(rvals, s, R)/rvals), label='King')
+ax.plot(np.log10(rvals), np.log10(pdf_king_globular_rho(rvals, s, R)/rvals), label='King')
 ax.legend()
 plt.show()
 
 ## conversion between King 3D and 2D
-def cdf_KingGlobular_r(r, s=1.0, R=None):
+def cdf_king_globular_r(r, s=1.0, R=None):
     """cdf of radial King distribution for Globular clusters."""
     if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
@@ -1420,15 +1420,15 @@ def cdf_KingGlobular_r(r, s=1.0, R=None):
     C = (Rs**3/3*C2**2 + np.log(Rs + 1/C2)*C2 - np.arctan(Rs))**-1
     return C*(rs - np.arctan(rs) - C2*rs*(1 + rs2)**(1/2) + C2*np.log(rs + (1 + rs2)**(1/2)) + C2**2*rs**3/3)
     
-def KingGlobular_r(n=1, s=1.0, R=None):
+def king_globular_r(n=1, s=1.0, R=None):
     """Radial King distribution for globular clusters with scale height s and outter radius R. Draws n numbers."""
     if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
     rvals = np.logspace(-2, np.log10(R), 1000)
-    Nvals = cdf_KingGlobular_r(rvals, s, R)
+    Nvals = cdf_king_globular_r(rvals, s, R)
     return np.interp(np.random.rand(int(n)), Nvals, rvals)
     
-def pdf_KingGlobular_r(r, s=1.0, R=None):
+def pdf_king_globular_r(r, s=1.0, R=None):
     """pdf of radial King distribution for Globular clusters."""
     if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
@@ -1478,8 +1478,8 @@ s2 = 40
 R = 500
 n = 10**6
 rvals = np.logspace(0, np.log10(R-10), n)
-kingr = KingGlobular_r(n, s1, R)
-kingrho = KingGlobular_rho(n, s1, R)
+kingr = king_globular_r(n, s1, R)
+kingrho = king_globular_rho(n, s1, R)
 
 hist, bins = np.histogram(CalcRadii(rvals), bins='auto', density=True)
 hist2, bins2 = np.histogram(rvals, bins='auto', density=True)
@@ -1493,11 +1493,11 @@ fig, ax = plt.subplots()
 # ax.plot(np.log10(bins[:-1]), np.log10(hist/bins[:-1]), label='r vals projected')
 # ax.plot(np.log10(bins2[:-1]), np.log10(hist2/bins2[:-1]), label='r vals')
 
-ax.plot(np.log10(rvals), np.log10(pdf_KingGlobular_r(rvals, s1, R)/rvals**2) + 2, label='King r')
+ax.plot(np.log10(rvals), np.log10(pdf_king_globular_r(rvals, s1, R)/rvals**2) + 2, label='King r')
 ax.step(np.log10(bins3[:-1]), np.log10(hist3/bins3[:-1]), label='King r generated projected')       # the malefactor
 ax.step(np.log10(bins4[:-1]), np.log10(hist4/bins4[:-1]**2) + 2, label='King r generated')
 
-ax.plot(np.log10(rvals), np.log10(pdf_KingGlobular_rho(rvals, s1, R)/rvals), label='King rho')
+ax.plot(np.log10(rvals), np.log10(pdf_king_globular_rho(rvals, s1, R)/rvals), label='King rho')
 ax.step(np.log10(bins5[:-1]), np.log10(hist5/bins5[:-1]), label='King rho generated projected')
 ax.legend()
 plt.show()
@@ -1514,7 +1514,7 @@ cauchyrho = dist.SquaredCauchy_rho(n)
 pearsonr = dist.pearson_vii_r(n)
 pearsonrho = dist.PearsonVII_rho(n)
 kingr = dist.king_globular_r(n)
-kingrho = dist.KingGlobular_rho(n)
+kingrho = dist.king_globular_rho(n)
 
 hist, bins = np.histogram(cauchyr, bins='auto', density=True)
 hist1, bins1 = np.histogram(cauchyrho, bins='auto', density=True)
@@ -1668,7 +1668,7 @@ for i in range(int(n/3-1)):
 import sys
 import subprocess
 
-subprocess.call([sys.executable, 'constructor.py', '-N 1000', '-rdist', 'normal', 'KingGlobular', '-rdistpar', '1', '2'])
+subprocess.call([sys.executable, 'constructor.py', '-N 1000', '-rdist', 'normal', 'king_globular', '-rdistpar', '1', '2'])
 subprocess.call([sys.executable, 'constructor.py', '-N 1000', '-ages', '9', '10', '9', '-i', '1', '2'])
 subprocess.call([sys.executable, 'constructor.py', '-N 1000', '-relN', '5', '4', '2', '-axes', '1', '2', '5', '2', '2', '1'])
 ##
@@ -2232,7 +2232,7 @@ r_light_age = []
 for age in ages:
     r_light = []
     for r in r_par:
-        astobj = obg.AstObject(N_obj=10**5, age=[8], metal=[0.014], distance=10**4, r_dist='KingGlobular', r_dist_par=r)
+        astobj = obg.AstObject(N_obj=10**5, age=[8], metal=[0.014], distance=10**4, r_dist='king_globular', r_dist_par=r)
         r_light.append(astobj.half_lum_radius(spher=False))
         
     r_light_age.append(r_light)
@@ -2292,7 +2292,7 @@ par_grid[:, 0:2] = np.log10(par_grid[:, 0:2])
 
 def objsaver(pars):
     M, D, r = pars              # M, D in 10log
-    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r)
+    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r)
     astobj.save_to('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     return
     
@@ -2316,7 +2316,7 @@ image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', fil
 fh.PlotFits('img_test_save')
 ##
 # 41274 and up is broken (only shows noise at that point)  [edit: not true]
-astobj = obg.AstObject(N_obj=4*10**4, age=[10], metal=[0.0014], distance=10**5, r_dist='KingGlobular', r_dist_par=0.01)
+astobj = obg.AstObject(N_obj=4*10**4, age=[10], metal=[0.0014], distance=10**5, r_dist='king_globular', r_dist_par=0.01)
 src = img.MakeSource(astobj, filter='Ks')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter='Ks', ao_mode='scao', filename='img_test_save')
 fh.PlotFits('img_test_save')
@@ -2414,7 +2414,7 @@ hdul = fits.open('data\\EC_pickles.fits')
 hdul.writeto('data\\EC_pickles2.fits')
 ##
 # look into src.spectra --> lots of nan's
-astobj = obg.AstObject(N_obj=4*10**4, age=[10], metal=[0.0014], distance=10**5, r_dist='KingGlobular', r_dist_par=0.01)
+astobj = obg.AstObject(N_obj=4*10**4, age=[10], metal=[0.0014], distance=10**5, r_dist='king_globular', r_dist_par=0.01)
 src = img.MakeSource(astobj, filter='Ks')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter='Ks', ao_mode='scao', filename='img_test_save')
 fh.plot_fits('img_test_save')
@@ -2722,17 +2722,17 @@ ax.set_ylabel('limiting mass (Msun)')
 plt.show()
 
 ## testing astobj with compact
-astobj = obg.AstObject(N_obj=4*10**4, age=[6], metal=[0.0014], distance=10**8, r_dist='KingGlobular', r_dist_par=0.01, compact=True)
+astobj = obg.AstObject(N_obj=4*10**4, age=[6], metal=[0.0014], distance=10**8, r_dist='king_globular', r_dist_par=0.01, compact=True)
 
 print(astobj.N_obj, len(astobj.M_init))
 ##
-astobj = obg.AstObject(N_obj=10**9, age=[6], metal=[0.0014], distance=10**8, r_dist='KingGlobular', r_dist_par=0.01, compact=True)
+astobj = obg.AstObject(N_obj=10**9, age=[6], metal=[0.0014], distance=10**8, r_dist='king_globular', r_dist_par=0.01, compact=True)
 
 print(astobj.N_obj, len(astobj.M_init))
 
 ##
 M, D, r = np.log10(5*10**6), np.log10(0.8*10**6), 0.345              # M, D in 10log
-astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r)
+astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r)
 astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
@@ -2741,7 +2741,7 @@ fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom'.format(M, D, r))
 # fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom'.format(M, D, r), grid=False)
 ##
-astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, mag_lim=29, compact=True)
+astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, mag_lim=29, compact=True)
 astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r))
@@ -2752,7 +2752,7 @@ image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', fi
 
 ##
 # D = np.log10(8*10**5)
-astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True)
+astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, compact=True)
 astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r))
@@ -2797,7 +2797,7 @@ print(form.mass_fraction_from_limits([M_lim, M_ini[-1]]))
 
 ##
 M, D, r = np.log10(5*10**6), np.log10(15*10**6), 0.345              # M, D in 10log
-astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True, tot_lum=True)
+astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, compact=True, tot_lum=True)
 astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r))
@@ -2809,7 +2809,7 @@ image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', fi
 ##
 # static mag lim
 M, D, r = np.log10(5*10**6), np.log10(0.8*10**6), 0.345              # M, D in 10log
-astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True)
+astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, compact=True)
 astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r))
@@ -2834,7 +2834,7 @@ plt.show()
 ##
 # number lim
 M, D, r = np.log10(5*10**6), np.log10(0.8*10**6), 0.345              # M, D in 10log
-astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True, cp_mode='num')
+astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, compact=True, cp_mode='num')
 astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r))
@@ -2845,7 +2845,7 @@ image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', fi
 
 ##
 N, D, r = np.log10(2*10**8), np.log10(15*10**6), 0.345              # M, D in 10log
-astobj = obg.AstObject(N_obj=10**N, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True, cp_mode='num')
+astobj = obg.AstObject(N_obj=10**N, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, compact=True, cp_mode='num')
 astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r))
 src = img.MakeSource(astobj, filter='J')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r))
@@ -2926,7 +2926,7 @@ par_grid[:, 0:2] = np.log10(par_grid[:, 0:2])
 
 def objsaver(pars):
     M, D, r = pars              # M, D in 10log
-    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r)
+    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r)
     astobj.save_to('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     return
     
@@ -3069,7 +3069,7 @@ par_grid[:, 0:2] = np.log10(par_grid[:, 0:2])
 
 def objsaver(pars):
     M, D, r = pars              # M, D in 10log
-    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r)
+    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r)
     astobj.save_to('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     return
     
@@ -4323,7 +4323,7 @@ plt.show()
 
 
 ## deconvolve an image
-astobj = obg.AstronomicalObject(n_stars=[1000], ages=[9], metal=[0.0014], distance=1e5, r_dist='KingGlobular')
+astobj = obg.AstronomicalObject(n_stars=[1000], ages=[9], metal=[0.0014], distance=1e5, r_dist='king_globular')
 f = 'Ks'
 view = 'wide'  # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
 chip = 'centre'  # read out, small middle bit, centre chip or full detector
@@ -4333,6 +4333,12 @@ img_name = 'conv_test'
 src = img.MakeSource(astobj, filter=f)
 image = img.MakeImage(src, exposure=exp, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name,
                       internals=int)
+
+## test isoc object
+astobj = obg.AstronomicalObject(n_stars=[1000], ages=[9], metal=[0.0014], distance=1e5, r_dist='king_globular')
+isoc = utils.isochrone_data([1000], [9], [0.0014])
+interp = isoc.interpolate('M_current', astobj.stars.M_init, right=0)
+ast_masses = astobj.stars.current_masses()
 
 
 

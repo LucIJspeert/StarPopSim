@@ -230,7 +230,7 @@ def absolute_magnitude(mag, distance, ext=0):
 
 def mass_fraction_from_limits(mass_limits, imf=None):
     """Returns the fraction of stars in a population above and below certain mass_limits (Msol)."""
-    if not imf:
+    if imf is None:
         imf = default_imf_par
     M_low, M_high = imf
     M_mid = 0.5  # fixed turnover position (where slope changes)
@@ -252,7 +252,7 @@ def mass_fraction_from_limits(mass_limits, imf=None):
 
 def mass_limit_from_fraction(frac, M_max=None, imf=None):
     """Returns the lower mass limit to get a certain fraction of stars generated."""
-    if not imf:
+    if imf is None:
         imf = default_imf_par
     M_low, M_high = imf
     M_mid = 0.5  # fixed turnover position (where slope changes)

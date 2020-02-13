@@ -21,17 +21,17 @@ default_rdist = 'normal'        # see distributions module for a full list of op
 
 class isochrone_data():
     """Store isochrone files in a useful data frame."""
-    def __init__(self, n_stars, ages, Z):
+    def __init__(self, n_stars, ages, metal):
         self.n_stars = n_stars  # list of ages per population
         self.ages = ages  # list of ages
-        self.metal = Z  # list of metallicities
+        self.metal = metal  # list of metallicities
         self.pop_isoc_map = {}  # dictionary mapping population index to isoc length
         # open the relevant files and store the data
         self.col_name_map = get_isoc_col_names()  # go from code names to isoc column names
         n_cols = len(self.col_name_map)
         self.isoc_data = np.empty([0, n_cols])  # isochrone data sheet (no cube for file length reasons)
         for i, Z in enumerate(self.metal):
-            isoc_i = open_isochrones_file(Z)
+            isoc_i = open_isochrones_file(Z).T  # turn back from unpacked shape
             self.pop_isoc_map.update({i: len(isoc_i)})
             self.isoc_data = np.vstack([self.isoc_data, isoc_i])
         return
@@ -40,7 +40,8 @@ class isochrone_data():
         """Returns a boolean mask that masks out all but one isochrone file in the isochrone data.
         The input is the index of the wanted population and whether to select its age.
         """
-        data_index = np.append([0], np.cumsum(self.pop_isoc_map.values()))  # indices defining the different isoc files
+        # indices defining the different isoc files:
+        data_index = np.append([0], np.cumsum(list(self.pop_isoc_map.values())))
         mask = np.zeros(data_index[-1], dtype=bool)
         if age:
             age_mask = select_age(self.ages[index], self.metal[index])
@@ -69,7 +70,7 @@ class isochrone_data():
         for i in range(n_pop):
             isoc_mask = self.isochrone_mask(i, age=True)
             pop_mask = self.population_mask(i)
-            iso_M_ini_i, iso_qtt_i = self.isoc_data[isoc_mask, data_cols]
+            iso_M_ini_i, iso_qtt_i = self.isoc_data[isoc_mask][:, data_cols].T
             qtt[pop_mask] = np.interp(M_init[pop_mask], iso_M_ini_i, iso_qtt_i, left=left, right=right)
         return qtt
 
@@ -527,7 +528,7 @@ def cast_imf_parameters(imf_par, n_pop, fill_value='default'):
     if (fill_value == 'default'):
         fill_value = default_imf_par
 
-    if not imf_par:
+    if imf_par is None:
         imf_par = np.full([n_pop, len(fill_value)], fill_value)
     elif hasattr(imf_par, '__len__'):
         imf_par = np.array(imf_par)
@@ -650,7 +651,7 @@ def cast_radial_dist_param(r_dist_par, r_dist, n_pop):
     func_sigs = [inspect.signature(getattr(dist, dist_type)) for dist_type in r_dist]
     
     # cast to right form and check if dist parameters are correctly specified
-    if not r_dist_par:
+    if r_dist_par is None:
         r_dist_par = np.array([{k: v.default for k, v in sig.parameters.items() if k is not 'n'} for sig in func_sigs])
     elif not hasattr(r_dist_par, '__len__'):
         # if just one parameter is given, make an array of dict

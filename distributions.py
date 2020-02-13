@@ -22,7 +22,7 @@ def pdf_kroupa_imf(M, imf=None):
         array of float
     """
     M = np.atleast_1d(M)
-    if not imf:
+    if imf is None:
         imf = np.full([len(M), len(default_imf_par)], default_imf_par)
     else:
         imf = np.atleast_2d(imf)
@@ -45,7 +45,7 @@ def kroupa_imf(n=1, imf=None):
         array of float
     """
     n = np.atleast_1d(n).astype(int)
-    if not imf:
+    if imf is None:
         imf = np.full([len(n), len(default_imf_par)], default_imf_par)
     else:
         imf = np.atleast_2d(imf)
