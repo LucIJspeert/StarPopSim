@@ -4338,7 +4338,13 @@ image = img.MakeImage(src, exposure=exp, NDIT=1, view=view, chip=chip, filter=f,
 astobj = obg.AstronomicalObject(n_stars=[1000], ages=[9], metal=[0.0014], distance=1e5, r_dist='king_globular')
 isoc = utils.isochrone_data([1000], [9], [0.0014])
 interp = isoc.interpolate('M_current', astobj.stars.M_init, right=0)
-ast_masses = astobj.stars.current_masses()
+ast_masses = astobj.stars.current_masses(realistic_remnants=False)
+if np.allclose(interp, ast_masses):
+    print('success')
+interp = isoc.interpolate_1d(['U', 'V', 'B'], astobj.stars.M_init, fill_value=30)
+ast_masses = astobj.stars.absolute_magnitudes(filters=['U', 'V', 'B'], realistic_remnants=False)
+if np.allclose(interp, ast_masses.T):
+    print('success')
 
 
 

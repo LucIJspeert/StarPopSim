@@ -38,57 +38,68 @@ class isochrone_data():
 
     def isochrone_mask(self, index, age=True):
         """Returns a boolean mask that masks out all but one isochrone file in the isochrone data.
-        The input is the index of the wanted population and whether to select its age.
+        The input is the index of the wanted population and whether to select out its age.
         """
-        # indices defining the different isoc files:
-        data_index = np.append([0], np.cumsum(list(self.pop_isoc_map.values())))
-        mask = np.zeros(data_index[-1], dtype=bool)
+        # handy array of indices of the populations in each isochrone
+        isoc_index = np.append([0], np.cumsum(list(self.pop_isoc_map.values())))
+        mask = np.zeros(isoc_index[-1], dtype=bool)
         if age:
             age_mask = select_age(self.ages[index], self.metal[index])
         else:
             age_mask = np.ones(self.pop_isoc_map[index], dtype=bool)
-        mask[data_index[index]:data_index[index + 1]] = age_mask
+        mask[isoc_index[index]:isoc_index[index + 1]] = age_mask
         return mask
 
     def population_mask(self, index):
         """Returns a boolean mask that masks out all but one population in the list of stars.
         The input is the index of the wanted population.
         """
-        star_index = np.cumsum(np.append([0], self.n_stars))  # indices defining the different populations
+        # indices defining the different populations in the total list of stars
+        star_index = np.cumsum(np.append([0], self.n_stars))
         mask = np.zeros(star_index[-1], dtype=bool)
         mask[star_index[index]:star_index[index + 1]] = True
         return mask
+
+    def get_columns(self, columns):
+        """Gives a set of full columns of the isoc data sheet, given a list of column names."""
+        col_index_map = {name: i for i, name in enumerate(self.col_name_map.keys())}  # map code names to column index
+        col_index = [col_index_map[col] for col in columns]
+        if (len(col_index) == 1):
+            data_columns = self.isoc_data[:, col_index[0]]
+        else:
+            data_columns = np.transpose(self.isoc_data[:, col_index])
+        return data_columns
 
     def interpolate(self, column, M_init, left=None, right=None):
         """Gives the requested property of the stars by interpolating the isochrone grid.
         Only works for a single data column at a time (give name as string).
         """
         n_pop = len(self.n_stars)
-        col_i_map = {name: i for i, name in enumerate(self.col_name_map.keys())}  # map code names to column index
-        data_cols = [0, col_i_map[column]]
+        iso_M_ini, iso_qtt = self.get_columns(['M_initial', column])
         qtt = np.empty(np.sum(self.n_stars))
         for i in range(n_pop):
             isoc_mask = self.isochrone_mask(i, age=True)
             pop_mask = self.population_mask(i)
-            iso_M_ini_i, iso_qtt_i = self.isoc_data[isoc_mask][:, data_cols].T
+            iso_M_ini_i = iso_M_ini[isoc_mask]
+            iso_qtt_i = iso_qtt[isoc_mask]
             qtt[pop_mask] = np.interp(M_init[pop_mask], iso_M_ini_i, iso_qtt_i, left=left, right=right)
         return qtt
 
-    def interpolate_mag(self, filters, M_init, fill_value=None):
-        """Gives the magnitudes of the stars for the requested filters.
-        Essentially this would work for any set of columns (list of strings).
+    def interpolate_1d(self, columns, M_init, fill_value=None):
+        """Gives the requested properties of the stars by interpolating the isochrone grid.
+        Only works for a set of columns at a time (list of strings).
         """
         n_pop = len(self.n_stars)
-        col_i_map = {name: i for i, name in enumerate(self.col_name_map.keys())}  # map code names to column index
-        data_cols = [col_i_map[col] for col in filters]
-        qtts = np.empty([len(filters), np.sum(self.n_stars)])
+        iso_M_ini = self.get_columns(['M_initial'])
+        iso_qtt = self.get_columns(columns)
+        qtts = np.empty([len(columns), np.sum(self.n_stars)])
         for i in range(n_pop):
             isoc_mask = self.isochrone_mask(i, age=True)
             pop_mask = self.population_mask(i)
-            iso_M_ini_i = self.isoc_data[isoc_mask, 0]
-            iso_qtt_i = self.isoc_data[isoc_mask, data_cols].T
-            interper = spi.interp1d(iso_M_ini_i, iso_qtt_i, bounds_error=False, fill_value=fill_value, axis=0)
-            qtts[pop_mask] = interper(M_init[pop_mask])
+            iso_M_ini_i = iso_M_ini[isoc_mask]
+            iso_qtt_i = iso_qtt[:, isoc_mask]
+            interper = spi.interp1d(iso_M_ini_i, iso_qtt_i, bounds_error=False, fill_value=fill_value, axis=1)
+            qtts[:, pop_mask] = interper(M_init[pop_mask])
         return qtts
 
 

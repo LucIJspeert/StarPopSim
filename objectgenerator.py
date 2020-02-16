@@ -365,7 +365,7 @@ class Stars():
             (goes for all functions that use the isochrones)
         performance_mode: save the data returned by this function in memory for faster access later.
         """
-        if self._current_masses is not None:
+        if performance_mode and (self._current_masses is not None):
             M_cur = self._current_masses
         else:
             M_cur = np.array([])
@@ -399,7 +399,7 @@ class Stars():
         Uses isochrone files and the given initial masses of the stars.
         performance_mode: save the data returned by this function in memory for faster access later.
         """
-        if self._stellar_radii is not None:
+        if performance_mode and (self._stellar_radii is not None):
             R_cur = self._stellar_radii
         else:
             R_cur = np.array([])
@@ -434,7 +434,7 @@ class Stars():
         Uses isochrone files and the given initial masses of the stars.
         performance_mode: save the data returned by this function in memory for faster access later.
         """
-        if self._surface_gravity is not None:
+        if performance_mode and (self._surface_gravity is not None):
             log_g = self._surface_gravity
         else:
             log_g = np.array([])
@@ -470,7 +470,7 @@ class Stars():
         realistic_remnants gives estimates for remnant luminosities. Set False to save time.
         performance_mode: save the data returned by this function in memory for faster access later.
         """
-        if self._log_luminosities is not None:
+        if performance_mode and (self._log_luminosities is not None):
             log_L = self._log_luminosities
         else:
             log_L = np.array([])
@@ -508,7 +508,7 @@ class Stars():
         realistic_remnants gives estimates for remnant temperatures. Set False to save time.
         performance_mode: save the data returned by this function in memory for faster access later.
         """
-        if self._log_temperatures is not None:
+        if performance_mode and (self._log_temperatures is not None):
             log_Te = self._log_temperatures
         else:
             log_Te = np.array([])
@@ -547,8 +547,8 @@ class Stars():
         """
         if filters is None:
             filters = self.mag_names
-        
-        if self._absolute_magnitudes is not None:
+
+        if performance_mode and (self._absolute_magnitudes is not None):
             abs_mag = self._absolute_magnitudes[:, utils.get_filter_mask(filters)]
             if (len(filters) == 1):
                 abs_mag = abs_mag.flatten()  # correct for 2D array
@@ -578,7 +578,7 @@ class Stars():
         # turn performance mode on or off (meaning to save or to delete the data from memory)
         if performance_mode and (self._absolute_magnitudes is None):
             # to avoid confusing behavior and nontrivial code, save all of the magnitudes
-            if (filters != self.mag_names):
+            if not np.all(name in filters for name in self.mag_names):
                 all_abs_mag = self.absolute_magnitudes(filters=None, realistic_remnants=realistic_remnants,
                                                        performance_mode=False)
             else:
@@ -607,7 +607,7 @@ class Stars():
 
         true_dist = true_dist.reshape((len(true_dist),) + (1,)*(len(filters) > 1))  # fix dimension for broadcast
 
-        if self._absolute_magnitudes:
+        if performance_mode and (self._absolute_magnitudes is not None):
             abs_mag = self._absolute_magnitudes[:, utils.get_filter_mask(filters)]
             if (len(filters) == 1):
                 abs_mag = abs_mag.flatten()  # correct for 2D array
@@ -632,7 +632,7 @@ class Stars():
         Uses isochrone files and the given initial masses of the stars.
         performance_mode: save the data returned by this function in memory for faster access later.
         """
-        if self._spectral_types is not None:
+        if performance_mode and (self._spectral_types is not None):
             spec_indices = self._spectral_types
             spec_names = self._spec_names
         else:
@@ -658,7 +658,7 @@ class Stars():
         (WD should be handled with the right isochrone files, but NS/BHs are not)
         performance_mode: save the data returned by this function in memory for faster access later.
         """
-        if self._remnants is not None:
+        if performance_mode and (self._remnants is not None):
             remnants = self._remnants
         else:
             remnants = np.array([], dtype=bool)
