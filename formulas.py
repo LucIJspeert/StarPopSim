@@ -309,9 +309,12 @@ def remnant_mass(M_init, Z=Z_sun):
     if hasattr(M_init, '__len__'):
         M_init = np.array(M_init)
 
-    # metallicity as fraction of solar
-    Z_f = Z/Z_sun
-    
+    # make Z same length and metallicity as fraction of solar
+    Z = np.atleast_1d(Z)
+    if (len(Z) == 1):
+        Z = np.full_like(M_init, Z)  # else assume it has the same length
+    Z_f = Z / Z_sun
+
     # define the mass intervals
     mask_1 = M_init < 0.85
     mask_2 = (M_init >= 0.85) & (M_init < 2.85)
@@ -335,10 +338,10 @@ def remnant_mass(M_init, Z=Z_sun):
     # NS/BH masses
     M_72_11 = 1.28  # mass range 7.20-11 (to close the gap, based on [C.L.Fryer 2011])
     M_11_30 = (1.1 + 0.2*np.exp((M_init[mask_6] - 11)/4) 
-              - (2.0 + Z_f)*np.exp(0.4*(M_init[mask_6] - 26)))  # mass range 11-30 [C.L.Fryer 2011]
+              - (2.0 + Z_f[mask_6])*np.exp(0.4*(M_init[mask_6] - 26)))  # mass range 11-30 [C.L.Fryer 2011]
     
-    M_30_50_1 = 33.35 + (4.75 + 1.25*Z_f)*(M_init[mask_789] - 34)
-    M_30_50_2 = M_init[mask_789] - (Z_f)**0.5*(1.3*M_init[mask_789] - 18.35)
+    M_30_50_1 = 33.35 + (4.75 + 1.25*Z_f[mask_789])*(M_init[mask_789] - 34)
+    M_30_50_2 = M_init[mask_789] - (Z_f[mask_789])**0.5*(1.3*M_init[mask_789] - 18.35)
     M_30_50 = np.min([M_30_50_1, M_30_50_2], axis=0)  # mass range 30-50 [C.L.Fryer 2011]
     M_50_90_high = 1.8 + 0.04*(90 - M_init[mask_8])  # mass range 50-90, high Z [C.L.Fryer 2011]
     M_90_high = 1.8 + np.log10(M_init[mask_9] - 89)  # mass above 90, high Z [C.L.Fryer 2011]
@@ -354,13 +357,9 @@ def remnant_mass(M_init, Z=Z_sun):
     M_remnant[mask_5] = M_72_11
     M_remnant[mask_6] = M_11_30
     M_remnant[mask_7] = M_30_50[mask_789_7]
-    if (Z >= Z_sun):
-        M_remnant[mask_8] = M_50_90_high
-        M_remnant[mask_9] = M_90_high
-    else:
-        M_remnant[mask_8] = M_50_90_low
-        M_remnant[mask_9] = M_90_low
-        
+    M_remnant[mask_8] = M_50_90_high * (Z[mask_8] >= Z_sun) + M_50_90_low * (Z[mask_8] < Z_sun)
+    M_remnant[mask_9] = M_90_high * (Z[mask_9] >= Z_sun) + M_90_low * (Z[mask_9] < Z_sun)
+
     return M_remnant
 
 

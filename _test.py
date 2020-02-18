@@ -4346,6 +4346,11 @@ ast_masses = astobj.stars.absolute_magnitudes(filters=['U', 'V', 'B'], realistic
 if np.allclose(interp, ast_masses.T):
     print('success')
 
+n_pop = len(astobj.stars.n_stars)
+indices = np.repeat(np.arange(n_pop), astobj.stars.n_stars)  # population index per star
+test = (astobj.stars.M_init > isoc.max_isoc_masses()[indices])
+print(np.all(astobj.stars.remnants() == test))
+
 
 
 

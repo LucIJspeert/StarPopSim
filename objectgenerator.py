@@ -169,7 +169,10 @@ class Stars():
                                                     warning='Excess spiral bulge values discarded.')
         self.spiral_bar = utils.cast_simple_array(spiral_bar, n_pop, fill_value=0,
                                                   warning='Excess spiral bar values discarded.')
-        
+
+        # initialise the isochrones object
+        self.isoc = utils.isochrone_data(self.n_stars, self.ages, self.metal)
+
         # properties that are derived/generated
         self.coords = np.empty([3, 0])
         self.M_init = np.array([])
@@ -368,24 +371,15 @@ class Stars():
         if performance_mode and (self._current_masses is not None):
             M_cur = self._current_masses
         else:
-            M_cur = np.array([])
-            index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
-            
-            for i, age in enumerate(self.ages):
-                # use the isochrone files to interpolate properties
-                iso_M_ini, iso_M_act = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial', 'M_current'])
-                # select the masses of one population
-                M_init_i = self.M_init[index[i]:index[i+1]]
-                # arg 'right': return 0 for stars heavier than available in isoc file (dead stars)
-                M_cur_i = np.interp(M_init_i, iso_M_ini, iso_M_act, right=0)
+            M_cur = self.isoc.interpolate('M_current', self.M_init, left=None, right=0)
                 
-                # give estimates for remnant masses (replacing the 0 above)
-                if realistic_remnants:
-                    remnants_i = remnants_single_pop(M_init_i, age, self.metal[i])
-                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])
-                    M_cur_i[remnants_i] = r_M_cur_i
-                
-                M_cur = np.append(M_cur, M_cur_i)
+            # give estimates for remnant masses (replacing the 0 above)
+            if realistic_remnants:
+                n_pop = len(self.n_stars)
+                indices = np.repeat(np.arange(n_pop), self.n_stars)  # population index per star
+                remnants = self.remnants(performance_mode=performance_mode)
+                r_M_cur = form.remnant_mass(self.M_init[remnants], self.metal[indices[remnants]])
+                M_cur[remnants] = r_M_cur
 
         # turn performance mode on or off (meaning to save or to delete the data from memory)
         if performance_mode and (self._current_masses is None):
@@ -402,25 +396,17 @@ class Stars():
         if performance_mode and (self._stellar_radii is not None):
             R_cur = self._stellar_radii
         else:
-            R_cur = np.array([])
-            index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
-            
-            for i, age in enumerate(self.ages):
-                # use the isochrone files to interpolate properties
-                iso_M_ini, iso_log_g = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial', 'log_g'])
-                iso_R_cur = conv.gravity_to_radius(iso_log_g, iso_M_ini)
-                M_init_i = self.M_init[index[i]:index[i+1]]
-                # arg 'right': return 0 for stars heavier than available in isoc file (dead stars)
-                R_cur_i = np.interp(M_init_i, iso_M_ini, iso_R_cur, right=0)
-                
-                # give estimates for remnant radii (replacing the 0 above)
-                if realistic_remnants:
-                    remnants_i = remnants_single_pop(M_init_i, age, self.metal[i])
-                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])
-                    r_R_cur_i = form.remnant_radius(r_M_cur_i)
-                    R_cur_i[remnants_i] = r_R_cur_i
-                
-                R_cur = np.append(R_cur, R_cur_i)
+            func = lambda x, y: conv.gravity_to_radius(x, y)  # for conversion to radius
+            R_cur = self.isoc.interpolate('log_g', self.M_init, left=None, right=0, conversion=func)
+
+            # give estimates for remnant radii (replacing the 0 above)
+            if realistic_remnants:
+                n_pop = len(self.n_stars)
+                indices = np.repeat(np.arange(n_pop), self.n_stars)  # population index per star
+                remnants = self.remnants(performance_mode=performance_mode)
+                r_M_cur = form.remnant_mass(self.M_init[remnants], self.metal[indices[remnants]])
+                r_R_cur = form.remnant_radius(r_M_cur)
+                R_cur[remnants] = r_R_cur
 
         # turn performance mode on or off (meaning to save or to delete the data from memory)
         if performance_mode and (self._stellar_radii is None):
@@ -437,25 +423,17 @@ class Stars():
         if performance_mode and (self._surface_gravity is not None):
             log_g = self._surface_gravity
         else:
-            log_g = np.array([])
-            index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
+            log_g = self.isoc.interpolate('log_g', self.M_init, left=None, right=0)
 
-            for i, age in enumerate(self.ages):
-                # use the isochrone files to interpolate properties
-                iso_M_ini, iso_log_g = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial', 'log_g'])
-                M_init_i = self.M_init[index[i]:index[i + 1]]
-                # arg 'right': return 0 for stars heavier than available in isoc file (dead stars)
-                log_g_i = np.interp(M_init_i, iso_M_ini, iso_log_g, right=0)
-
-                # give estimates for remnant radii (replacing the 0 above)
-                if realistic_remnants:
-                    remnants_i = remnants_single_pop(M_init_i, age, self.metal[i])
-                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])
-                    r_R_cur_i = form.remnant_radius(r_M_cur_i)
-                    r_log_g_i = conv.radius_to_gravity(r_R_cur_i, r_M_cur_i)
-                    log_g_i[remnants_i] = r_log_g_i
-
-                log_g = np.append(log_g, log_g_i)
+            # give estimates for remnant radii (replacing the 0 above)
+            if realistic_remnants:
+                n_pop = len(self.n_stars)
+                indices = np.repeat(np.arange(n_pop), self.n_stars)  # population index per star
+                remnants = self.remnants(performance_mode=performance_mode)
+                r_M_cur = form.remnant_mass(self.M_init[remnants], self.metal[indices[remnants]])
+                r_R_cur = form.remnant_radius(r_M_cur)
+                r_log_g = conv.radius_to_gravity(r_R_cur, r_M_cur)
+                log_g[remnants] = r_log_g
 
         # turn performance mode on or off (meaning to save or to delete the data from memory)
         if performance_mode and (self._surface_gravity is None):
@@ -473,27 +451,20 @@ class Stars():
         if performance_mode and (self._log_luminosities is not None):
             log_L = self._log_luminosities
         else:
-            log_L = np.array([])
-            index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
-            
-            for i, age in enumerate(self.ages):
-                # use the isochrone files to interpolate properties
-                iso_M_ini, iso_log_L = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial', 'log_L'])
-                M_init_i = self.M_init[index[i]:index[i+1]]
-                # arg 'right': return -9 --> L = 10**-9 Lsun (for stars heavier than available)
-                log_L_i = np.interp(M_init_i, iso_M_ini, iso_log_L, right=-9)
+            log_L = self.isoc.interpolate('log_L', self.M_init, left=None, right=-9)
                 
-                # give estimates for remnant luminosities (replacing the -9 above)
-                if realistic_remnants:
-                    remnants_i = remnants_single_pop(M_init_i, age, self.metal[i])
-                    remnant_time = form.remnant_time(M_init_i[remnants_i], age, self.metal[i])
-                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])
-                    r_R_cur_i = form.remnant_radius(r_M_cur_i)
-                    r_Te_i = form.remnant_temperature(r_M_cur_i, r_R_cur_i, remnant_time)
-                    r_log_L_i = np.log10(form.bb_luminosity(r_Te_i, r_R_cur_i))  # remnant luminosity := BB radiation
-                    log_L_i[remnants_i] = r_log_L_i
-                
-                log_L = np.append(log_L, log_L_i)
+            # give estimates for remnant luminosities (replacing the -9 above)
+            if realistic_remnants:
+                n_pop = len(self.n_stars)
+                indices = np.repeat(np.arange(n_pop), self.n_stars)  # population index per star
+                remnants = self.remnants(performance_mode=performance_mode)
+                remnant_time = form.remnant_time(self.M_init[remnants], self.ages[indices[remnants]],
+                                                 self.metal[indices[remnants]])
+                r_M_cur = form.remnant_mass(self.M_init[remnants], self.metal[indices[remnants]])
+                r_R_cur = form.remnant_radius(r_M_cur)
+                r_Te = form.remnant_temperature(r_M_cur, r_R_cur, remnant_time)
+                r_log_L = np.log10(form.bb_luminosity(r_Te, r_R_cur))  # remnant luminosity := BB radiation
+                log_L[remnants] = r_log_L
 
         # turn performance mode on or off (meaning to save or to delete the data from memory)
         if performance_mode and (self._log_luminosities is None):
@@ -511,26 +482,19 @@ class Stars():
         if performance_mode and (self._log_temperatures is not None):
             log_Te = self._log_temperatures
         else:
-            log_Te = np.array([])
-            index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
-            
-            for i, age in enumerate(self.ages):
-                # use the isochrone files to interpolate properties
-                iso_M_ini, iso_log_Te = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial', 'log_Te'])
-                M_init_i = self.M_init[index[i]:index[i+1]]
-                # arg 'right': return 1 --> Te = 10 K (for stars heavier than available)
-                log_Te_i = np.interp(M_init_i, iso_M_ini, iso_log_Te, right=1)
+            log_Te = self.isoc.interpolate('log_Te', self.M_init, left=None, right=1)
                 
-                # give estimates for remnant temperatures (replacing the 1 above)
-                if realistic_remnants:
-                    remnants_i = remnants_single_pop(M_init_i, age, self.metal[i])
-                    remnant_time = form.remnant_time(M_init_i[remnants_i], age, self.metal[i])
-                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])
-                    r_R_cur_i = form.remnant_radius(r_M_cur_i)
-                    r_log_Te_i = np.log10(form.remnant_temperature(r_M_cur_i, r_R_cur_i, remnant_time))
-                    log_Te_i[remnants_i] = r_log_Te_i
-                
-                log_Te = np.append(log_Te, log_Te_i)  
+            # give estimates for remnant temperatures (replacing the 1 above)
+            if realistic_remnants:
+                n_pop = len(self.n_stars)
+                indices = np.repeat(np.arange(n_pop), self.n_stars)  # population index per star
+                remnants = self.remnants(performance_mode=performance_mode)
+                remnant_time = form.remnant_time(self.M_init[remnants], self.ages[indices[remnants]],
+                                                 self.metal[indices[remnants]])
+                r_M_cur = form.remnant_mass(self.M_init[remnants], self.metal[indices[remnants]])
+                r_R_cur = form.remnant_radius(r_M_cur)
+                r_log_Te = np.log10(form.remnant_temperature(r_M_cur, r_R_cur, remnant_time))
+                log_Te[remnants] = r_log_Te
 
         # turn performance mode on or off (meaning to save or to delete the data from memory)
         if performance_mode and (self._log_temperatures is None):
@@ -553,27 +517,18 @@ class Stars():
             if (len(filters) == 1):
                 abs_mag = abs_mag.flatten()  # correct for 2D array
         else:
-            abs_mag = np.empty((0,) + (len(filters),)*(len(filters) != 1))
-            index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
-            
-            for i, age in enumerate(self.ages):
-                # use the isochrone files to interpolate properties
-                iso_M_ini = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial'])
-                iso_mag = utils.stellar_isochrone(age, self.metal[i], columns=filters).T
-                M_init_i = self.M_init[index[i]:index[i+1]]
-                # arg fill_value: return 30 --> L of less than 10**-9 (for stars heavier than available)
-                interper = spi.interp1d(iso_M_ini, iso_mag, bounds_error=False, fill_value=30, axis=0)
-                mag_i = interper(M_init_i)
-                
-                if realistic_remnants:
-                    remnants_i = remnants_single_pop(M_init_i, age, self.metal[i])
-                    remnant_time = form.remnant_time(M_init_i[remnants_i], age, self.metal[i])
-                    r_M_cur_i = form.remnant_mass(M_init_i[remnants_i], self.metal[i])
-                    r_R_cur_i = form.remnant_radius(r_M_cur_i)
-                    r_Te_i = form.remnant_temperature(r_M_cur_i, r_R_cur_i, remnant_time)
-                    mag_i[remnants_i] = form.bb_magnitude(r_Te_i, r_R_cur_i, filters)
-                
-                abs_mag = np.append(abs_mag, mag_i, axis=0)
+            abs_mag = self.isoc.interpolate_1d(filters, self.M_init, fill_value=30)
+
+            if realistic_remnants:
+                n_pop = len(self.n_stars)
+                indices = np.repeat(np.arange(n_pop), self.n_stars)  # population index per star
+                remnants = self.remnants(performance_mode=performance_mode)
+                remnant_time = form.remnant_time(self.M_init[remnants], self.ages[indices[remnants]],
+                                                 self.metal[indices[remnants]])
+                r_M_cur = form.remnant_mass(self.M_init[remnants], self.metal[indices[remnants]])
+                r_R_cur = form.remnant_radius(r_M_cur)
+                r_Te = form.remnant_temperature(r_M_cur, r_R_cur, remnant_time)
+                abs_mag[remnants] = form.bb_magnitude(r_Te, r_R_cur, filters)
 
         # turn performance mode on or off (meaning to save or to delete the data from memory)
         if performance_mode and (self._absolute_magnitudes is None):
@@ -616,8 +571,8 @@ class Stars():
             if redshift is not None:
                 filter_means = utils.open_photometric_data(columns=['mean'], filters=filters)
                 shifted_filters = (1 + redshift)*filter_means
-                R_cur = self.stellar_radii(realistic_remnants=True)
-                T_eff = 10**self.log_temperatures(realistic_remnants=True)
+                R_cur = self.stellar_radii(realistic_remnants=True, performance_mode=performance_mode)
+                T_eff = 10**self.log_temperatures(realistic_remnants=True, performance_mode=performance_mode)
                 abs_mag = form.bb_magnitude(T_eff, R_cur, filters, filter_means=shifted_filters)
             else:
                 abs_mag = self.absolute_magnitudes(filters=filters, realistic_remnants=realistic_remnants,
@@ -661,14 +616,9 @@ class Stars():
         if performance_mode and (self._remnants is not None):
             remnants = self._remnants
         else:
-            remnants = np.array([], dtype=bool)
-            index = np.cumsum(np.append([0], self.gen_n_stars))  # indices defining the different populations
-            
-            for i, age in enumerate(self.ages):
-                iso_M_ini = utils.stellar_isochrone(age, self.metal[i], columns=['M_initial'])
-                max_mass = np.max(iso_M_ini)  # maximum initial mass in isoc file
-                remnants_i = (self.M_init[index[i]:index[i+1]] > max_mass)
-                remnants = np.append(remnants, remnants_i)
+            n_pop = len(self.n_stars)
+            indices = np.repeat(np.arange(n_pop), self.n_stars)  # population index per star
+            remnants = (self.M_init > self.isoc.max_isoc_masses()[indices])
 
         # turn performance mode on or off (meaning to save or to delete the data from memory)
         if performance_mode and (self._remnants is None):

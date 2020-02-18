@@ -41,7 +41,7 @@ class isochrone_data():
         The input is the index of the wanted population and whether to select out its age.
         """
         # handy array of indices of the populations in each isochrone
-        isoc_index = np.append([0], np.cumsum(list(self.pop_isoc_map.values())))
+        isoc_index = np.cumsum(np.append([0], list(self.pop_isoc_map.values())))
         mask = np.zeros(isoc_index[-1], dtype=bool)
         if age:
             age_mask = select_age(self.ages[index], self.metal[index])
@@ -70,12 +70,32 @@ class isochrone_data():
             data_columns = np.transpose(self.isoc_data[:, col_index])
         return data_columns
 
-    def interpolate(self, column, M_init, left=None, right=None):
+    def max_isoc_masses(self):
+        """Gives the maximum initial mass in the isochrones per population."""
+        n_pop = len(self.n_stars)
+        all_masses = self.get_columns(['M_initial'])
+        max_mass = np.zeros(n_pop)
+        for i in range(n_pop):
+            isoc_mask = self.isochrone_mask(i, age=True)
+            max_mass[i] = np.max(all_masses[isoc_mask])
+        return max_mass
+
+    def interpolate(self, column, M_init, left=None, right=None, conversion=None):
         """Gives the requested property of the stars by interpolating the isochrone grid.
         Only works for a single data column at a time (give name as string).
+        The conversion option gives the ability to convert the given column to a different
+            parameter, by supplying a lambda expression.
         """
         n_pop = len(self.n_stars)
         iso_M_ini, iso_qtt = self.get_columns(['M_initial', column])
+        if conversion is not None:
+            pars = inspect.signature(conversion).parameters.keys()
+            # see if we need to fill in just the qtt or also mass
+            if (len(pars) == 1):
+                iso_qtt = conversion(iso_qtt)
+            else:
+                iso_qtt = conversion(iso_qtt, iso_M_ini)
+
         qtt = np.empty(np.sum(self.n_stars))
         for i in range(n_pop):
             isoc_mask = self.isochrone_mask(i, age=True)
