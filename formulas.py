@@ -231,45 +231,45 @@ def absolute_magnitude(mag, distance, ext=0):
 def mass_fraction_from_limits(mass_limits, imf=None):
     """Returns the fraction of stars in a population above and below certain mass_limits (Msol)."""
     if imf is None:
-        imf = default_imf_par
-    M_low, M_high = imf
-    M_mid = 0.5  # fixed turnover position (where slope changes)
-    M_lim_low, M_lim_high = mass_limits
-    
-    # same constants as are in the IMF:
-    c_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
-    c_low = (1/0.35*M_low**(-0.35) + c_mid - M_mid/1.35*M_high**(-1.35))**(-1)
-    
-    if (M_lim_low > M_mid):
-        f = c_low*M_mid/1.35*(M_lim_low**(-1.35) - M_lim_high**(-1.35))
-    elif (M_lim_high < M_mid):
-        f = c_low/0.35*(M_lim_low**(-0.35) - M_lim_high**(-0.35))
+        imf = np.full([len(mass_limits), len(default_imf_par)], default_imf_par)
     else:
-        f = c_low*(c_mid + M_lim_low**(-0.35)/0.35 - M_mid*M_lim_high**(-1.35)/1.35)
-    
-    return f
+        imf = np.atleast_2d(imf)
+    M_low, M_high = imf[:, 0], imf[:, 1]
+    M_mid = 0.5  # fixed turnover position (where slope changes)
+    M_lim_low, M_lim_high = mass_limits[:, 0], mass_limits[:, 1]
+
+    # same constants as are in the IMF:
+    c_mid = (1 / 1.35 - 1 / 0.35) * M_mid**(-0.35)
+    c_low = (1 / 0.35 * M_low**(-0.35) + c_mid - M_mid / 1.35 * M_high**(-1.35))**(-1)
+
+    condition1 = (M_lim_low > M_mid)
+    condition2 = (M_lim_high < M_mid)
+    condition3 = (M_lim_low <= M_mid) & (M_lim_high >= M_mid)
+    frac = condition1 * c_low * M_mid / 1.35 * (M_lim_low**(-1.35) - M_lim_high**(-1.35))
+    frac += condition2 * c_low / 0.35 * (M_lim_low**(-0.35) - M_lim_high**(-0.35))
+    frac += condition3 * c_low * (c_mid + M_lim_low**(-0.35) / 0.35 - M_mid * M_lim_high**(-1.35) / 1.35)
+    return frac
 
 
 def mass_limit_from_fraction(frac, M_max=None, imf=None):
     """Returns the lower mass limit to get a certain fraction of stars generated."""
     if imf is None:
-        imf = default_imf_par
-    M_low, M_high = imf
+        imf = np.full([len(frac), len(default_imf_par)], default_imf_par)
+    else:
+        imf = np.atleast_2d(imf)
+    M_low, M_high = imf[:, 0], imf[:, 1]
     M_mid = 0.5  # fixed turnover position (where slope changes)
     if (M_max is None):
         M_max = M_high
-    
+
     # same constants as are in the IMF:
-    c_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
-    c_low = (1/0.35*M_low**(-0.35) + c_mid - M_mid/1.35*M_high**(-1.35))**(-1)
+    c_mid = (1 / 1.35 - 1 / 0.35) * M_mid**(-0.35)
+    c_low = (1 / 0.35 * M_low**(-0.35) + c_mid - M_mid / 1.35 * M_high**(-1.35))**(-1)
     # the mid value in the CDF
-    N_mid = c_low*M_mid/1.35*(M_mid**(-1.35) - M_high**(-1.35))
-    
-    if (frac < N_mid):
-        M_lim = (1.35*frac/(c_low*M_mid) + M_max**(-1.35))**(-1/1.35)
-    else:
-        M_lim = (0.35*(frac/c_low - c_mid + M_mid/1.35*M_max**(-1.35)))**(-1/0.35)
-        
+    N_mid = c_low * M_mid / 1.35 * (M_mid**(-1.35) - M_high**(-1.35))
+
+    M_lim = (frac < N_mid) * (1.35 * frac / (c_low * M_mid) + M_max**(-1.35))**(-1 / 1.35)
+    M_lim += (frac >= N_mid) * (0.35 * (frac / c_low - c_mid + M_mid / 1.35 * M_max**(-1.35)))**(-1 / 0.35)
     return M_lim
 
 
