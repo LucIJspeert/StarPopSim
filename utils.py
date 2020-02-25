@@ -261,7 +261,7 @@ def stellar_track(mass, Z):
 
 def get_isoc_col_names():
     """Returns a dictionary of all usable (in code) column names to the
-    appropriatre column names in the isochrone files.
+    appropriate column names in the isochrone files.
     """
     # mapping the names used in the code to the isoc file column names
     alt_filter_names = get_supported_filters(alt_names=True)
