@@ -1023,7 +1023,7 @@ class AstronomicalObject():
 
     def quick_image(self, filter_name='V'):
         """"A quick look at what the image might look like."""
-        # todo: use scipy.signal.convolve2d
+        # todo: WIP. use scipy.signal.convolve2d
 
     def save_to(self, filename):
         """Saves the class to a file."""
@@ -1123,7 +1123,7 @@ def gen_spherical(n_stars, dist_types=default_rdist, kwargs_list=None):
 
 def gen_spiral(n_stars):
     """Make a spiral galaxy."""
-    # todo: add this
+    # todo: WIP. add gen_spiral
     
 
 def gen_spiral_arms():
