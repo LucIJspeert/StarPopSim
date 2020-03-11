@@ -55,50 +55,53 @@ class Stars():
         the total number of stars to make per stellar population.
 
     M_tot_init (array of float):
-        the total mass in stars to produce per population (in Msol).
+        the total mass in stars to produce per stellar population (in Msol).
 
     ages (array of float):
-        stellar age for each population (in linear or 10log yr).
+        stellar age for each stellar population (in linear or 10log yr).
         This is the maximum age when sfh is used.
 
     metal (array of float):
         metallicity for each population.
 
-    sfh (array of str and None, optional):
-        type of star formation history to use per population.
-
-    min_ages (array of float):
-        minimum ages to use in star formation histories, per population
-
-    tau_sfh (array of float):
-        characteristic timescales for star formation per population
-
     imf_par (array of float, optional):
         2D array of two parameters per stellar population.
         First parameter is lowest mass, second is highest mass to make.
 
+    sfh (array of str and None, optional):
+        type of star formation history to use per stellar population.
+
+    min_ages (array of float):
+        minimum ages to use in star formation histories, per stellar population
+
+    tau_sfh (array of float):
+        characteristic timescales for star formation per stellar population
+
+    origin (array of float):
+        origin of the stellar distribution (for each stellar population). Shape is [3, n_pop]
+
+    incl (array of float):
+        inclination values per stellar population (in radians)
+
     r_dist (array of str):
-        type of radial distribution to use per population.
+        type of radial distribution to use per stellar population.
 
     r_dist_par (array of dict):
         parameter values for the radial distributions specified
-        (one dictionary per population).
-
-    incl (array of float):
-        inclination values per population (in radians)
+        (one dictionary per stellar population).
 
     ellipse_axes (array of float):
-        2D array of one set of axes per population.
+        2D array of one set of axes per stellar population.
         Relative (x,y,z)-sizes to stretch the distributions; volume is kept constant.
 
     spiral_arms (array of int):
-        number of spiral arms (per population).
+        number of spiral arms (per stellar population).
 
     spiral_bulge (array of float):
-        relative proportion of the central bulge (per population).
+        relative proportion of the central bulge (per stellar population).
 
     spiral_bar (array of float):
-        relative proportion of the central bar (per population).
+        relative proportion of the central bar (per stellar population).
 
     compact_mode (array of str and None):
         generate only a fraction of the total number of stars.
@@ -109,9 +112,6 @@ class Stars():
     ----------
     Most of the arguments described above are stored as attributes.
     (exceptions: M_tot_init)
-
-    origin (array of float):
-        origin of the stellar distribution (for each population). Shape is [3, n_pop]
 
     coords (array of float):
         2D array of the cartesian coordinates of the stars. Shape is [3, n_stars].
