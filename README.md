@@ -13,7 +13,7 @@ At this stage, the implemented instrument simulator is SimCADO. This code simula
 
 ### Reference Material
 
-* Detailed documentation on what StarPopSim can do is found here: [master-thesis-WIP](no-link-yet)
+* Detailed documentation on what StarPopSim can do is found here: [master_thesis](https://theses.ubn.ru.nl/handle/123456789/8044)
 
 * If you want to contribute to better documentation, please send an e-mail to the adress below
 
@@ -23,9 +23,9 @@ As of version 1.0 (April 2019), the way to get this code is to either download i
 
 **To keep StarPopSim updated**, grabbing a copy from the master branch should always provide you with the latest working version.
 
-**StarPopSim has only been tested in Python 3.6**. 
-Using older versions could result in unexpected errors, although any Python 3 version is expected to work.
-Pyhon 2.x will cause certain funcitons to break.
+**StarPopSim has only been tested in Python 3.6/.7**. 
+Using older versions could result in unexpected errors, although any Python version >3.6 is expected to work.
+Pyhon 2.x will cause functions to break.
 
 **Package dependencies:** NumPy >= 1.16.0, SciPy, matplotlib, SimCADO (for imaging functionality; also requires synphot), astropy (for .fits functionality), photutils (for photometry functionality) 
 
@@ -37,19 +37,13 @@ Pyhon 2.x will cause certain funcitons to break.
 To create a basic source object, the following lines of python are sufficient (assuming the modules are in the current working directory):
 
     >>> import objectgenerator as obg
-	>>> astobj = obg.AstObject(M_tot_init=10**5, age=[10], metal=[0.0014], distance=10**3)
+	>>> astobj = obg.AstronomicalObject(M_tot_init=[10**5], age=[10], metal=[0.0014], distance=10**3)
 
 This will create a cluster of stars that has a total initial mass of 1e5 solar masses with one population of stars with an age of 1e10 years and a metallicity of Z=0.0014 at a distance of 1e3 parsecs.
 Many more options are available. For a more detailed description I refer the reader to the reference material listed above.
 Alternatively, the same can be achieved directly from the command line with:
 
 	>>> python3 constructor.py -M 10**5 -ages 10 -Z 0.0014 -D 10**3
-	
-To find out how to create the object you want (via the command line), there is an interactive object builder that will give out the object as well as the command line command that will do exactly that
-
-	>>> python3 constructor.py -inter
-
-**Note:** this feature might not include all the latest upgrades to the core functionality.
 
 The AstObject can be saved to a Pickles file by simply calling:
 
@@ -57,7 +51,7 @@ The AstObject can be saved to a Pickles file by simply calling:
 	
 And it is recovered with:
 
-	>>> astobj = obg.AstObject.LoadFrom(filename)
+	>>> astobj = obg.AstronomicalObject.LoadFrom(filename)
 
 ### Imaging
 
@@ -69,8 +63,8 @@ Similarly, to create images of the objects, we import the image generator module
 Where the first parameter needed is the object you have just created (or previously saved to disc), and the second one is the imaging filter that is going to be used later.
 It is recommended the same filter be used here as in the imaging below. An image is then made by calling:
 
-	>>> image = img.MakeImage(src, exposure=60, NDIT=1, view='wide', chip='centre', filter='V', ao_mode='scao', 
-				  filename='image_default_save', internals=None, return_int=False)
+	>>> image = img.MakeImage(src, exp_time=60, ndit=1, fov='wide', chip='centre', filter='V', ao_mode='scao', 
+				              file_name='image_default_save', internals=None, return_int=False)
 
 where the first parameter is the just created source object and the other parameters give most of the relevant (basic) functionality of SimCADO.
 For more documentation on SimCADO see [simcado.readthedocs.io](https://simcado.readthedocs.io/en/latest/index.html) (it can do a lot more!).
@@ -78,10 +72,6 @@ Alternatively, there is a one-liner that achieves (almost) the same (might be up
 
 	>>> python3 imager.py -astobj default_object_file_name -exp 60 -ndit 1 -filter V -fov wide 
 				-chip centre -ao scao -save image_default_save
-	
-Or execute the interactive function to get some guidance in all the available options for simulation:
-
-	>>> python3 imager.py -inter
 	
 ### Showing images
 
@@ -126,10 +116,6 @@ If you are (going to be) working on new or improved features, I would love to he
 ## Contact
 
 For questions and suggestions, please contact:
-
-* l.ijspeert(at)student.ru.nl
-
-or, in case the above adress is no longer in use:
 
 * lucijspeert(at)gmail.com
 

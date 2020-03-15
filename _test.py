@@ -163,7 +163,7 @@ dist1 = dists.Schuster(power, scale, n)
 dist3 = []
 maxval = max(dist1)
 for i in range(n):
-    dist3.append(dists.PowerLaw(minval, maxval, power, n))
+    dist3.append(dists.power_law(minval, maxval, power, n))
 
 plt.hist(np.log10(dist1), bins=20, histtype='step', label='Schuster')
 #plt.hist(dist2, bins=20, histtype='step')
@@ -177,7 +177,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import ObjectGen as og
 
-objects = og.Ellipsoid(10000, 'Exponential', axes=[1,5,3])
+objects = og.Ellipsoid(10000, 'exponential', axes=[1,5,3])
 
 fig, ax = plt.subplots()
 ax.scatter(objects[:,0], objects[:,1], marker='.', linewidths=0.0, alpha=0.5)
@@ -208,7 +208,7 @@ import visualizer as viz
 
 #_thread.start_new_thread(theplot, ())      # doesn't work for plotting
 
-p = mtp.Process(target=viz.Scatter2D, args=(objects,))
+p = mtp.Process(target=viz.scatter_2d, args=(objects,))
 p.start()
 #p.join()
 #p.terminate()
@@ -234,7 +234,7 @@ plt.colorbar()
 plt.show()
 
 ## colours!
-viz.Scatter3D(objects, colour=np.arange(2000, 20000, (20000-2000)/10000))       # old, doesn't work anymore
+viz.scatter_3d(objects, colour=np.arange(2000, 20000, (20000 - 2000) / 10000))       # old, doesn't work anymore
 
 ## convert T_eff to T_col
 # Teff    Tcol
@@ -283,12 +283,12 @@ T_c_from_M = conv.Temperature(mag, convert='mag1')
 T_BB_from_M = conv.Temperature(mag, convert='mag2')
 T_eff_from_M = conv.Temperature(mag, convert='mag3')
 
-colours = conv.TemperatureToRGB(input_temp).transpose()
-colours2 = conv.TemperatureToRGB(T_c_from_eff).transpose()
-colours3 = conv.TemperatureToRGB(T_eff_from_c).transpose()
-colours4 = conv.TemperatureToRGB(T_c_from_M).transpose()
-colours5 = conv.TemperatureToRGB(T_BB_from_M).transpose()
-colours6 = conv.TemperatureToRGB(T_eff_from_M).transpose()
+colours = conv.temperature_to_rgb(input_temp).transpose()
+colours2 = conv.temperature_to_rgb(T_c_from_eff).transpose()
+colours3 = conv.temperature_to_rgb(T_eff_from_c).transpose()
+colours4 = conv.temperature_to_rgb(T_c_from_M).transpose()
+colours5 = conv.temperature_to_rgb(T_BB_from_M).transpose()
+colours6 = conv.temperature_to_rgb(T_eff_from_M).transpose()
 
 fig, ax1 = plt.subplots()
 
@@ -332,9 +332,9 @@ import conversions as conv
 
 temps = np.arange(1000, 15000, (15000-1000)/10000, dtype=float)
 
-objects = obg.Ellipsoid(10000, 'Exponential', axes=[1,3,2])
+objects = obg.Ellipsoid(10000, 'exponential', axes=[1,3,2])
 
-viz.Scatter3D(objects, colour='temperature', T_eff=temps)
+viz.scatter_3d(objects, colour='temperature', T_eff=temps)
 
 
 
@@ -567,7 +567,7 @@ print('Mass of objects is {0:1.2e}% off of given input mass'.format((M_est - M_t
 
 
 
-## ObjGen and HRD, CMD
+## ObjGen and hr_diagram, cm_diagram
 import numpy as np
 import matplotlib.pyplot as plt
 import visualizer as vis
@@ -593,13 +593,13 @@ mag2_obj = np.append(mag_obj[np.where(mag_names == 'I')], mag_obj2[np.where(mag_
 
 magBV_obj = mag1_obj - mag2_obj
 
-vis.HRD(10**logTe_obj, logL_obj)
-vis.CMD(magBV_obj, mag2_obj)
-# vis.HRD(BVmagToTemp(magBV_obj), logL_obj)
+vis.hr_diagram(10 ** logTe_obj, logL_obj)
+vis.cm_diagram(magBV_obj, mag2_obj)
+# vis.hr_diagram(BVmagToTemp(magBV_obj), logL_obj)
 
 ##
-objects = obg.Ellipsoid(20000, 'Exponential', axes=[1,2,1.5])
-viz.Scatter3D(objects, colour='temperature', T_eff=10**logTe_obj)
+objects = obg.Ellipsoid(20000, 'exponential', axes=[1,2,1.5])
+viz.scatter_3d(objects, colour='temperature', T_eff=10 ** logTe_obj)
 
 ## wvl/temp to RGB
 import numpy as np
@@ -612,43 +612,43 @@ input_temp = np.arange(1000, 40000, 10, dtype=float)
 ytemp = np.zeros_like(input_temp)
 
 fig, ax = plt.subplots()
-ax.scatter(xs, ys, marker='|', s=2000, c=conv.WavelengthToRGB(xs).transpose())
+ax.scatter(xs, ys, marker='|', s=2000, c=conv.wavelength_to_rgb(xs).transpose())
 ax.set_xlabel('Wavelength (nm)')
 plt.show()
 
 fig, ax = plt.subplots()
-ax.scatter(input_temp, ytemp, marker='|', s=2000, c=conv.TemperatureToRGB(input_temp).transpose())
+ax.scatter(input_temp, ytemp, marker='|', s=2000, c=conv.temperature_to_rgb(input_temp).transpose())
 ax.set_xlabel('Temperature (K)')
 plt.show()
 
 ## simple obj, dist=0
 ast_obj = aoc.AstObject(struct='ellipsoid', N_obj=0, M_tot=1000, age=[6.7, 8, 7.5], rel_num=[1], Z=[0.019, 0.004, 0.019], distance=0)
 
-vis.HRD(10**ast_obj.log_Te, ast_obj.log_L)
-vis.CMD(ast_obj.abs_mag[1] - ast_obj.abs_mag[2], ast_obj.abs_mag[2])
-vis.CMD(ast_obj.app_mag[1] - ast_obj.app_mag[2], ast_obj.app_mag[2])
+vis.hr_diagram(10 ** ast_obj.log_Te, ast_obj.log_L)
+vis.cm_diagram(ast_obj.abs_mag[1] - ast_obj.abs_mag[2], ast_obj.abs_mag[2])
+vis.cm_diagram(ast_obj.app_mag[1] - ast_obj.app_mag[2], ast_obj.app_mag[2])
 
 ## dist=10, dist=1000
 ast_obj = aoc.AstObject(struct='ellipsoid', N_obj=0, M_tot=1000, age=[6.7, 8, 7.5], rel_num=[1], Z=[0.019, 0.004, 0.019], distance=10)
 
-vis.HRD(10**ast_obj.log_Te, ast_obj.log_L)
-vis.CMD(ast_obj.abs_mag[1] - ast_obj.abs_mag[2], ast_obj.abs_mag[2])
-vis.CMD(ast_obj.app_mag[1] - ast_obj.app_mag[2], ast_obj.app_mag[2])
+vis.hr_diagram(10 ** ast_obj.log_Te, ast_obj.log_L)
+vis.cm_diagram(ast_obj.abs_mag[1] - ast_obj.abs_mag[2], ast_obj.abs_mag[2])
+vis.cm_diagram(ast_obj.app_mag[1] - ast_obj.app_mag[2], ast_obj.app_mag[2])
 
 ast_obj = aoc.AstObject(struct='ellipsoid', N_obj=0, M_tot=1000, age=[6.7, 8, 7.5], rel_num=[1], Z=[0.019, 0.004, 0.019], distance=100)
 
-vis.HRD(10**ast_obj.log_Te, ast_obj.log_L)
-vis.CMD(ast_obj.abs_mag[1] - ast_obj.abs_mag[2], ast_obj.abs_mag[2])
-vis.CMD(ast_obj.app_mag[1] - ast_obj.app_mag[2], ast_obj.app_mag[2])
+vis.hr_diagram(10 ** ast_obj.log_Te, ast_obj.log_L)
+vis.cm_diagram(ast_obj.abs_mag[1] - ast_obj.abs_mag[2], ast_obj.abs_mag[2])
+vis.cm_diagram(ast_obj.app_mag[1] - ast_obj.app_mag[2], ast_obj.app_mag[2])
 
 ## relative number
 ast_obj = aoc.AstObject(struct='ellipsoid', N_obj=10000, M_tot=0, age=[9, 8, 6.7], rel_num=[5, 3, 1], Z=[0.019, 0.008, 0.004], distance=100)
 
-vis.HRD(10**ast_obj.log_Te, ast_obj.log_L)
+vis.hr_diagram(10 ** ast_obj.log_Te, ast_obj.log_L)
 
-print(ast_obj.TotalLuminosity())
-print(ast_obj.HalfLumRadius())
-print(form.Distance(ast_obj.objects))
+print(ast_obj.total_luminosity())
+print(ast_obj.half_lum_radius())
+print(form.distance_3d(ast_obj.objects))
 
 
 
@@ -660,7 +660,7 @@ pow1 = -3.0
 pow2 = -3.0
 
 for i in range(N):
-    list.append(dist.PowerLaw(n=1, power=pow1, min=1e-6, max=10))
+    list.append(dist.power_law(n=1, power=pow1, min_val=1e-6, max_val=10))
 
 arr = dist.PowLaw(n=10000, power=pow2, min=1e-6, max=10)
 
@@ -682,7 +682,7 @@ scale = 1.0
 xs = np.logspace(-2, 2, 100)
 ys = 3*xs**2/scale**2*(1 + xs**2/scale**2)**(-2.5)
 
-arr = dist.PearsonVII_r(n=1000000, s=scale)
+arr = dist.pearson_vii_r(n=1000000, s=scale)
 
 hist, bins = np.histogram(arr, bins='auto', density=True)
 
@@ -717,7 +717,7 @@ ax.step(bins[:-1], hist, label='Exp interp')
 ax.plot(rvals, Exponential_r(rvals), label='Exp')
 # log
 # ax.step(np.log10(bins1[:-1]), np.log10(hist1), label='Exp interp')
-# ax.plot(np.log10(rvals), np.log10(Exponential_r(rvals)), label='Exp')
+# ax.plot(np.log10(rvals), np.log10(exponential_r(rvals)), label='Exp')
 ax.legend()
 plt.show()
 
@@ -739,11 +739,11 @@ r_inter_norm = np.interp(np.random.rand(1000000), Nvals_norm, rvals)
 hist, bins = np.histogram(r_inter_norm, bins='auto', density=True)
 
 fig, ax = plt.subplots()
-ax.step(bins[:-1], hist, label='Normal interp')
-ax.plot(rvals, Normal_r(rvals), label='Normal')
+ax.step(bins[:-1], hist, label='normal interp')
+ax.plot(rvals, Normal_r(rvals), label='normal')
 # log
-# ax.step(np.log10(bins[:-1]), np.log10(hist), label='Normal interp')
-# ax.plot(np.log10(rvals), np.log10(Normal_r(rvals)), label='Normal')
+# ax.step(np.log10(bins[:-1]), np.log10(hist), label='normal interp')
+# ax.plot(np.log10(rvals), np.log10(normal_r(rvals)), label='normal')
 ax.legend()
 plt.show()
 
@@ -769,7 +769,7 @@ ax.step(bins[:-1], hist, label='Cauchy interp')
 ax.plot(rvals, SquaredCauchy_r(rvals), label='Cauchy')
 # log
 # ax.step(np.log10(bins[:-1]), np.log10(hist), label='Cauchy interp')
-# ax.plot(np.log10(rvals), np.log10(SquaredCauchy_r(rvals)), label='Cauchy')
+# ax.plot(np.log10(rvals), np.log10(squared_cauchy_r(rvals)), label='Cauchy')
 ax.legend()
 plt.show()
 
@@ -795,7 +795,7 @@ ax.step(bins[:-1], hist, label='Pearson interp')
 ax.plot(rvals, PearsonVII_r(rvals), label='Pearson')
 # log
 # ax.step(np.log10(bins[:-1]), np.log10(hist), label='Pearson interp')
-# ax.plot(np.log10(rvals), np.log10(PearsonVII_r(rvals)), label='Pearson')
+# ax.plot(np.log10(rvals), np.log10(pearson_vii_r(rvals)), label='Pearson')
 ax.legend()
 plt.show()
 
@@ -805,7 +805,7 @@ import time
 many = 10**6
 
 t1 = time.time()
-r_inv = dist.PearsonVII_r(n=many)
+r_inv = dist.pearson_vii_r(n=many)
 t2 = time.time()
 rvals = np.logspace(-3, 4, 1000)
 Nvals = NpearsonVII_r(rvals)
@@ -828,20 +828,20 @@ plt.show()
 
 ## dist vs radial dist
 # take care to remove the '_r' appending code
-objects = obg.Ellipsoid(100000, dist_type='Exponential')
-objects2 = obg.Ellipsoid(100000, dist_type='Exponential_r')
-# objects = obg.Ellipsoid(100000, dist_type='Normal')
-# objects2 = obg.Ellipsoid(100000, dist_type='Normal_r')
+objects = obg.Ellipsoid(100000, dist_type='exponential')
+objects2 = obg.Ellipsoid(100000, dist_type='exponential_r')
+# objects = obg.Ellipsoid(100000, dist_types='normal')
+# objects2 = obg.Ellipsoid(100000, dist_types='normal_r')
 
-# objects = obg.Ellipsoid(100000, dist_type='SquaredCauchy_r')
+# objects = obg.Ellipsoid(100000, dist_types='squared_cauchy_r')
 
-# objects2 = obg.Ellipsoid(100000, dist_type='PearsonVII_r')
+# objects2 = obg.Ellipsoid(100000, dist_types='pearson_vii_r')
 
-vis.Scatter2D(objects)
-vis.Scatter2D(objects2)
+vis.scatter_2d(objects)
+vis.scatter_2d(objects2)
 
-vis.Scatter3D(objects)
-vis.Scatter3D(objects2)
+vis.scatter_3d(objects)
+vis.scatter_3d(objects2)
 
 
 ## Tests on radii (Cartesian, cylindrical, spherical)
@@ -852,15 +852,15 @@ import formulas as form
 import conversions as conv
 import distributions as dist
 
-def GenRadii(N_obj=1, dist_type='Exponential_r', scale=1.0):
-    r_dist = eval('dist.' + dist_type)(n=N_obj, s=scale)                                            # the radial distribution
-    phi_dist = dist.AnglePhi(N_obj)                                                                 # dist for angle with x axis
-    theta_dist = dist.AngleTheta(N_obj)                                                             # dist for angle with z axis
+def GenRadii(N_obj=1, dist_type='exponential_r', scale=1.0):
+    r_dist = getattr(dist, dist_type)(n=N_obj, s=scale)                                            # the radial distribution
+    phi_dist = dist.angle_phi(N_obj)                                                                 # dist for angle with x axis
+    theta_dist = dist.angle_theta(N_obj)                                                             # dist for angle with z axis
     
-    xyz = conv.SpherToCart(r_dist, theta_dist, phi_dist).transpose()
+    xyz = conv.spher_to_cart(r_dist, theta_dist, phi_dist).transpose()
     
-    radii = form.Distance2D(xyz)
-    radii2 = form.Distance(xyz)
+    radii = form.distance_2d(xyz)
+    radii2 = form.distance_3d(xyz)
     
     return radii, radii2
     
@@ -876,7 +876,7 @@ rads, rads2 = GenRadii(10**6, scale=10)
 
 hist, bins = np.histogram(rads, bins=np.logspace(-0.5, 3.5, 50), density=True)
 hist2, bins2 = np.histogram(rads2, bins=np.logspace(-0.5, 3.5, 50), density=True)
-# hist_ref, bins_ref = np.histogram(dist.Exponential(10**6, s=10), bins=np.logspace(-0.5, 3.5, 50), density=True)
+# hist_ref, bins_ref = np.histogram(dist.exponential(10**6, s=10), bins=np.logspace(-0.5, 3.5, 50), density=True)
 hist_ref, bins_ref = np.histogram(ref, bins=np.logspace(-0.5, 3.5, 50), density=True)
 hist_ref2, bins_ref2 = np.histogram(ref2, bins=np.logspace(-0.5, 3.5, 50), density=True)
 
@@ -894,7 +894,7 @@ plt.legend()
 plt.show()
 
 ## King Globular
-def KingGlobular_r(r, s=1.0, R=None):
+def king_globular_r(r, s=1.0, R=None):
     """pdf of radial King distribution for Globular clusters."""
     if (R is None):
         R = 30*s                                                                                  # typical globular cluster has R/s ~ 30
@@ -904,7 +904,7 @@ def KingGlobular_r(r, s=1.0, R=None):
     C = (Rs**3/3/(1 + Rs2) + np.log(Rs + (1 + Rs2)**(1/2))/(1 + Rs2)**(1/2) - np.arctan(Rs))**-1
     return C/s*rs2*(1/(1 + rs2)**(1/2) - 1/(1 + Rs2)**(1/2))**2
     
-def N_KingGlobular_r(r, s=1.0, R=None):
+def N_king_globular_r(r, s=1.0, R=None):
     """cdf of radial King distribution for Globular clusters."""
     if (R is None):
         R = 30*s                                                                                  # typical globular cluster has R/s ~ 30
@@ -919,22 +919,22 @@ def N_KingGlobular_r(r, s=1.0, R=None):
 s = 2
 R = 100
 rvals = np.logspace(-2, np.log10(R), 1000)
-Nvals = N_KingGlobular_r(rvals, s, R)
+Nvals = N_king_globular_r(rvals, s, R)
 r_inter = np.interp(np.random.rand(1000000), Nvals, rvals)
 
 hist, bins = np.histogram(r_inter, bins='auto', density=True)
-# hist_ref1, bins_ref1 = np.histogram(dist.KingGlobular_r(N, s=s, R=R), bins=np.logspace(-0.5, 3.5, 50), density=True)
-# hist_ref2, bins_ref2 = np.histogram(dist.KingGlobular_rho(N, s=s, R=R), bins=np.logspace(-0.5, 3.5, 50), density=True)
+# hist_ref1, bins_ref1 = np.histogram(dist.king_globular_r(N, s=s, R=R), bins=np.logspace(-0.5, 3.5, 50), density=True)
+# hist_ref2, bins_ref2 = np.histogram(dist.king_globular_rho(N, s=s, R=R), bins=np.logspace(-0.5, 3.5, 50), density=True)
 
 fig, ax = plt.subplots()
 # ax.step(bins[1:], hist, label='King interp')
-# ax.plot(rvals, KingGlobular_r(rvals, s, R), label='King')
+# ax.plot(rvals, king_globular_r(rvals, s, R), label='King')
 # log
 # ax.step(np.log10(bins[1:]), np.log10(hist), label='King interp')
-# ax.plot(np.log10(rvals), np.log10(KingGlobular_r(rvals, s, R)), label='King')
+# ax.plot(np.log10(rvals), np.log10(king_globular_r(rvals, s, R)), label='King')
 # log cartesian
 ax.step(np.log10(bins[1:]), np.log10(hist/bins[1:]**2), label='King interp')
-ax.plot(np.log10(rvals), np.log10(KingGlobular_r(rvals, s, R)/rvals**2), label='King')
+ax.plot(np.log10(rvals), np.log10(king_globular_r(rvals, s, R)/rvals**2), label='King')
 # ax.plot(np.log10(bins_ref1[1:]), np.log10(hist_ref1/bins_ref1[1:]**2), label='r')
 # ax.plot(np.log10(bins_ref2[1:]), np.log10(hist_ref2/bins_ref2[1:]**1), label='rho')
 ax.legend()
@@ -944,15 +944,15 @@ plt.show()
 ## compare dists
 N = 10**7
 sc = 10
-hist_ref, bins_ref = np.histogram(dist.Exponential_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
-hist_ref2, bins_ref2 = np.histogram(dist.Normal_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
-hist_ref3, bins_ref3 = np.histogram(dist.SquaredCauchy_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
-hist_ref4, bins_ref4 = np.histogram(dist.PearsonVII_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
-hist_ref5, bins_ref5 = np.histogram(dist.KingGlobular_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
+hist_ref, bins_ref = np.histogram(dist.exponential_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
+hist_ref2, bins_ref2 = np.histogram(dist.normal_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
+hist_ref3, bins_ref3 = np.histogram(dist.squared_cauchy_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
+hist_ref4, bins_ref4 = np.histogram(dist.pearson_vii_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
+hist_ref5, bins_ref5 = np.histogram(dist.king_globular_r(N, s=sc), bins=np.logspace(-0.5, 3.5, 50), density=True)
 
 fig, ax = plt.subplots()
-ax.plot(np.log10(bins_ref[1:]), np.log10(hist_ref/bins_ref[1:]**2), label='Exponential')
-ax.plot(np.log10(bins_ref2[1:]), np.log10(hist_ref2/bins_ref2[1:]**2), label='Normal')
+ax.plot(np.log10(bins_ref[1:]), np.log10(hist_ref/bins_ref[1:]**2), label='exponential')
+ax.plot(np.log10(bins_ref2[1:]), np.log10(hist_ref2/bins_ref2[1:]**2), label='normal')
 ax.plot(np.log10(bins_ref3[1:]), np.log10(hist_ref3/bins_ref3[1:]**2), label='SquaredCauchy')
 ax.plot(np.log10(bins_ref4[1:]), np.log10(hist_ref4/bins_ref4[1:]**2), label='PearsonVII')
 ax.plot(np.log10(bins_ref5[1:]), np.log10(hist_ref5/bins_ref5[1:]**2), label='King')
@@ -964,9 +964,9 @@ plt.show()
 R_1 = 1/2.9
 R_2 = 6/2.9
 R_3 = 21/2.9
-hist_ref1, bins_ref1 = np.histogram(dist.KingGlobular_rho(N, s=R_1), bins='auto', density=True)
-hist_ref2, bins_ref2 = np.histogram(dist.KingGlobular_rho(N, s=R_2), bins='auto', density=True)
-hist_ref3, bins_ref3 = np.histogram(dist.KingGlobular_rho(N, s=R_3), bins='auto', density=True)
+hist_ref1, bins_ref1 = np.histogram(dist.king_globular_rho(N, s=R_1), bins='auto', density=True)
+hist_ref2, bins_ref2 = np.histogram(dist.king_globular_rho(N, s=R_2), bins='auto', density=True)
+hist_ref3, bins_ref3 = np.histogram(dist.king_globular_rho(N, s=R_3), bins='auto', density=True)
 
 rvals_1 = np.logspace(-1.5, np.log10(30*R_1 - 0.1), 1000)
 rvals_2 = np.logspace(-1.0, np.log10(30*R_2 - 0.1), 1000)
@@ -974,11 +974,11 @@ rvals_3 = np.logspace(-0.5, np.log10(30*R_3 - 0.1), 1000)
 
 fig, ax = plt.subplots(figsize=[7.0, 5.5])
 ax.step(np.log10(bins_ref1[1:]), np.log10(hist_ref1/bins_ref1[1:]*np.max(bins_ref1[1:])), label='1')
-ax.plot(np.log10(rvals_1), np.log10(dist.pdf_KingGlobular(rvals_1, s=R_1, R=30*R_1, form='cylindrical')/rvals_1*np.max(rvals_1)), label='1 (pdf)')
+ax.plot(np.log10(rvals_1), np.log10(dist.pdf_king_globular(rvals_1, s=R_1, R=30*R_1, form='cylindrical')/rvals_1*np.max(rvals_1)), label='1 (pdf)')
 ax.step(np.log10(bins_ref2[1:]), np.log10(hist_ref2/bins_ref2[1:]*np.max(bins_ref2[1:])), label='6')
-ax.plot(np.log10(rvals_2), np.log10(dist.pdf_KingGlobular(rvals_2, s=R_2, R=30*R_2, form='cylindrical')/rvals_2*np.max(rvals_2)), label='6 (pdf)')
+ax.plot(np.log10(rvals_2), np.log10(dist.pdf_king_globular(rvals_2, s=R_2, R=30*R_2, form='cylindrical')/rvals_2*np.max(rvals_2)), label='6 (pdf)')
 ax.step(np.log10(bins_ref3[1:]), np.log10(hist_ref3/bins_ref3[1:]*np.max(bins_ref3[1:])), label='21')
-ax.plot(np.log10(rvals_3), np.log10(dist.pdf_KingGlobular(rvals_3, s=R_3, R=30*R_3, form='cylindrical')/rvals_3*np.max(rvals_3)), label='21 (pdf)')
+ax.plot(np.log10(rvals_3), np.log10(dist.pdf_king_globular(rvals_3, s=R_3, R=30*R_3, form='cylindrical')/rvals_3*np.max(rvals_3)), label='21 (pdf)')
 # ax.set_title('King, s=var, R=30*s'.format(N, sc))
 ax.set_xlabel('log(r (pc))', fontsize=20)
 ax.set_ylabel('log(N) (relative number)', fontsize=20)
@@ -987,19 +987,19 @@ ax.tick_params(labelsize=14)
 plt.tight_layout()
 plt.show()
 ## (spherical)
-hist_ref1, bins_ref1 = np.histogram(dist.KingGlobular_r(N, s=R_1), bins='auto', density=True)
-hist_ref2, bins_ref2 = np.histogram(dist.KingGlobular_r(N, s=R_2), bins='auto', density=True)
-hist_ref3, bins_ref3 = np.histogram(dist.KingGlobular_r(N, s=R_3), bins='auto', density=True)
+hist_ref1, bins_ref1 = np.histogram(dist.king_globular_r(N, s=R_1), bins='auto', density=True)
+hist_ref2, bins_ref2 = np.histogram(dist.king_globular_r(N, s=R_2), bins='auto', density=True)
+hist_ref3, bins_ref3 = np.histogram(dist.king_globular_r(N, s=R_3), bins='auto', density=True)
 # rvals = np.logspace(-1.5, np.log10(30*R_1 - 5), 1000)
 
 fig, ax = plt.subplots(figsize=[7.0, 5.5])
 ax.step(np.log10(bins_ref1[1:]), np.log10(hist_ref1/bins_ref1[1:]**2*np.max(bins_ref1[1:])**2), label='hist')
-ax.plot(np.log10(rvals_1), np.log10(dist.pdf_KingGlobular(rvals_1, s=R_1, R=30*R_1, form='spherical')/rvals_1**2*np.max(rvals_1)**2), label='pdf')
-# ax.step(np.log10(rvals), np.log10(dist.pdf_Exponential(rvals, s=R_1)/rvals**2*np.max(rvals)**2), label='exp', lw=3)
+ax.plot(np.log10(rvals_1), np.log10(dist.pdf_king_globular(rvals_1, s=R_1, R=30*R_1, form='spherical')/rvals_1**2*np.max(rvals_1)**2), label='pdf')
+# ax.step(np.log10(rvals), np.log10(dist.pdf_exponential(rvals, s=R_1)/rvals**2*np.max(rvals)**2), label='exp', lw=3)
 ax.step(np.log10(bins_ref2[1:]), np.log10(hist_ref2/bins_ref2[1:]**2*np.max(bins_ref2[1:])**2), label='6')
-ax.plot(np.log10(rvals_2), np.log10(dist.pdf_KingGlobular(rvals_2, s=R_2, R=30*R_2, form='spherical')/rvals_2**2*np.max(rvals_2)**2), label='6 (pdf)')
+ax.plot(np.log10(rvals_2), np.log10(dist.pdf_king_globular(rvals_2, s=R_2, R=30*R_2, form='spherical')/rvals_2**2*np.max(rvals_2)**2), label='6 (pdf)')
 ax.step(np.log10(bins_ref3[1:]), np.log10(hist_ref3/bins_ref3[1:]**2*np.max(bins_ref3[1:])**2), label='21')
-ax.plot(np.log10(rvals_3), np.log10(dist.pdf_KingGlobular(rvals_3, s=R_3, R=30*R_3, form='spherical')/rvals_3**2*np.max(rvals_3)**2), label='21 (pdf)')
+ax.plot(np.log10(rvals_3), np.log10(dist.pdf_king_globular(rvals_3, s=R_3, R=30*R_3, form='spherical')/rvals_3**2*np.max(rvals_3)**2), label='21 (pdf)')
 # ax.set_title('King, s=var, R=30*s'.format(N, sc))
 ax.set_xlabel('log(r (pc))', fontsize=20)
 ax.set_ylabel('log(N) (relative number)', fontsize=20)
@@ -1021,19 +1021,19 @@ s_king = 1500
 
 fig, ax = plt.subplots()
 ax.plot(rvals, dist.cdf_Exponential_r(rvals, s=s_exp), label='Exp, s={0}'.format(s_exp), c='darkgreen', lw=0.7)
-ax.plot(rvals, dist.cdf_Normal_r(rvals, s=s_norm), label='Normal, s={0}'.format(s_norm), c='blue', lw=0.7)
+ax.plot(rvals, dist.cdf_Normal_r(rvals, s=s_norm), label='normal, s={0}'.format(s_norm), c='blue', lw=0.7)
 ax.plot(rvals, dist.cdf_Squaredcauchy_r(rvals, s=s_cau), label='Cauchy, s={0}'.format(s_cau), c='purple', lw=0.7)
 ax.plot(rvals, dist.cdf_PearsonVII_r(rvals, s=s_pea), label='Pearson, s={0}'.format(s_pea), c='c', lw=0.7)
-ax.plot(rvals, dist.cdf_KingGlobular_r(rvals, s=s_king, R=3800), label='King, s={0}'.format(s_king), c='black', lw=0.7)
+ax.plot(rvals, dist.cdf_king_globular_r(rvals, s=s_king, R=3800), label='King, s={0}'.format(s_king), c='black', lw=0.7)
 
-dist1 = dist.Exponential_r(N, s=s_exp)
-dist2 = dist.Normal_r(N, s=s_norm)
-dist3 = dist.SquaredCauchy_r(N, s=s_cau)
-dist4 = dist.PearsonVII_r(N, s=s_pea)
-dist5 = dist.KingGlobular_r(N, s=s_king, R=3800)
+dist1 = dist.exponential_r(N, s=s_exp)
+dist2 = dist.normal_r(N, s=s_norm)
+dist3 = dist.squared_cauchy_r(N, s=s_cau)
+dist4 = dist.pearson_vii_r(N, s=s_pea)
+dist5 = dist.king_globular_r(N, s=s_king, R=3800)
 
 ax.plot(np.sort(dist1), np.cumsum(dist1)/np.sum(dist1), label='cumsum Exp, s={0}'.format(s_exp), c='darkgreen', lw=0.7)
-ax.plot(np.sort(dist2), np.cumsum(dist2)/np.sum(dist2), label='cumsum Normal, s={0}'.format(s_norm), c='blue', lw=0.7)
+ax.plot(np.sort(dist2), np.cumsum(dist2)/np.sum(dist2), label='cumsum normal, s={0}'.format(s_norm), c='blue', lw=0.7)
 ax.plot(np.sort(dist3), np.cumsum(dist3)/np.sum(dist3), label='cumsum Cauchy, s={0}'.format(s_cau), c='purple', lw=0.7)
 ax.plot(np.sort(dist4), np.cumsum(dist4)/np.sum(dist4), label='cumsum Pearson, s={0}'.format(s_pea), c='c', lw=0.7)
 ax.plot(np.sort(dist5), np.cumsum(dist5)/np.sum(dist5), label='cumsum King, s={0}'.format(s_king), c='black', lw=0.7)
@@ -1047,10 +1047,10 @@ plt.show()
 
 ## half something radius
 astobj = aoc.AstObject(N_obj=10000, age=[8], Z=[0.019])
-hlr = astobj.HalfLumRadius()
-hmr = astobj.HalfMassRadius()
-hlr2 = astobj.HalfLumRadius(spher=False)
-hmr2 = astobj.HalfMassRadius(spher=False)
+hlr = astobj.half_lum_radius()
+hmr = astobj.half_mass_radius()
+hlr2 = astobj.half_lum_radius(spher=False)
+hmr2 = astobj.half_mass_radius(spher=False)
 radii = astobj.ObjRadii()
 
 print('sph: HMR={0:2.3f}, HLR={1:2.3f} \ncyl: HMR={6:2.3f}, HLR={7:2.3f} \n  min= {2:2.3f}, max = {3:2.3f} \n  mean={4:2.3f}, median={5:2.3f}'
@@ -1087,7 +1087,7 @@ sim.run(src, filename='data\my_first_sim.fits', OBS_EXPTIME=600, OBS_NDIT=6)
 
 fh.PlotFits('my_first_sim.fits')
 
-# OBS_EXPTIME [in seconds] sets the length of a single exposure. The default setting is for a 60s exposure
+# OBS_EXPTIME [in seconds] sets the length of a single exp_time. The default setting is for a 60s exp_time
 # OBS_NDIT sets how many exposures are taken. The default is 1.
 
 ## making a source
@@ -1179,16 +1179,16 @@ with open('company_data.pkl', 'rb') as input:
 ##
 astobj = aoc.AstObject(N_obj=1000, age=[8], Z=[0.019], distance=10**6)
 
-aoc.AstObject.SaveTo(astobj, 'astobj1-test.pkl')        # or astobj.SaveTo('astobj1-test.pkl')
+aoc.AstObject.save_to(astobj, 'astobj1-test.pkl')        # or astobj.save_to('astobj1-test.pkl')
 
-astobj2 = aoc.AstObject.LoadFrom('astobj1-test.pkl')
+astobj2 = aoc.AstObject.load_from('astobj1-test.pkl')
 
 ## calling from Pyzo shell
 import sys
 import subprocess
 subprocess.call([sys.executable, 'MCopdr1.py', '-N 1000', '-alpha', '1'])
 
-subprocess.call([sys.executable, 'constructor.py', '-N 1000', '-rdistpar', '1', '-rdist', 'Exponential'])
+subprocess.call([sys.executable, 'constructor.py', '-N 1000', '-rdistpar', '1', '-rdist', 'exponential'])
 
 ## default args
 def get_default_args(func):
@@ -1218,7 +1218,7 @@ def AngleTheta(n=1):
     return np.arccos(2*np.random.rand(int(n)) - 1)
     
 def Radius(n=1, power=2):
-    """Uniform radius"""
+    """uniform radius"""
     k = power
     return Power(n, k)
 
@@ -1233,11 +1233,11 @@ def GenSphereProj(n, r_dist=Radius):
     theta = AngleTheta(n)
     phi = AnglePhi(n)
     
-    xyz = conv.SpherToCart(r, theta, phi).transpose()
+    xyz = conv.spher_to_cart(r, theta, phi).transpose()
     
-    #vis.Scatter2D(xyz)
+    #vis.scatter_2d(xyz)
     
-    radii = form.Distance2D(xyz)
+    radii = form.distance_2d(xyz)
     return radii, r, theta
 
 ## uniform sphere
@@ -1259,7 +1259,7 @@ ax.step(bins2[1:-1], hist2[1:]/bins2[1:-1]**2, label='r')
 # ax.plot(np.log10(r_ref), np.log10(3*np.sqrt(1 - r_ref**2)), label='sqrt(1 - r**2)')
 # ax.step(np.log10(bins[1:-1]), np.log10(hist[1:]/bins[1:-1]), label='rho')
 # ax.step(np.log10(bins2[1:-1]), np.log10(hist2[1:]/bins2[1:-1]**2), label='r')
-ax.set_title('Uniform sphere')
+ax.set_title('uniform sphere')
 ax.set_xlabel('log(r)')
 ax.set_ylabel('log(density)')
 ax.legend()
@@ -1290,7 +1290,7 @@ ax.step(bins2[1:-1], hist2[1:]/bins2[1:-1]**2, label='r')
 # ax.plot(np.log10(r_ref), np.log10(3*np.sqrt(1 - r_ref**2)), label='sqrt(1 - r**2)')
 # ax.step(np.log10(bins[1:-1]), np.log10(hist[1:]/bins[1:-1]), label='rho')
 # ax.step(np.log10(bins2[1:-1]), np.log10(hist2[1:]/bins2[1:-1]**2), label='r')
-ax.set_title('Uniform sphere')
+ax.set_title('uniform sphere')
 ax.set_xlabel('log(r)')
 ax.set_ylabel('log(density)')
 ax.legend()
@@ -1304,7 +1304,7 @@ theta = np.arange(0, np.pi, 0.01)
 fig, ax = plt.subplots()
 ax.scatter(np.cos(t1), rad1)
 ax.plot(np.cos(theta), np.sqrt(1-np.cos(theta)**2), c='r')
-ax.set_title('Uniform sphere')
+ax.set_title('uniform sphere')
 ax.set_xlabel('cos(theta)')
 ax.set_ylabel('rho')
 plt.show() 
@@ -1314,7 +1314,7 @@ plt.show()
 ## normal
 import distributions as dist
 
-rad1, r1, t1 = GenSphereProj(10**5, dist.Normal_r)
+rad1, r1, t1 = GenSphereProj(10**5, dist.normal_r)
     
 r_ref = np.logspace(-2, np.log10(3), 10**3)
 
@@ -1322,17 +1322,17 @@ hist, bins = np.histogram(rad1, bins='auto', density=True)
 hist2, bins2 = np.histogram(r1, bins='auto', density=True)
 
 fig, ax = plt.subplots()
-ax.plot(np.log10(r_ref), np.log10(dist.pdf_Normal(r_ref)/r_ref**2), label='sqrt(1 - r**2)')
+ax.plot(np.log10(r_ref), np.log10(dist.pdf_normal(r_ref)/r_ref**2), label='sqrt(1 - r**2)')
 ax.step(np.log10(bins[1:-1]), np.log10(hist[1:]/bins[1:-1]), label='rho')
 ax.step(np.log10(bins2[1:-1]), np.log10(hist2[1:]/bins2[1:-1]**2), label='r')
-ax.set_title('Uniform sphere')
+ax.set_title('uniform sphere')
 ax.set_xlabel('log(r)')
 ax.set_ylabel('log(density)')
 ax.legend()
 plt.show()      
     
 ## Cauchy
-rad1, r1, t1 = GenSphereProj(10**5, dist.SquaredCauchy_r) 
+rad1, r1, t1 = GenSphereProj(10**5, dist.squared_cauchy_r)
     
 r_ref = np.logspace(-2, np.log10(10), 10**3)
 
@@ -1340,10 +1340,10 @@ hist, bins = np.histogram(rad1, bins='auto', density=True)
 hist2, bins2 = np.histogram(r1, bins='auto', density=True)
 
 fig, ax = plt.subplots()
-ax.plot(np.log10(r_ref), np.log10(dist.pdf_SquaredCauchy(r_ref)/r_ref**2), label='ref')
+ax.plot(np.log10(r_ref), np.log10(dist.pdf_squared_cauchy(r_ref)/r_ref**2), label='ref')
 ax.step(np.log10(bins[1:-1]), np.log10(hist[1:]/bins[1:-1]), label='rho')
 ax.step(np.log10(bins2[1:-1]), np.log10(hist2[1:]/bins2[1:-1]**2), label='r')
-ax.set_title('Uniform sphere')
+ax.set_title('uniform sphere')
 ax.set_xlabel('log(r)')
 ax.set_ylabel('log(density)')
 ax.legend()
@@ -1364,7 +1364,7 @@ plt.show()
 ## 2D distributions - King
 import matplotlib.pyplot as plt
 
-def pdf_KingGlobular_rho(r, s=1.0, R=None):
+def pdf_king_globular_rho(r, s=1.0, R=None):
     """pdf of 2D radial King distribution for Globular clusters."""
     if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
@@ -1373,7 +1373,7 @@ def pdf_KingGlobular_rho(r, s=1.0, R=None):
     C = (Rs2/2/(1 + Rs2) + np.log(1 + Rs2)/2 - 2)**(-1)
     return C/s*r/s*(1/(1 + rs2)**(1/2) - 1/(1 + Rs2)**(1/2))**2
     
-def cdf_KingGlobular_rho(r, s=1.0, R=None):
+def cdf_king_globular_rho(r, s=1.0, R=None):
     """cdf of 2D radial King distribution for Globular clusters."""
     if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
@@ -1384,30 +1384,30 @@ def cdf_KingGlobular_rho(r, s=1.0, R=None):
     C2 = 1/(1 + Rs2)**(1/2)
     return C*(np.log(1 + rs2)/2 - 2*C2*(1 + rs2)**(1/2) + C2**2*rs2/2)
     
-def KingGlobular_rho(n=1, s=1.0, R=None):
+def king_globular_rho(n=1, s=1.0, R=None):
     """2D Radial King distribution for globular clusters with scale height s and outter radius R. Draws n numbers."""
     if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
     rvals = np.logspace(-2, np.log10(R), 1000)
-    Nvals = cdf_KingGlobular_rho(rvals, s, R)
+    Nvals = cdf_king_globular_rho(rvals, s, R)
     return np.interp(np.random.rand(int(n)), Nvals, rvals)
     
 s = 2
 R = 100
 
-r_inter = KingGlobular_rho(n=1e6, s=s, R=R)
+r_inter = king_globular_rho(n=1e6, s=s, R=R)
 rvals = np.logspace(-2, np.log10(R), 1000)
 
 hist, bins = np.histogram(r_inter, bins='auto', density=True)
 
 fig, ax = plt.subplots()
 ax.step(np.log10(bins[:-1]), np.log10(hist/bins[:-1]), label='King interp')
-ax.plot(np.log10(rvals), np.log10(pdf_KingGlobular_rho(rvals, s, R)/rvals), label='King')
+ax.plot(np.log10(rvals), np.log10(pdf_king_globular_rho(rvals, s, R)/rvals), label='King')
 ax.legend()
 plt.show()
 
 ## conversion between King 3D and 2D
-def cdf_KingGlobular_r(r, s=1.0, R=None):
+def cdf_king_globular_r(r, s=1.0, R=None):
     """cdf of radial King distribution for Globular clusters."""
     if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
@@ -1420,15 +1420,15 @@ def cdf_KingGlobular_r(r, s=1.0, R=None):
     C = (Rs**3/3*C2**2 + np.log(Rs + 1/C2)*C2 - np.arctan(Rs))**-1
     return C*(rs - np.arctan(rs) - C2*rs*(1 + rs2)**(1/2) + C2*np.log(rs + (1 + rs2)**(1/2)) + C2**2*rs**3/3)
     
-def KingGlobular_r(n=1, s=1.0, R=None):
+def king_globular_r(n=1, s=1.0, R=None):
     """Radial King distribution for globular clusters with scale height s and outter radius R. Draws n numbers."""
     if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
     rvals = np.logspace(-2, np.log10(R), 1000)
-    Nvals = cdf_KingGlobular_r(rvals, s, R)
+    Nvals = cdf_king_globular_r(rvals, s, R)
     return np.interp(np.random.rand(int(n)), Nvals, rvals)
     
-def pdf_KingGlobular_r(r, s=1.0, R=None):
+def pdf_king_globular_r(r, s=1.0, R=None):
     """pdf of radial King distribution for Globular clusters."""
     if (R is None):
         R = 30*s                                                                                    # typical globular cluster has R/s ~ 30
@@ -1478,8 +1478,8 @@ s2 = 40
 R = 500
 n = 10**6
 rvals = np.logspace(0, np.log10(R-10), n)
-kingr = KingGlobular_r(n, s1, R)
-kingrho = KingGlobular_rho(n, s1, R)
+kingr = king_globular_r(n, s1, R)
+kingrho = king_globular_rho(n, s1, R)
 
 hist, bins = np.histogram(CalcRadii(rvals), bins='auto', density=True)
 hist2, bins2 = np.histogram(rvals, bins='auto', density=True)
@@ -1493,11 +1493,11 @@ fig, ax = plt.subplots()
 # ax.plot(np.log10(bins[:-1]), np.log10(hist/bins[:-1]), label='r vals projected')
 # ax.plot(np.log10(bins2[:-1]), np.log10(hist2/bins2[:-1]), label='r vals')
 
-ax.plot(np.log10(rvals), np.log10(pdf_KingGlobular_r(rvals, s1, R)/rvals**2) + 2, label='King r')
+ax.plot(np.log10(rvals), np.log10(pdf_king_globular_r(rvals, s1, R)/rvals**2) + 2, label='King r')
 ax.step(np.log10(bins3[:-1]), np.log10(hist3/bins3[:-1]), label='King r generated projected')       # the malefactor
 ax.step(np.log10(bins4[:-1]), np.log10(hist4/bins4[:-1]**2) + 2, label='King r generated')
 
-ax.plot(np.log10(rvals), np.log10(pdf_KingGlobular_rho(rvals, s1, R)/rvals), label='King rho')
+ax.plot(np.log10(rvals), np.log10(pdf_king_globular_rho(rvals, s1, R)/rvals), label='King rho')
 ax.step(np.log10(bins5[:-1]), np.log10(hist5/bins5[:-1]), label='King rho generated projected')
 ax.legend()
 plt.show()
@@ -1509,12 +1509,12 @@ plt.show()
 n = 10**6
 
 rvals = np.logspace(-2, np.log10(30), n)
-cauchyr = dist.SquaredCauchy_r(n)
+cauchyr = dist.squared_cauchy_r(n)
 cauchyrho = dist.SquaredCauchy_rho(n)
-pearsonr = dist.PearsonVII_r(n)
+pearsonr = dist.pearson_vii_r(n)
 pearsonrho = dist.PearsonVII_rho(n)
-kingr = dist.KingGlobular_r(n)
-kingrho = dist.KingGlobular_rho(n)
+kingr = dist.king_globular_r(n)
+kingrho = dist.king_globular_rho(n)
 
 hist, bins = np.histogram(cauchyr, bins='auto', density=True)
 hist1, bins1 = np.histogram(cauchyrho, bins='auto', density=True)
@@ -1533,8 +1533,8 @@ fig, ax = plt.subplots()
 # ax.step(np.log10(rvals), np.log10(dist.pdf_PearsonVII_r(rvals)/rvals**2), label='pearson')
 ax.step(np.log10(bins4[:-1]), np.log10(hist4/bins4[:-1]**2), label='king r') 
 ax.step(np.log10(bins5[:-1]), np.log10(hist5/bins5[:-1]), label='king rho') 
-ax.step(np.log10(rvals), np.log10(dist.pdf_KingGlobular(rvals)/rvals**2), label='th. cauchy r')
-ax.step(np.log10(rvals), np.log10(dist.pdf_KingGlobular(rvals, form='cylindrical')/rvals), label='th. cauchy rho')  
+ax.step(np.log10(rvals), np.log10(dist.pdf_king_globular(rvals)/rvals**2), label='th. cauchy r')
+ax.step(np.log10(rvals), np.log10(dist.pdf_king_globular(rvals, form='cylindrical')/rvals), label='th. cauchy rho')
 ax.legend()
 plt.show()
 
@@ -1570,8 +1570,8 @@ fig, ax = plt.subplots()
 ax.step(np.log10(bins4[:-1]), np.log10(hist4/bins4[:-1]**2), label='king r') 
 ax.step(np.log10(bins5[:-1]), np.log10(hist5/bins5[:-1]), label='king rho') 
 ax.step(np.log10(bins6[:-1]), np.log10(hist6/bins6[:-1]), label='proj king r') 
-ax.plot(np.log10(rvals), np.log10(dist.pdf_KingGlobular(rvals)/rvals**2), label='th. king r')
-ax.plot(np.log10(rvals), np.log10(dist.pdf_KingGlobular(rvals, form='cylindrical')/rvals), label='th. king rho')  
+ax.plot(np.log10(rvals), np.log10(dist.pdf_king_globular(rvals)/rvals**2), label='th. king r')
+ax.plot(np.log10(rvals), np.log10(dist.pdf_king_globular(rvals, form='cylindrical')/rvals), label='th. king rho')
 ax.legend()
 plt.show()
 
@@ -1658,9 +1658,9 @@ for i in range(int(n/3-1)):
     src += sim.source.stars(mags=np.clip(astobj.app_mag[2, 3*i+3:3*i+6]-18, 10, 30), x=x_as[3*i+1:3*i+6], y=y_as[3*i+1:3*i+6], filter_name='V', spec_types='F1V')
 
 
-# sim.run(src, filename='data\my_first_sim.fits', mode='zoom', detector_layout='centre', OBS_EXPTIME=60)
+# sim.run(src, file_name='data\my_first_sim.fits', mode='zoom', detector_layout='centre', OBS_EXPTIME=60)
 
-# fh.PlotFits('my_first_sim.fits')
+# fh.plot_fits('my_first_sim.fits')
 
 # Problem resolved: just used the wrong slicing for the coordinates
 
@@ -1668,7 +1668,7 @@ for i in range(int(n/3-1)):
 import sys
 import subprocess
 
-subprocess.call([sys.executable, 'constructor.py', '-N 1000', '-rdist', 'Normal', 'KingGlobular', '-rdistpar', '1', '2'])
+subprocess.call([sys.executable, 'constructor.py', '-N 1000', '-rdist', 'normal', 'king_globular', '-rdistpar', '1', '2'])
 subprocess.call([sys.executable, 'constructor.py', '-N 1000', '-ages', '9', '10', '9', '-i', '1', '2'])
 subprocess.call([sys.executable, 'constructor.py', '-N 1000', '-relN', '5', '4', '2', '-axes', '1', '2', '5', '2', '2', '1'])
 ##
@@ -1682,7 +1682,7 @@ src = sim.source.stars(mags=list(astobj.app_mag[2]), x=x_as, y=y_as, filter_name
 sim.run(src, filename='data\my_first_sim.fits', mode='wide', SCOPE_PSF_FILE='scao', detector_layout='centre', filter_name='Ks', OBS_EXPTIME=2400, OBS_NDIT=1)     # mode=['wide', 'zoom'], detector_layout=['small', 'centre', 'full'] (=FPA_CHIP_LAYOUT)
 
 fh.PlotFits('my_first_sim.fits')
-# fh.PrintHdr('my_first_sim.fits')
+# fh.print_hdr('my_first_sim.fits')
 ##
 astobj = aoc.AstObject(N_obj=100000, age=[8], metal=[0.019], distance=10**6)
 
@@ -1737,15 +1737,15 @@ ax.invert_yaxis()
 plt.show()
 ##
 fig, ax = plt.subplots()
-ax.scatter( np.log10(spec_tbl[spec_tbl_names['Temp']]), conv.RadiusToGravity(spec_tbl[spec_tbl_names['Radius']], spec_tbl[spec_tbl_names['Mass']]) )
+ax.scatter(np.log10(spec_tbl[spec_tbl_names['Temp']]), conv.radius_to_gravity(spec_tbl[spec_tbl_names['Radius']], spec_tbl[spec_tbl_names['Mass']]))
 for i, type in enumerate(spec_tbl_types):
-    ax.annotate( type, xy=(np.log10(spec_tbl[spec_tbl_names['Temp'], i]), conv.RadiusToGravity(spec_tbl[spec_tbl_names['Radius']], spec_tbl[spec_tbl_names['Mass']])[i] ) )
+    ax.annotate(type, xy=(np.log10(spec_tbl[spec_tbl_names['Temp'], i]), conv.radius_to_gravity(spec_tbl[spec_tbl_names['Radius']], spec_tbl[spec_tbl_names['Mass']])[i]))
 ax.set_xlabel('temperature')
 ax.set_ylabel('log_g')
 ax.invert_xaxis()
 plt.show()
 ##
-ys = (conv.RadiusToGravity(spec_tbl[spec_tbl_names['Radius']], spec_tbl[spec_tbl_names['Mass']]) + np.log10(spec_tbl[spec_tbl_names['Luminosity']] + 1) )#/np.log(spec_tbl[spec_tbl_names['Temp']])**3
+ys = (conv.radius_to_gravity(spec_tbl[spec_tbl_names['Radius']], spec_tbl[spec_tbl_names['Mass']]) + np.log10(spec_tbl[spec_tbl_names['Luminosity']] + 1))#/np.log(spec_tbl[spec_tbl_names['Temp']])**3
 fig, ax = plt.subplots()
 ax.scatter( np.log10(spec_tbl[spec_tbl_names['Temp']]), ys)
 for i, type in enumerate(spec_tbl_types):
@@ -1850,7 +1850,7 @@ tree = sps.cKDTree(lonlat)
 ##
 astobj = aoc.AstObject(N_obj=10000, age=[8, 9, 10], metal=[0.019], distance=10**6)
 
-spectra = obg.FindSpectralType(astobj.log_Te, astobj.log_L, np.log10(astobj.M_cur))
+spectra = obg.find_spectral_type(astobj.log_Te, astobj.log_L, np.log10(astobj.M_cur))
 
 ##
 T, L, M, types = [], [], [], []
@@ -1914,16 +1914,16 @@ init_masses = np.arange(0.08, 200, 0.02)
 border_masses = np.array([0.85, 2.85, 3.6, 7.2, 11, 30, 50, 90])
 
 fig, ax = plt.subplots()
-ax.plot(init_masses, form.RemnantMass(init_masses), label='solar')
-ax.plot(init_masses, form.RemnantMass(init_masses, Z=0.014), label='0.014')
-ax.plot(init_masses, form.RemnantMass(init_masses, Z=0.008), label='0.008')
-ax.plot(init_masses, form.RemnantMass(init_masses, Z=0.001), label='0.001')
-ax.plot(init_masses, form.RemnantMass(init_masses, Z=0.0001), label='0.0001')
-# ax.scatter(border_masses, form.RemnantMass(border_masses), c='orange')
-# ax.scatter(border_masses, form.RemnantMass(border_masses, Z=0.014), c='orange')
-# ax.scatter(border_masses, form.RemnantMass(border_masses, Z=0.008), c='orange')
-# ax.scatter(border_masses, form.RemnantMass(border_masses, Z=0.001), c='orange')
-# ax.scatter(border_masses, form.RemnantMass(border_masses, Z=0.0001), c='orange')
+ax.plot(init_masses, form.remnant_mass(init_masses), label='solar')
+ax.plot(init_masses, form.remnant_mass(init_masses, Z=0.014), label='0.014')
+ax.plot(init_masses, form.remnant_mass(init_masses, Z=0.008), label='0.008')
+ax.plot(init_masses, form.remnant_mass(init_masses, Z=0.001), label='0.001')
+ax.plot(init_masses, form.remnant_mass(init_masses, Z=0.0001), label='0.0001')
+# ax.scatter(border_masses, form.remnant_mass(border_masses), c='orange')
+# ax.scatter(border_masses, form.remnant_mass(border_masses, Z=0.014), c='orange')
+# ax.scatter(border_masses, form.remnant_mass(border_masses, Z=0.008), c='orange')
+# ax.scatter(border_masses, form.remnant_mass(border_masses, Z=0.001), c='orange')
+# ax.scatter(border_masses, form.remnant_mass(border_masses, Z=0.0001), c='orange')
 ax.set_xlabel('Initial Mass (M_sun)')
 ax.set_ylabel('Final Mass (M_sun)')
 plt.legend()
@@ -1977,13 +1977,13 @@ plt.show()
 
 ## Remnant Temperatures
 M1 = np.append(np.linspace(0.1, 1.456, 20), np.logspace(2.0, 10**3, 20))
-R1 = form.RemnantRadius(M1)
+R1 = form.remnant_radius(M1)
 t_c = np.logspace(-1, 12, 1000)
 T1 = np.zeros([0,len(t_c)])
 for M, R in zip(M1, R1):
     Mass = np.array([M for i in range(len(t_c))])
     Radius = np.array([R for i in range(len(t_c))])
-    T1 = np.append(T1, [form.RemnantTeff(Mass, Radius, t_c)], axis=0)
+    T1 = np.append(T1, [form.remnant_temperature(Mass, Radius, t_c)], axis=0)
 
 fig, ax = plt.subplots()
 for T in T1:
@@ -1997,7 +1997,7 @@ L1 = np.zeros([0,len(t_c)])
 for M, R in zip(M1, R1):
     Mass = np.array([M for i in range(len(t_c))])
     Radius = np.array([R for i in range(len(t_c))])
-    L1 = np.append(L1, [form.BBLuminosity(Radius, form.RemnantTeff(Mass, Radius, t_c))], axis=0)
+    L1 = np.append(L1, [form.bb_luminosity(Radius, form.remnant_temperature(Mass, Radius, t_c))], axis=0)
 
 fig, ax = plt.subplots()
 for L in L1:
@@ -2025,7 +2025,7 @@ plt.show()
 
 
 
-## distance measures
+## distance_3d measures
 H0 = 67.                    # km/s/Mpc
 c = 3*10**5                 # km/s
 d_H = c/H0                  # Mpc
@@ -2108,7 +2108,7 @@ plt.show()
 
 ##
 wavel = np.arange(0.3, 3.0, 0.01)*10**-6
-flux = form.PlanckBB(wavel, 5000, var='wavl')
+flux = form.plank_bb(wavel, 5000, var='wavl')
 
 
 fig, ax = plt.subplots()
@@ -2222,7 +2222,7 @@ plt.show()
 ##
 astobj = obg.AstObject(N_obj=10**6, age=[8], metal=[0.014], distance=10**4)
 
-vis.HRD(10**astobj.log_Te, astobj.log_L)
+vis.hr_diagram(10 ** astobj.log_Te, astobj.log_L)
 
 ## core - half light radius relation
 r_par = np.arange(0.1, 20, 0.3)
@@ -2232,8 +2232,8 @@ r_light_age = []
 for age in ages:
     r_light = []
     for r in r_par:
-        astobj = obg.AstObject(N_obj=10**5, age=[8], metal=[0.014], distance=10**4, r_dist='KingGlobular', r_dist_par=r)
-        r_light.append(astobj.HalfLumRadius(spher=False))
+        astobj = obg.AstObject(N_obj=10**5, age=[8], metal=[0.014], distance=10**4, r_dist='king_globular', r_dist_par=r)
+        r_light.append(astobj.half_lum_radius(spher=False))
         
     r_light_age.append(r_light)
 
@@ -2292,15 +2292,15 @@ par_grid[:, 0:2] = np.log10(par_grid[:, 0:2])
 
 def objsaver(pars):
     M, D, r = pars              # M, D in 10log
-    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r)
-    astobj.SaveTo('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r)
+    astobj.save_to('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     return
     
 def imgsaver(pars):
     M, D, r = pars              # M, D in 10log
-    astobj = obg.AstObject.LoadFrom('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+    astobj = obg.AstObject.load_from('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     src = img.MakeSource(astobj, filter='J')
-    image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+    image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     return
     
     
@@ -2310,13 +2310,13 @@ for pars in par_grid[par_grid[:,0] < 6.7]:
     objsaver(pars)
     
 ## tests (something is broken)
-mag = form.ApparentMag([-2], 10**6)
+mag = form.apparent_magnitude([-2], 10**6)
 src = sim.source.stars(mags=[mag], x=[0], y=[0], filter_name='Ks', spec_types='M8IV')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter='Ks', ao_mode='scao', filename='img_test_save')
 fh.PlotFits('img_test_save')
 ##
 # 41274 and up is broken (only shows noise at that point)  [edit: not true]
-astobj = obg.AstObject(N_obj=4*10**4, age=[10], metal=[0.0014], distance=10**5, r_dist='KingGlobular', r_dist_par=0.01)
+astobj = obg.AstObject(N_obj=4*10**4, age=[10], metal=[0.0014], distance=10**5, r_dist='king_globular', r_dist_par=0.01)
 src = img.MakeSource(astobj, filter='Ks')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter='Ks', ao_mode='scao', filename='img_test_save')
 fh.PlotFits('img_test_save')
@@ -2338,7 +2338,7 @@ magnitudes = np.linspace(15, 18, n)                    # breaks at a magnitude b
 src = sim.source.stars(mags=magnitudes, x=xs, y=ys, filter_name=filter, spec_types=['M0V'])
 
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='scao', filename='img_test_save')
-fh.PlotFits('img_test_save')
+fh.plot_fits('img_test_save')
 
 ##
 filter = 'Ks'
@@ -2357,7 +2357,7 @@ src = sim.source.stars(mags=magnitudes[mask],
                         spec_types=astobj.spec_names[astobj.spec_types][mask])
 
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='scao', filename='img_test_save')
-fh.PlotFits('img_test_save')
+fh.plot_fits('img_test_save')
 
 ##
 # load any astobj
@@ -2383,7 +2383,7 @@ magnitudes = magnitudes = np.linspace(14, 15, n)
 src = sim.source.stars(mags=magnitudes[mask], x=xs[mask], y=ys[mask], filter_name=filter, spec_types=types[mask])
 
 # image = sim.run(src, 
-#                 filename='data\\img_test_save.fits', 
+#                 file_name='data\\img_test_save.fits',
 #                 mode='wide', 
 #                 detector_layout='small', 
 #                 filter_name=filter, 
@@ -2396,7 +2396,7 @@ src = sim.source.stars(mags=magnitudes[mask], x=xs[mask], y=ys[mask], filter_nam
 #                 FPA_USE_NOISE = "no",
 #                 FPA_LINEARITY_CURVE = "none" )
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='scao', filename='img_test_save.fits')
-fh.PlotFits('img_test_save.fits')
+fh.plot_fits('img_test_save.fits')
 
 ##
 # import multiprocessing as mp
@@ -2414,10 +2414,10 @@ hdul = fits.open('data\\EC_pickles.fits')
 hdul.writeto('data\\EC_pickles2.fits')
 ##
 # look into src.spectra --> lots of nan's
-astobj = obg.AstObject(N_obj=4*10**4, age=[10], metal=[0.0014], distance=10**5, r_dist='KingGlobular', r_dist_par=0.01)
+astobj = obg.AstObject(N_obj=4*10**4, age=[10], metal=[0.0014], distance=10**5, r_dist='king_globular', r_dist_par=0.01)
 src = img.MakeSource(astobj, filter='Ks')
 image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter='Ks', ao_mode='scao', filename='img_test_save')
-fh.PlotFits('img_test_save')
+fh.plot_fits('img_test_save')
 
 # float32 turned into float64 --> fixed!!
 
@@ -2499,16 +2499,16 @@ ax.set_ylabel('relative number')
 plt.show()
 
 ##
-# new function MassFraction
+# new function mass_fraction_from_limits
 masses = np.arange(0.08, 100, 0.01)
 
 fig, ax = plt.subplots()
 frac1 = []
 frac2 = []
 for m in masses:
-    frac1.append(form.MassFraction([m, 150], mass=[0.08, 150]))
+    frac1.append(form.mass_fraction_from_limits([m, 150], mass=[0.08, 150]))
 for m in masses:
-    frac2.append(form.MassFraction([0.1, m], mass=[0.08, 150]))
+    frac2.append(form.mass_fraction_from_limits([0.1, m], mass=[0.08, 150]))
 ax.plot(masses, frac1)
 ax.plot(masses, frac2)
 ax.set_xlabel('M (Msun)')
@@ -2634,8 +2634,8 @@ magnitudes = np.linspace(25, 29, n)
 
 src = sim.source.stars(mags=magnitudes, x=xs, y=ys, filter_name=filter, spec_types=['M0V'])
 
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='scao', filename='img_test_save')
-fh.PlotFits('img_test_save')
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='small', filter=filter, ao_mode='scao', file_name='img_test_save')
+fh.plot_fits('img_test_save')
 
 ## AO tests (comparison)
 import numpy as np
@@ -2656,12 +2656,12 @@ magnitudes = np.linspace(12, 18, n)
 
 src = sim.source.stars(mags=magnitudes, x=xs, y=ys, filter_name=filter, spec_types=['M0V'])
 
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits', filename='img_test_save')
-fh.PlotFits('img_test_save', scale='lin', grid=False)
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='small', filter=filter, ao_mode='PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits', file_name='img_test_save')
+fh.plot_fits('img_test_save', scale='lin', grid=False)
 
 
 ##
-abs_mag_lim = form.AbsoluteMag(28, 2*10**8, ext=0)
+abs_mag_lim = form.absolute_magnitude(28, 2*10**8, ext=0)
 # bolometric correction is added the second time, when an estimate for Teff is known
 lum_lim = conv.MagnitudeToLuminosity(abs_mag_lim)
 mass_lim = conv.LuminosityToMass(lum_lim, mass=[0.08, 150])
@@ -2675,7 +2675,7 @@ mag_BC = obg.BolometricCorrection(conv.MassToTemperature(mass_limit, lum_lim))
 bol_mag_lim = abs_mag_lim + mag_BC
 lum_lim = conv.MagnitudeToLuminosity(bol_mag_lim)
 mass_limit2 = conv.LuminosityToMass(lum_lim, mass=[0.08, 150])
-# fraction_generate = form.MassFraction(mass_limit, mass=[0.08, 150])
+# fraction_generate = form.mass_fraction_from_limits(mass_limit, mass=[0.08, 150])
 print(mass_lim, mass_limit, mass_limit2)
     # remove BC?
     
@@ -2706,60 +2706,60 @@ mag_lim = 29
 dists = np.logspace(1, 8, 10**3)
 M_lim = []
 for d in dists:
-    abs_mag = form.AbsoluteMag(mag_lim, d)
+    abs_mag = form.absolute_magnitude(mag_lim, d)
     mask = (mag[-1] < abs_mag + 0.1) #& (mag[-1] > abs_mag - 0.1)
     if not mask.any():
         mask = (mag[-1] == np.min(mag[-1]))
-        print('compacting will not work, distance too large.')
+        print('compacting will not work, distance_3d too large.')
     M_lim.append(M_ini[mask][0])
 
 
 fig, ax = plt.subplots()
 ax.plot(dists, M_lim)
-ax.set_xlabel('distance (pc)')
+ax.set_xlabel('distance_3d (pc)')
 ax.set_ylabel('limiting mass (Msun)')
 # ax.loglog()
 plt.show()
 
 ## testing astobj with compact
-astobj = obg.AstObject(N_obj=4*10**4, age=[6], metal=[0.0014], distance=10**8, r_dist='KingGlobular', r_dist_par=0.01, compact=True)
+astobj = obg.AstObject(N_obj=4*10**4, age=[6], metal=[0.0014], distance=10**8, r_dist='king_globular', r_dist_par=0.01, compact=True)
 
 print(astobj.N_obj, len(astobj.M_init))
 ##
-astobj = obg.AstObject(N_obj=10**9, age=[6], metal=[0.0014], distance=10**8, r_dist='KingGlobular', r_dist_par=0.01, compact=True)
+astobj = obg.AstObject(N_obj=10**9, age=[6], metal=[0.0014], distance=10**8, r_dist='king_globular', r_dist_par=0.01, compact=True)
 
 print(astobj.N_obj, len(astobj.M_init))
 
 ##
 M, D, r = np.log10(5*10**6), np.log10(0.8*10**6), 0.345              # M, D in 10log
-astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r)
-astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r)
+astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
-fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
 # zoom
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom'.format(M, D, r))
-# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom'.format(M, D, r), grid=False)
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='zoom', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom'.format(M, D, r))
+# fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom'.format(M, D, r), grid=False)
 ##
-astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, mag_lim=29, compact=True)
-astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r))
+astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, mag_lim=29, compact=True)
+astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r))
-fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r), grid=False)
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r))
+fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r), grid=False)
 # zoom
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom-compact'.format(M, D, r))
-# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom-compact'.format(M, D, r), grid=False)
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='zoom', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom-compact'.format(M, D, r))
+# fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom-compact'.format(M, D, r), grid=False)
 
 ##
 # D = np.log10(8*10**5)
-astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True)
-astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r))
+astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, compact=True)
+astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r))
-fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r), grid=False)
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r))
+fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r), grid=False)
 # zoom
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-zoom-compact'.format(M, D, r))
-# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-zoom-compact'.format(M, D, r), grid=False)
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='zoom', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-zoom-compact'.format(M, D, r))
+# fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-zoom-compact'.format(M, D, r), grid=False)
 
 
 
@@ -2793,36 +2793,36 @@ ax.set_ylabel('luminosity * IMF')
 # ax.loglog()
 plt.show()
 
-print(form.MassFraction([M_lim, M_ini[-1]]))
+print(form.mass_fraction_from_limits([M_lim, M_ini[-1]]))
 
 ##
 M, D, r = np.log10(5*10**6), np.log10(15*10**6), 0.345              # M, D in 10log
-astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True, tot_lum=True)
-astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r))
+astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, compact=True, tot_lum=True)
+astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r))
-fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r), grid=False)
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r))
+fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r), grid=False)
 # zoom
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-zoom-compact'.format(M, D, r))
-# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-zoom-compact'.format(M, D, r), grid=False)
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='zoom', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-zoom-compact'.format(M, D, r))
+# fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-zoom-compact'.format(M, D, r), grid=False)
 
 ##
 # static mag lim
 M, D, r = np.log10(5*10**6), np.log10(0.8*10**6), 0.345              # M, D in 10log
-astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True)
-astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r))
+astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, compact=True)
+astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r))
-fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r), grid=False)
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r))
+fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r), grid=False)
 # zoom
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-zoom-compact'.format(M, D, r))
-# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-zoom-compact'.format(M, D, r), grid=False)
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='zoom', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-zoom-compact'.format(M, D, r))
+# fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-zoom-compact'.format(M, D, r), grid=False)
 
 ## masslimit by number
 frac = np.arange(1, 0, -0.001)
 mass = []
 for f in frac:
-    mass.append(form.MassLimit(f))
+    mass.append(form.mass_limit_from_fraction(f))
 
 fig, ax = plt.subplots()
 ax.plot(frac, mass)
@@ -2834,25 +2834,25 @@ plt.show()
 ##
 # number lim
 M, D, r = np.log10(5*10**6), np.log10(0.8*10**6), 0.345              # M, D in 10log
-astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True, cp_mode='num')
-astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r))
+astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, compact=True, cp_mode='num')
+astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r))
-fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r), grid=False)
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r))
+fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r), grid=False)
 # zoom
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(M, D, r))
-# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(M, D, r), grid=False)
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='zoom', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(M, D, r))
+# fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(M, D, r), grid=False)
 
 ##
 N, D, r = np.log10(2*10**8), np.log10(15*10**6), 0.345              # M, D in 10log
-astobj = obg.AstObject(N_obj=10**N, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r, compact=True, cp_mode='num')
-astobj.SaveTo('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r))
+astobj = obg.AstObject(N_obj=10**N, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, compact=True, cp_mode='num')
+astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r))
 src = img.MakeSource(astobj, filter='J')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r))
-fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r), grid=False)
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r))
+fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r), grid=False)
 # zoom
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(N, D, r))
-# fh.PlotFits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(N, D, r), grid=False)
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='zoom', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(N, D, r))
+# fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(N, D, r), grid=False)
 
 
 
@@ -2868,9 +2868,9 @@ def GetData(filename, index=0):
 
 M, D, r = par_grid[-10]
 
-astobj = obg.AstObject.LoadFrom('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+astobj = obg.AstObject.load_from('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 ##
 
 def SaveFitsPlot(filename, index=0, colours='gray', grid=True):
@@ -2926,8 +2926,8 @@ par_grid[:, 0:2] = np.log10(par_grid[:, 0:2])
 
 def objsaver(pars):
     M, D, r = pars              # M, D in 10log
-    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r)
-    astobj.SaveTo('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r)
+    astobj.save_to('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     return
     
 def imgsaver(pars, int=None, ret_int=False):
@@ -2935,19 +2935,19 @@ def imgsaver(pars, int=None, ret_int=False):
     f = 'J'
     view='zoom'                 # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
     chip='full'                 # read out, small middle bit, centre chip or full detector
-    exp = 1800                  # exposure time in s
+    exp = 1800                  # exp_time time in s
     
     obj_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r)
     img_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, f)
     
-    astobj = obg.AstObject.LoadFrom(obj_name)
+    astobj = obg.AstObject.load_from(obj_name)
     src = img.MakeSource(astobj, filter=f)
     if ret_int:
-        image, internals = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode='scao', filename=img_name, return_int=ret_int)
+        image, internals = img.MakeImage(src, exp_time=1800, ndit=1, fov=view, chip=chip, filter=f, ao_mode='scao', file_name=img_name, return_int=ret_int)
     else:
-        image = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode='scao', filename=img_name, internals=int)
+        image = img.MakeImage(src, exp_time=1800, ndit=1, fov=view, chip=chip, filter=f, ao_mode='scao', file_name=img_name, internals=int)
         
-    # fh.SaveFitsPlot(img_name, grid=False)
+    # fh.save_fits_plot(img_name, grid=False)
     
     if ret_int:
         return internals
@@ -2979,17 +2979,17 @@ print(astobj.natural_guide_stars)
 
 ## zoom in for grid-7.004-5.903-2.069
 M, D, r = 7.004,  5.903, 2.069
-fh.PlotFits('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
+fh.plot_fits('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
 
 ## more filters for grid-7.004-5.903-2.069
 M, D, r = 7.004,  5.903, 2.069
-astobj = obg.AstObject.LoadFrom('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+astobj = obg.AstObject.load_from('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 filters = ['U', 'B', 'V', 'R', 'I', 'H', 'Ks']
 
 for fil in filters:
     src = img.MakeSource(astobj, filter=fil)
-    image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=fil, ao_mode='scao', filename='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, fil))
-    fh.PlotFits('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, fil), grid=False)
+    image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter=fil, ao_mode='scao', file_name='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, fil))
+    fh.plot_fits('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, fil), grid=False)
 
 ## RGB
 # http://docs.astropy.org/en/stable/visualization/rgb.html
@@ -3002,9 +3002,9 @@ import img_scale    # download from https://www.astrobetter.com/wiki/tiki-index.
 
 M, D, r = 7.004,  5.903, 2.069                                                                      # try: I, J, H, Ks
 
-R_data = fh.GetData('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-Ks'.format(M, D, r))
-G_data = fh.GetData('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-H'.format(M, D, r))
-B_data = fh.GetData('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+R_data = fh.get_data('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-Ks'.format(M, D, r))
+G_data = fh.get_data('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-H'.format(M, D, r))
+B_data = fh.get_data('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 ##
 img = np.zeros((R_data.shape[0], R_data.shape[1], 3), dtype=float)
 
@@ -3069,8 +3069,8 @@ par_grid[:, 0:2] = np.log10(par_grid[:, 0:2])
 
 def objsaver(pars):
     M, D, r = pars              # M, D in 10log
-    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='KingGlobular', r_dist_par=r)
-    astobj.SaveTo('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+    astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r)
+    astobj.save_to('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     return
     
 def imgsaver(pars, int=None, ret_int=False):
@@ -3078,20 +3078,20 @@ def imgsaver(pars, int=None, ret_int=False):
     f = 'Ks'
     view='wide'                 # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
     chip='centre'               # read out, small middle bit, centre chip or full detector
-    exp = 1800                  # exposure time in s
+    exp = 1800                  # exp_time time in s
     ao = 'PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits' # ao mode
     
     obj_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r)
     img_name = 'grid-fv-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, f)
     
-    astobj = obg.AstObject.LoadFrom(obj_name)
+    astobj = obg.AstObject.load_from(obj_name)
     src = img.MakeSource(astobj, filter=f)
     if ret_int:
-        image, internals = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, return_int=ret_int)
+        image, internals = img.MakeImage(src, exp_time=1800, ndit=1, fov=view, chip=chip, filter=f, ao_mode=ao, file_name=img_name, return_int=ret_int)
     else:
-        image = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, internals=int)
+        image = img.MakeImage(src, exp_time=1800, ndit=1, fov=view, chip=chip, filter=f, ao_mode=ao, file_name=img_name, internals=int)
         
-    fh.SaveFitsPlot(img_name, grid=False)
+    fh.save_fits_plot(img_name, grid=False)
     
     if ret_int:
         return internals
@@ -3504,11 +3504,11 @@ filter = 'J'
 # src = sim.source.star_grid(n=16, mag_min=18, mag_max=20, filter_name=filter, separation=0.9, spec_type='M0V')
 src = sim.source.star(mag=16, filter_name=filter, spec_type='M0V')
 
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename='img_test_save') # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
-fh.PlotFits('img_test_save', scale='lin', grid=False)
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter=filter, ao_mode='scao', file_name='img_test_save') # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
+fh.plot_fits('img_test_save', scale='lin', grid=False)
 ## make the epsf
 # identify the stars and their initial positions
-img_data = fh.GetData('psf_image_H.fits')
+img_data = fh.get_data('psf_image_H.fits')
 
 peaks_tbl = phu.find_peaks(img_data, threshold=131050., box_size=11)
                            
@@ -3588,12 +3588,12 @@ import fitshandler as fh
 ## first make a test image
 filter = 'J'
 src = sim.source.star_grid(n=25, mag_min=18, mag_max=22, filter_name=filter, separation=1.3, spec_type='M0V')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename='img_test_save') # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter=filter, ao_mode='scao', file_name='img_test_save') # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
 
 # show the image
 image_name = 'img_test_save' # 'grid-5.000-5.903-2.069'
-fh.PlotFits(image_name, scale='sqrt', grid=False)
-img_data = fh.GetData(image_name)
+fh.plot_fits(image_name, scale='sqrt', grid=False)
+img_data = fh.get_data(image_name)
 
 ## open the epsf
 with open(os.path.join('objects', 'epsf-scao.pkl'), 'rb') as input:
@@ -3601,8 +3601,8 @@ with open(os.path.join('objects', 'epsf-scao.pkl'), 'rb') as input:
     
 # get the test image
 image_name = 'grid-5.000-5.903-0.345-H'
-fh.PlotFits(image_name, scale='sqrt', grid=False)
-img_data = fh.GetData(image_name)
+fh.plot_fits(image_name, scale='sqrt', grid=False)
+img_data = fh.get_data(image_name)
 
 ## do photometry
 sigma_psf = 4.0
@@ -3644,8 +3644,8 @@ import astropy as apy
 import astropy.modeling as apm
 
 image_name = 'img_test_save' # 'grid-5.000-5.903-2.069'
-fh.PlotFits(image_name, scale='sqrt', grid=False)
-img_data = fh.GetData(image_name)
+fh.plot_fits(image_name, scale='sqrt', grid=False)
+img_data = fh.get_data(image_name)
 
 ## 
 sigma_psf = 2.0
@@ -3682,11 +3682,11 @@ image_name = 'psf_image_' + filter
 
 src = sim.source.star_grid(n=36, mag_min=22.6, mag_max=23.2, filter_name=filter, separation=1.3, spec_type='M0V')
 # src += sim.source.star(mag=21, filter_name=filter, spec_type='M0V')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename=image_name) # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter=filter, ao_mode='scao', file_name=image_name) # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
 
 # show the image
-fh.PlotFits(image_name, scale='log', grid=False)
-img_data = fh.GetData(image_name)
+fh.plot_fits(image_name, scale='log', grid=False)
+img_data = fh.get_data(image_name)
 
 ## find stars (same as above)
 sigma_psf = 8.2
@@ -3750,9 +3750,9 @@ def EPSFMaker(mag):
     # src = sim.source.star_grid(n=16, mag_min=18, mag_max=20, filter_name=filter, separation=0.9, spec_type='M0V')
     src = sim.source.star(mag=mag, filter_name=filter, spec_type='M0V')
     
-    image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename='img_test_save_m{0}'.format(mag)) # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
+    image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter=filter, ao_mode='scao', file_name='img_test_save_m{0}'.format(mag)) # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
     # identify the stars and their initial positions
-    img_data = fh.GetData('img_test_save_m{0}'.format(mag))
+    img_data = fh.get_data('img_test_save_m{0}'.format(mag))
     peaks_tbl = phu.find_peaks(img_data, threshold=120000., box_size=11)
     peaks_tbl['peak_value'].info.format = '%.8g'  # for consistent table output
     # [alter peak values to exact ones]
@@ -3803,7 +3803,7 @@ import astropy.table as apta
 
 def EPSFMaker(filter):
     # identify the stars and their initial positions
-    img_data = fh.GetData('psf_image_{0}'.format(filter))
+    img_data = fh.get_data('psf_image_{0}'.format(filter))
     peaks_tbl = phu.find_peaks(img_data, threshold=120000., box_size=11)
     peaks_tbl['peak_value'].info.format = '%.8g'  # for consistent table output
     # extract cutouts of the stars using the extract_stars() function
@@ -3869,7 +3869,7 @@ m24: 70000 to -7000
 # get the test image
 filter = 'Ks'
 image_name = 'img_test_save_' + filter
-img_data = fh.GetData(image_name)
+img_data = fh.get_data(image_name)
 
 with open(os.path.join('objects', 'epsf-scao-{0}-m18.pkl'.format(filter)), 'rb') as input:
     epsf = pickle.load(input)
@@ -3920,7 +3920,7 @@ import fitsanalyser as fa
 
 filter = 'Ks'
 image_name = 'grid-5.000-5.903-0.345-' + filter
-img_data = fh.GetData(image_name)
+img_data = fh.get_data(image_name)
 result_tab, result_tab_redux = fa.DoPhotometry(img_data, filter=filter, show=True)
 
 ## build my own itterative photometry
@@ -3944,7 +3944,7 @@ print('start the clock')
 
 filter = 'Ks'
 image_name = 'grid-5.000-5.903-0.345-' + filter
-img_data = fh.GetData(image_name)
+img_data = fh.get_data(image_name)
 
 with open(os.path.join('objects', 'epsf-scao-{0}.pkl'.format(filter)), 'rb') as input:
     epsf = pickle.load(input)
@@ -4023,7 +4023,7 @@ print('End residual image. Elapsed time = {0}'.format(t6 - t5))
 ##
 filter = 'Ks'
 image_name = 'grid-5.000-5.903-0.345-' + filter
-img_data = fh.GetData(image_name)
+img_data = fh.get_data(image_name)
 
 with open(os.path.join('objects', 'epsf-scao-{0}-m18.pkl'.format(filter)), 'rb') as input:
     epsf = pickle.load(input)
@@ -4080,20 +4080,20 @@ def imgsaver(pars, int=None, ret_int=False):
     f = 'Ks'
     view='wide'                 # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
     chip='centre'               # read out, small middle bit, centre chip or full detector
-    exp = 14400                  # exposure time in s
+    exp = 14400                  # exp_time time in s
     ao = 'scao' # ao mode PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
     
     obj_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r)
     img_name = 'grid-long-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, f)
     
-    astobj = obg.AstObject.LoadFrom(obj_name)
+    astobj = obg.AstObject.load_from(obj_name)
     src = img.MakeSource(astobj, filter=f)
     if ret_int:
-        image, internals = img.MakeImage(src, exposure=exp, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, return_int=ret_int)
+        image, internals = img.MakeImage(src, exp_time=exp, ndit=1, fov=view, chip=chip, filter=f, ao_mode=ao, file_name=img_name, return_int=ret_int)
     else:
-        image = img.MakeImage(src, exposure=exp, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, internals=int)
+        image = img.MakeImage(src, exp_time=exp, ndit=1, fov=view, chip=chip, filter=f, ao_mode=ao, file_name=img_name, internals=int)
         
-    fh.SaveFitsPlot(img_name, grid=False)
+    fh.save_fits_plot(img_name, grid=False)
     
     if ret_int:
         return internals
@@ -4119,7 +4119,7 @@ def T2(t):
 
 R = 1.58*10**-5
 M = 1.4
-log_g = conv.RadiusToGravity(R, M)
+log_g = conv.radius_to_gravity(R, M)
 time = np.logspace(1, 8, 1000)
 
 T_1 = T1(time, M, R, log_g, 2e-6, 10**-50)
@@ -4194,28 +4194,28 @@ plt.show()
 integral = np.trapz(PlanckBB(lam_arr, 5770, var='wavl'), x=lam_arr)                                 # W/sr^1/m^2
 intensity = np.pi*integral                                                                          # W/m^2
 luminosity = intensity*4*np.pi*(R_sun)**2                                                           # W
-magnitude = conv.LumToMag(luminosity/L_sun)
+magnitude = conv.lum_to_mag(luminosity/L_sun)
 print('M_bol sun: ', magnitude) 
 
 integral = PlanckBB(phot_dat['mean'], 5770, var='wavl')*phot_dat['width']                                  # W/sr^1/m^2
 intensity = np.pi*integral                                                                          # W/m^2
 luminosity = intensity*4*np.pi*(R_sun)**2                                                           # W
-magnitude = conv.LumToMag(luminosity/L_sun)
+magnitude = conv.lum_to_mag(luminosity/L_sun)
 print(', '.join(['{0}= {1}'.format(name, num) for name,num in zip(phot_dat['alt_name'], magnitude)]))
 print('')
 
 lam_arr = np.linspace(phot_dat['mean']-phot_dat['width']/2, phot_dat['mean']+phot_dat['width']/2, 10).T
 # lam_arr = lam_arr[0]
 temps = np.array([5000, 5300, 5770, 6000])
-integral = np.trapz(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*len(np.shape(lam_arr))), var='wavl'), x=lam_arr, axis=-1)      # W/sr^1/m^2
+integral = np.trapz(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*np.ndim(lam_arr)), var='wavl'), x=lam_arr, axis=-1)      # W/sr^1/m^2
 intensity = np.pi*integral                                                                          # W/m^2
 luminosity = intensity*4*np.pi*(np.array([1,2,1,1]).reshape((4,) + (1,)*(len(phot_dat['mean']) > 1))*R_sun)**2                                                           # W
-magnitude = conv.LumToMag(luminosity/L_sun)
+magnitude = conv.lum_to_mag(luminosity/L_sun)
 print(magnitude)
 # print(', '.join(['{0}= {1}'.format(name, num) for name,num in zip(phot_dat['alt_name'], magnitude)]))
 
 temps = np.array([5770])
-spec_radiance = np.mean(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*len(np.shape(lam_arr))), var='wavl'), axis=-1)     # W/sr^1/m^3
+spec_radiance = np.mean(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*np.ndim(lam_arr)), var='wavl'), axis=-1)     # W/sr^1/m^3
 spec_flux = np.pi*spec_radiance                                                                     # W/m^3
 # translation to 10 pc
 integrated = spec_flux*(np.array([1,2,1,1]).reshape((4,) + (1,)*(len(phot_dat['mean']) > 1))*R_sun)**2
@@ -4225,7 +4225,7 @@ print(magnitude)
 
 # try integrated, then divided by filter width [does not change it much]
 temps = np.array([5770])
-spec_radiance = np.trapz(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*len(np.shape(lam_arr))), var='wavl'), x=lam_arr, axis=-1)/phot_dat['width']     # W/sr^1/m^3
+spec_radiance = np.trapz(PlanckBB(lam_arr, temps.reshape((len(temps),) + (1,)*np.ndim(lam_arr)), var='wavl'), x=lam_arr, axis=-1)/phot_dat['width']     # W/sr^1/m^3
 spec_flux = np.pi*spec_radiance                                                                     # W/m^3
 # translation to 10 pc
 integrated = spec_flux*(np.array([1,2,1,1]).reshape((4,) + (1,)*(len(phot_dat['mean']) > 1))*R_sun)**2
@@ -4251,8 +4251,112 @@ ax.plot(phot_data['mean'][mask], with_rs[nr])
 ax.invert_yaxis()
 plt.show()
 
+## test star addition
+stars1 = obg.Stars(n_stars=1000, ages=10, metal=0.0014)
+stars2 = obg.Stars(n_stars=1000, ages=10, metal=0.0014)
+s3 = stars1 + stars2
+
+
+## star formation history
+def StarFormHistory(max_age, min_age=0, Z=0.014, sfr='exp', tau=1e10):
+    """Finds the relative number of stars to give each (logarithmic) age step up to a 
+    maximum given age (starting from a minimum age if desired).
+    The star formation rate (sfr) can be 'exp' or 'lin-exp'.
+    tau is the decay timescale of the star formation (in yr).
+    """
+    if np.all(max_age > 12):                                                                        # determine if logarithm or not
+        max_age = np.log10(max_age)
+    if np.all(min_age > 12):
+        max_age = np.log10(max_age)
+    
+    if hasattr(max_age, '__len__'):
+        # if more that one age given, fix other qtt's and solve recursively
+        if not hasattr(min_age, '__len__'):
+            min_age = np.full_like(max_age, min_age)
+        if not hasattr(Z, '__len__'):
+            Z = np.full_like(max_age, Z)
+        if isinstance(sfr, str):
+            sfr = np.full_like(max_age, sfr, dtype='U10')
+        if not hasattr(tau, '__len__'):
+            tau = np.full_like(max_age, tau)
+        
+        rel_num = np.array([])
+        log_ages_used = np.array([])
+        r_temp, a_temp = StarFormHistory(max_age[0], min_age=min_age[0], Z=Z[0], sfr=sfr[0], 
+                                         tau=tau[0])
+        rel_num = np.append(rel_num, r_temp)
+        log_ages_used = np.append(log_ages_used, a_temp)
+        if (len(max_age) > 1):
+            r_temp, a_temp = StarFormHistory(max_age[1:], min_age=min_age[1:], Z=Z[1:], 
+                                             sfr=sfr[1:], tau=tau[1:])
+            rel_num = np.append(rel_num, r_temp)
+            log_ages_used = np.append(log_ages_used, a_temp)
+    else:
+        # here is the actual functionality
+        log_ages = np.unique(utils.open_isochrones_file(Z, columns=['log_age']))                      # avaiable ages
+        uni_log_ages = np.unique(log_ages)
+        log_ages_used = uni_log_ages[(uni_log_ages <= max_age) & (uni_log_ages >= min_age)]         # log t's to use (between min/max ages)
+        ages_used = 10**log_ages_used                                                               # age of each SSP
+    
+        if (sfr == 'exp'):
+            psi = np.exp((ages_used - min_age)/tau)                                                 # Star formation rates (relative)
+        elif(sfr == 'lin-exp'):
+            t0 = 10**np.max(uni_log_ages)                                                           # represents the start of time
+            psi = (t0 - ages_used - min_age)/tau*np.exp((ages_used - min_age)/tau)                  # Star formation rates (relative)
+        else:
+            # for when None is given
+            log_ages_used = max_age
+            psi = 1
+        rel_num = psi/np.sum(psi)                                                                   # relative number in each generation
+    return rel_num, log_ages_used
+
+sfh1, t1 = StarFormHistory(10**9, sfr='exp', tau=1e9)
+sfh2, t2 = StarFormHistory(10**10, sfr='lin-exp', tau=5e9)
+sfh3, t3 = StarFormHistory(10**10, sfr='exp')
+fig, ax = plt.subplots(figsize=(5, 5), squeeze=True)
+ax.plot(t1, (sfh1))
+ax.plot(t2, (sfh2))        # something is not right: I expect it to increase from oldest age to youngest
+ax.plot(t3, (sfh3))
+plt.show()
+
+# https://arxiv.org/pdf/1404.0402.pdf
+
+
+## deconvolve an image
+astobj = obg.AstronomicalObject(n_stars=[1000], ages=[9], metal=[0.0014], distance=1e5, r_dist='king_globular')
+f = 'Ks'
+view = 'wide'  # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
+chip = 'centre'  # read out, small middle bit, centre chip or full detector
+exp = 14400  # exp_time time in s
+ao = 'scao'  # ao mode PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
+img_name = 'conv_test'
+src = img.MakeSource(astobj, filter=f)
+image = img.MakeImage(src, exp_time=exp, ndit=1, fov=view, chip=chip, filter=f, ao_mode=ao, file_name=img_name,
+                      internals=int)
+
+## test isoc object
+astobj = obg.AstronomicalObject(n_stars=[1000], ages=[9], metal=[0.0014], distance=1e5, r_dist='king_globular')
+isoc = utils.isochrone_data([1000], [9], [0.0014])
+interp = isoc.interpolate('M_current', astobj.stars.M_init, right=0)
+ast_masses = astobj.stars.current_masses(realistic_remnants=False)
+if np.allclose(interp, ast_masses):
+    print('success')
+interp = isoc.interpolate_1d(['U', 'V', 'B'], astobj.stars.M_init, fill_value=30)
+ast_masses = astobj.stars.absolute_magnitudes(filters=['U', 'V', 'B'], realistic_remnants=False)
+if np.allclose(interp, ast_masses.T):
+    print('success')
+
+n_pop = len(astobj.stars.n_stars)
+indices = np.repeat(np.arange(n_pop), astobj.stars.n_stars)  # population index per star
+test = (astobj.stars.M_init > isoc.max_isoc_masses()[indices])
+print(np.all(astobj.stars.remnants() == test))
+
+
+
 
 ##
+# from importlib import reload
+
 import numpy as np
 import matplotlib.pyplot as plt
 import objectgenerator as obg
