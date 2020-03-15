@@ -1087,7 +1087,7 @@ sim.run(src, filename='data\my_first_sim.fits', OBS_EXPTIME=600, OBS_NDIT=6)
 
 fh.PlotFits('my_first_sim.fits')
 
-# OBS_EXPTIME [in seconds] sets the length of a single exposure. The default setting is for a 60s exposure
+# OBS_EXPTIME [in seconds] sets the length of a single exp_time. The default setting is for a 60s exp_time
 # OBS_NDIT sets how many exposures are taken. The default is 1.
 
 ## making a source
@@ -1658,7 +1658,7 @@ for i in range(int(n/3-1)):
     src += sim.source.stars(mags=np.clip(astobj.app_mag[2, 3*i+3:3*i+6]-18, 10, 30), x=x_as[3*i+1:3*i+6], y=y_as[3*i+1:3*i+6], filter_name='V', spec_types='F1V')
 
 
-# sim.run(src, filename='data\my_first_sim.fits', mode='zoom', detector_layout='centre', OBS_EXPTIME=60)
+# sim.run(src, file_name='data\my_first_sim.fits', mode='zoom', detector_layout='centre', OBS_EXPTIME=60)
 
 # fh.plot_fits('my_first_sim.fits')
 
@@ -2300,7 +2300,7 @@ def imgsaver(pars):
     M, D, r = pars              # M, D in 10log
     astobj = obg.AstObject.load_from('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     src = img.MakeSource(astobj, filter='J')
-    image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+    image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
     return
     
     
@@ -2383,7 +2383,7 @@ magnitudes = magnitudes = np.linspace(14, 15, n)
 src = sim.source.stars(mags=magnitudes[mask], x=xs[mask], y=ys[mask], filter_name=filter, spec_types=types[mask])
 
 # image = sim.run(src, 
-#                 filename='data\\img_test_save.fits', 
+#                 file_name='data\\img_test_save.fits',
 #                 mode='wide', 
 #                 detector_layout='small', 
 #                 filter_name=filter, 
@@ -2634,7 +2634,7 @@ magnitudes = np.linspace(25, 29, n)
 
 src = sim.source.stars(mags=magnitudes, x=xs, y=ys, filter_name=filter, spec_types=['M0V'])
 
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='scao', filename='img_test_save')
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='small', filter=filter, ao_mode='scao', file_name='img_test_save')
 fh.plot_fits('img_test_save')
 
 ## AO tests (comparison)
@@ -2656,7 +2656,7 @@ magnitudes = np.linspace(12, 18, n)
 
 src = sim.source.stars(mags=magnitudes, x=xs, y=ys, filter_name=filter, spec_types=['M0V'])
 
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='small', filter=filter, ao_mode='PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits', filename='img_test_save')
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='small', filter=filter, ao_mode='PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits', file_name='img_test_save')
 fh.plot_fits('img_test_save', scale='lin', grid=False)
 
 
@@ -2735,19 +2735,19 @@ M, D, r = np.log10(5*10**6), np.log10(0.8*10**6), 0.345              # M, D in 1
 astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r)
 astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r), grid=False)
 # zoom
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom'.format(M, D, r))
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='zoom', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom'.format(M, D, r))
 # fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom'.format(M, D, r), grid=False)
 ##
 astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, mag_lim=29, compact=True)
 astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r))
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r))
 fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-compact'.format(M, D, r), grid=False)
 # zoom
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom-compact'.format(M, D, r))
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='zoom', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom-compact'.format(M, D, r))
 # fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-zoom-compact'.format(M, D, r), grid=False)
 
 ##
@@ -2755,10 +2755,10 @@ image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', fi
 astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, compact=True)
 astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r))
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r))
 fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-compact'.format(M, D, r), grid=False)
 # zoom
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-zoom-compact'.format(M, D, r))
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='zoom', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-zoom-compact'.format(M, D, r))
 # fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-m32-zoom-compact'.format(M, D, r), grid=False)
 
 
@@ -2800,10 +2800,10 @@ M, D, r = np.log10(5*10**6), np.log10(15*10**6), 0.345              # M, D in 10
 astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, compact=True, tot_lum=True)
 astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r))
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r))
 fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-compact'.format(M, D, r), grid=False)
 # zoom
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-zoom-compact'.format(M, D, r))
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='zoom', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-zoom-compact'.format(M, D, r))
 # fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-lum-zoom-compact'.format(M, D, r), grid=False)
 
 ##
@@ -2812,10 +2812,10 @@ M, D, r = np.log10(5*10**6), np.log10(0.8*10**6), 0.345              # M, D in 1
 astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, compact=True)
 astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r))
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r))
 fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-compact'.format(M, D, r), grid=False)
 # zoom
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-zoom-compact'.format(M, D, r))
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='zoom', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-zoom-compact'.format(M, D, r))
 # fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-static-zoom-compact'.format(M, D, r), grid=False)
 
 ## masslimit by number
@@ -2837,10 +2837,10 @@ M, D, r = np.log10(5*10**6), np.log10(0.8*10**6), 0.345              # M, D in 1
 astobj = obg.AstObject(M_tot_init=10**M, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, compact=True, cp_mode='num')
 astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r))
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r))
 fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(M, D, r), grid=False)
 # zoom
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(M, D, r))
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='zoom', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(M, D, r))
 # fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(M, D, r), grid=False)
 
 ##
@@ -2848,10 +2848,10 @@ N, D, r = np.log10(2*10**8), np.log10(15*10**6), 0.345              # M, D in 10
 astobj = obg.AstObject(N_obj=10**N, age=[10], metal=[0.0014], distance=10**D, r_dist='king_globular', r_dist_par=r, compact=True, cp_mode='num')
 astobj.save_to('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r))
 src = img.MakeSource(astobj, filter='J')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r))
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r))
 fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-compact'.format(N, D, r), grid=False)
 # zoom
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='zoom', chip='centre', filter='J', ao_mode='scao', filename='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(N, D, r))
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='zoom', chip='centre', filter='J', ao_mode='scao', file_name='c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(N, D, r))
 # fh.plot_fits('c_test-{0:1.3f}-{1:1.3f}-{2:1.3f}-num-zoom-compact'.format(N, D, r), grid=False)
 
 
@@ -2870,7 +2870,7 @@ M, D, r = par_grid[-10]
 
 astobj = obg.AstObject.load_from('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 src = img.MakeSource(astobj, filter='J')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter='J', ao_mode='scao', filename='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter='J', ao_mode='scao', file_name='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r))
 ##
 
 def SaveFitsPlot(filename, index=0, colours='gray', grid=True):
@@ -2935,7 +2935,7 @@ def imgsaver(pars, int=None, ret_int=False):
     f = 'J'
     view='zoom'                 # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
     chip='full'                 # read out, small middle bit, centre chip or full detector
-    exp = 1800                  # exposure time in s
+    exp = 1800                  # exp_time time in s
     
     obj_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r)
     img_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, f)
@@ -2943,9 +2943,9 @@ def imgsaver(pars, int=None, ret_int=False):
     astobj = obg.AstObject.load_from(obj_name)
     src = img.MakeSource(astobj, filter=f)
     if ret_int:
-        image, internals = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode='scao', filename=img_name, return_int=ret_int)
+        image, internals = img.MakeImage(src, exp_time=1800, ndit=1, fov=view, chip=chip, filter=f, ao_mode='scao', file_name=img_name, return_int=ret_int)
     else:
-        image = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode='scao', filename=img_name, internals=int)
+        image = img.MakeImage(src, exp_time=1800, ndit=1, fov=view, chip=chip, filter=f, ao_mode='scao', file_name=img_name, internals=int)
         
     # fh.save_fits_plot(img_name, grid=False)
     
@@ -2988,7 +2988,7 @@ filters = ['U', 'B', 'V', 'R', 'I', 'H', 'Ks']
 
 for fil in filters:
     src = img.MakeSource(astobj, filter=fil)
-    image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=fil, ao_mode='scao', filename='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, fil))
+    image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter=fil, ao_mode='scao', file_name='grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, fil))
     fh.plot_fits('grid-{0:1.3f}-{1:1.3f}-{2:1.3f}-{3}'.format(M, D, r, fil), grid=False)
 
 ## RGB
@@ -3078,7 +3078,7 @@ def imgsaver(pars, int=None, ret_int=False):
     f = 'Ks'
     view='wide'                 # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
     chip='centre'               # read out, small middle bit, centre chip or full detector
-    exp = 1800                  # exposure time in s
+    exp = 1800                  # exp_time time in s
     ao = 'PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits' # ao mode
     
     obj_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r)
@@ -3087,9 +3087,9 @@ def imgsaver(pars, int=None, ret_int=False):
     astobj = obg.AstObject.load_from(obj_name)
     src = img.MakeSource(astobj, filter=f)
     if ret_int:
-        image, internals = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, return_int=ret_int)
+        image, internals = img.MakeImage(src, exp_time=1800, ndit=1, fov=view, chip=chip, filter=f, ao_mode=ao, file_name=img_name, return_int=ret_int)
     else:
-        image = img.MakeImage(src, exposure=1800, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, internals=int)
+        image = img.MakeImage(src, exp_time=1800, ndit=1, fov=view, chip=chip, filter=f, ao_mode=ao, file_name=img_name, internals=int)
         
     fh.save_fits_plot(img_name, grid=False)
     
@@ -3504,7 +3504,7 @@ filter = 'J'
 # src = sim.source.star_grid(n=16, mag_min=18, mag_max=20, filter_name=filter, separation=0.9, spec_type='M0V')
 src = sim.source.star(mag=16, filter_name=filter, spec_type='M0V')
 
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename='img_test_save') # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter=filter, ao_mode='scao', file_name='img_test_save') # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
 fh.plot_fits('img_test_save', scale='lin', grid=False)
 ## make the epsf
 # identify the stars and their initial positions
@@ -3588,7 +3588,7 @@ import fitshandler as fh
 ## first make a test image
 filter = 'J'
 src = sim.source.star_grid(n=25, mag_min=18, mag_max=22, filter_name=filter, separation=1.3, spec_type='M0V')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename='img_test_save') # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter=filter, ao_mode='scao', file_name='img_test_save') # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
 
 # show the image
 image_name = 'img_test_save' # 'grid-5.000-5.903-2.069'
@@ -3682,7 +3682,7 @@ image_name = 'psf_image_' + filter
 
 src = sim.source.star_grid(n=36, mag_min=22.6, mag_max=23.2, filter_name=filter, separation=1.3, spec_type='M0V')
 # src += sim.source.star(mag=21, filter_name=filter, spec_type='M0V')
-image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename=image_name) # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
+image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter=filter, ao_mode='scao', file_name=image_name) # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
 
 # show the image
 fh.plot_fits(image_name, scale='log', grid=False)
@@ -3750,7 +3750,7 @@ def EPSFMaker(mag):
     # src = sim.source.star_grid(n=16, mag_min=18, mag_max=20, filter_name=filter, separation=0.9, spec_type='M0V')
     src = sim.source.star(mag=mag, filter_name=filter, spec_type='M0V')
     
-    image = img.MakeImage(src, exposure=1800, NDIT=1, view='wide', chip='centre', filter=filter, ao_mode='scao', filename='img_test_save_m{0}'.format(mag)) # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
+    image = img.MakeImage(src, exp_time=1800, ndit=1, fov='wide', chip='centre', filter=filter, ao_mode='scao', file_name='img_test_save_m{0}'.format(mag)) # PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
     # identify the stars and their initial positions
     img_data = fh.get_data('img_test_save_m{0}'.format(mag))
     peaks_tbl = phu.find_peaks(img_data, threshold=120000., box_size=11)
@@ -4080,7 +4080,7 @@ def imgsaver(pars, int=None, ret_int=False):
     f = 'Ks'
     view='wide'                 # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
     chip='centre'               # read out, small middle bit, centre chip or full detector
-    exp = 14400                  # exposure time in s
+    exp = 14400                  # exp_time time in s
     ao = 'scao' # ao mode PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
     
     obj_name = 'grid-{0:1.3f}-{1:1.3f}-{2:1.3f}'.format(M, D, r)
@@ -4089,9 +4089,9 @@ def imgsaver(pars, int=None, ret_int=False):
     astobj = obg.AstObject.load_from(obj_name)
     src = img.MakeSource(astobj, filter=f)
     if ret_int:
-        image, internals = img.MakeImage(src, exposure=exp, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, return_int=ret_int)
+        image, internals = img.MakeImage(src, exp_time=exp, ndit=1, fov=view, chip=chip, filter=f, ao_mode=ao, file_name=img_name, return_int=ret_int)
     else:
-        image = img.MakeImage(src, exposure=exp, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name, internals=int)
+        image = img.MakeImage(src, exp_time=exp, ndit=1, fov=view, chip=chip, filter=f, ao_mode=ao, file_name=img_name, internals=int)
         
     fh.save_fits_plot(img_name, grid=False)
     
@@ -4327,11 +4327,11 @@ astobj = obg.AstronomicalObject(n_stars=[1000], ages=[9], metal=[0.0014], distan
 f = 'Ks'
 view = 'wide'  # camera mode (wide 4 mas/p, zoom 1.5 mas/p)
 chip = 'centre'  # read out, small middle bit, centre chip or full detector
-exp = 14400  # exposure time in s
+exp = 14400  # exp_time time in s
 ao = 'scao'  # ao mode PSF_AnisoCADO_SCAO_FVPSF_4mas_EsoMedian_20190328.fits
 img_name = 'conv_test'
 src = img.MakeSource(astobj, filter=f)
-image = img.MakeImage(src, exposure=exp, NDIT=1, view=view, chip=chip, filter=f, ao_mode=ao, filename=img_name,
+image = img.MakeImage(src, exp_time=exp, ndit=1, fov=view, chip=chip, filter=f, ao_mode=ao, file_name=img_name,
                       internals=int)
 
 ## test isoc object

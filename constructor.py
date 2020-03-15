@@ -1,4 +1,5 @@
-"""This module provides the argsparse for user input for making an astronomical object
+"""This module provides the command line argument parser
+that takes user input for making an astronomical object
 """
 import argparse
 import fnmatch
@@ -30,10 +31,6 @@ if __name__ == '__main__':
     parser.add_argument('-extinct', '-ext', type=float, required=False, default=0.,
                         help='Extinction between source and observer (measured in magnitudes).')
     # arguments for 'Stars' object
-    # n_stars = 0, M_tot_init = 0, ages = None, metal = None, imf_par = None, sfh = None, min_ages = None,
-    # tau_sfh = None, origin = None, incl = None, r_dist = None, r_dist_par = None, ellipse_axes = None,
-    # spiral_arms = None, spiral_bulge = None, spiral_bar = None, compact_mode = None
-
     parser.add_argument('-n_stars', '-n', type=int, nargs='+', required=False, default=[0],
                         help='The number of stars to be generated per stellar population.')
                         
@@ -90,16 +87,15 @@ if __name__ == '__main__':
                         help='Compacting mode for limiting the number of stars generated.')
                         
     # parser.add_argument('-limit', type=float, required=False, default=None,
-    #                     help='magnitude limit to use for compacting')
+    #                     help='magnitude limit to use in compacting')
     # arguments for 'Gas' object
     # arguments for 'Dust' object
-    # additional functions
-    parser.add_argument('-save', type=str, required=False, default=default_object_file_name,
+    # additional arguments
+    parser.add_argument('-file_name', '-fname', type=str, required=False, default=default_object_file_name,
                         help='file to save object to')
     
-    args = vars(parser.parse_args())  # convert namespace to dict
-    print(args)
-    file_name = args.pop('save')
+    kwargs = vars(parser.parse_args())  # convert namespace to dict
+    file_name = kwargs.pop('file_name')
     # Construct an astronomical object with the given settings.
-    astobj = getattr(obg, args.pop('struct'))(**args)
+    astobj = getattr(obg, kwargs.pop('struct'))(**kwargs)
     astobj.save_to(file_name)  # save the object
