@@ -1,7 +1,4 @@
-# Luc IJspeert
-# Part of starpopsim: (coordinate) conversions
-##
-"""Conversion between i.e. coordinates. 
+"""Conversion between i.e. coordinates.
 Optimized for converting many numbers at once (ndarray).
 """
 import numpy as np
@@ -18,24 +15,24 @@ rad_as = 648000/np.pi           # radians to arcseconds
 as_rad = np.pi/648000           # arcseconds to radians
 
 # global defaults
-imf_defaults = [0.08, 150]      # lower bound, upper bound on mass
+default_imf_par = [0.08, 150]   # M_sun     lower bound, upper bound on mass
 
 
-def PolToCart(r, theta):
+def pol_to_cart(r, theta):
     """Converts polar coords to Cartesian. Optimized for arrays."""
     x = r*np.cos(theta)
     y = r*np.sin(theta)
     return np.array([x, y])
 
 
-def CartToPol(x, y):
+def cart_to_pol(x, y):
     """Converts Cartesian coords to polar. Optimized for arrays."""
     r = np.sqrt(x**2 + y**2)
     theta = np.arctan(y/x)
     return np.array([r, theta])
 
 
-def SpherToCart(r, theta, phi):
+def spher_to_cart(r, theta, phi):
     """Converts spherical coords to Cartesian. Optimized for arrays."""
     x = r*np.sin(theta)*np.cos(phi)
     y = r*np.sin(theta)*np.sin(phi)
@@ -43,104 +40,118 @@ def SpherToCart(r, theta, phi):
     return np.array([x, y, z])
 
 
-def CartToSpher(x, y, z):
+def cart_to_spher(x, y, z):
     """Converts Cartesian coords to spherical. Optimized for arrays."""
     r = np.sqrt(x**2 + y**2 + z**2)
     theta = np.arccos(z/r)
-    phi = np.arctan2(y, x)                                                                          # np.arctan(y/x) [doesn't do all the angles]
+    phi = np.arctan2(y, x)  # np.arctan(y/x) [doesn't do all the angles]
     return np.array([r, theta, phi])
 
 
-def RotateXZ(positions, angle):
+def rotate_xz(coords, angle):
     """Rotate a set of positions around y axis by 'angle' radians 
     (so xz plane is rotated: positive x towards positive z).
+    First axis is assumed to correspond to x,y,z (so x=coords[0]).
     """
-    coords = positions.transpose()
     cos = np.cos(angle)
     sin = np.sin(angle)
     x_new = coords[0]*cos - coords[2]*sin
     z_new = coords[2]*cos + coords[0]*sin
-    return np.array([x_new, coords[1], z_new]).transpose()
+    return np.array([x_new, coords[1], z_new])
     
     
-def ParsecToArcsec(x, d):
-    """Convert from distances (x) perpendicular to the distance (d) 
+def parsec_to_arcsec(x, distance):
+    """Convert from distances (x) perpendicular to the distance (d)
     (both in parsec, or otherwise the same units) to arcseconds.
     """
-    return np.arctan2(x, d)*rad_as
+    return np.arctan2(x, distance)*rad_as
     
     
-def ArcsecToParsec(x, d):
-    """Convert from arcseconds (x) perpendicular to the distance (d) 
+def arcsec_to_parsec(x, distance):
+    """Convert from arcseconds (x) perpendicular to the distance (d)
     (in parsec) to distances in parsec.
     """
-    return np.tan(x*as_rad)*d
+    return np.tan(x*as_rad)*distance
     
     
-def ParsecToDModulus(dist):
+def parsec_to_d_modulus(distance):
     """Compute the distance modulus given a distance in pc."""
-    return 5*np.log10(dist/10)
+    return 5*np.log10(distance/10)
     
     
-def DModulusToParsec(mod):
+def d_modulus_to_parsec(mod):
     """Compute the distance in pc given a distance modulus."""
     return 10**(mod/5 + 1)
 
 
-def MtotToNstars(M, imf=imf_defaults):
-    """Converts from mass in a cluster (one stellar population) 
+def m_tot_to_n_stars(M, imf=None):
+    """Converts from mass in a cluster (per single stellar population)
     to number of objects using the implemented IMF.
     """
-    M_L, M_U = imf[:,0], imf[:,1]
-    M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
-    C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
-    D_mid = (1/0.35 + 1/0.65)*M_mid**(0.65)
-    C_L = 1/(1/0.35*M_L**(-0.35) + C_mid - M_mid/1.35*M_U**(-1.35))
-    M_mean = C_L*(D_mid - 1/0.65*M_L**(0.65) - M_mid/0.35*M_U**(-0.35))
+    M = np.atleast_1d(M)
+    if imf is None:
+        imf = np.full([len(M), len(default_imf_par)], default_imf_par)
+    else:
+        imf = np.atleast_2d(imf)
+    M_low, M_high = imf[:, 0], imf[:, 1]
+    M_mid = 0.5  # fixed turnover position (where slope changes)
+    c_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
+    d_mid = (1/0.35 + 1/0.65)*M_mid**(0.65)
+    c_low = 1/(1/0.35*M_low**(-0.35) + c_mid - M_mid/1.35*M_high**(-1.35))
+    M_mean = c_low*(d_mid - 1/0.65*M_low**(0.65) - M_mid/0.35*M_high**(-0.35))
     return np.rint(M/M_mean).astype(np.int64)
 
 
-def NstarsToMtot(N, imf=imf_defaults):
+def n_stars_to_m_tot(N, imf=None):
     """Converts from number of objects in a cluster (one stellar population) 
     to total mass using the implemented IMF.
     """
-    M_L, M_U = imf
-    M_mid = 0.5                                                                                     # fixed turnover position (where slope changes)
-    C_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
-    D_mid = (1/0.35 + 1/0.65)*M_mid**(0.65)
-    C_L = 1/(1/0.35*M_L**(-0.35) + C_mid - M_mid/1.35*M_U**(-1.35))
-    M_mean = C_L*(D_mid - 1/0.65*M_L**(0.65) - M_mid/0.35*M_U**(-0.35))
-    return N*M_mean
+    N = np.atleast_1d(N)
+    if imf is None:
+        imf = np.full([len(N), len(default_imf_par)], default_imf_par)
+    else:
+        imf = np.atleast_2d(imf)
+    M_low, M_high = imf[:, 0], imf[:, 1]
+    M_mid = 0.5  # fixed turnover position (where slope changes)
+    c_mid = (1/1.35 - 1/0.35) * M_mid**(-0.35)
+    d_mid = (1/0.35 + 1/0.65) * M_mid**(0.65)
+    c_low = 1/(1/0.35 * M_low**(-0.35) + c_mid - M_mid/1.35 * M_high**(-1.35))
+    M_mean = c_low * (d_mid - 1/0.65 * M_low**(0.65) - M_mid/0.35 * M_high**(-0.35))
+    return N * M_mean
 
 
-def GravityToRadius(log_g, M):
+def gravity_to_radius(log_g, M):
     """Converts surface gravity (log g - cgs) to radius (Rsun). Mass must be given in Msun."""
-    g_si = 10**log_g/100                                                                            # convert log g (cgs - cm/s^2) to g (si - m/s^2)
-    R_2 = G_newt*M/g_si                                                                             # radius (in Rsun) squared
+    # convert log g (cgs - cm/s^2) to g (si - m/s^2)
+    g_si = 10**log_g/100
+    # radius (in Rsun) squared
+    R_2 = G_newt*M/g_si
     return np.sqrt(R_2)
 
 
-def RadiusToGravity(R, M):
+def radius_to_gravity(R, M):
     """Converts radius (Rsun) to surface gravity (log g - cgs). Mass must be given in Msun."""
-    g_si = G_newt*M/R**2                                                                            # surface gravity in m/s^2
-    log_g = 2 + np.log10(g_si)                                                                      # convert g (si - m/s^2) to log g (cgs - cm/s^2)
+    # surface gravity in m/s^2
+    g_si = G_newt*M/R**2
+    # convert g (si - m/s^2) to log g (cgs - cm/s^2)
+    log_g = 2 + np.log10(g_si)
     return log_g
 
 
-def MagToLum(mag):
+def mag_to_lum(mag):
     """Converts from bolometric magnitude to luminosity (in Lsun)."""
     return L_0*10**(-0.4*mag)
 
 
-def LumToMag(lum):
+def lum_to_mag(lum):
     """Converts from luminosity (in Lsun) to bolometric magnitude."""
     return -2.5*np.log10(lum/L_0)
     
     
-def FluxToMag(flux, filters=None):
+def flux_to_mag(flux, filters=None):
     """Converts spectral flux density (in W/m^3) to magnitude in certain filters."""
     if filters is not None:
-        zero_point_flux = utils.OpenPhotometricData(columns=['zp_flux'], filters=filters)
+        zero_point_flux = utils.open_photometric_data(columns=['zp_flux'], filters=filters)
         mag = -2.5*np.log10(flux/zero_point_flux)
     else:
         # just convert raw input
@@ -149,7 +160,7 @@ def FluxToMag(flux, filters=None):
     return mag
 
 
-def TemperatureToRGB(c_temp):
+def temperature_to_rgb(c_temp):
     """Convert from colour temperature [1000K, 40000K] to RGB values in range [0, 1]. 
     Expects an array.
     Below 1000K, return dark grey (0.2, 0.2, 0.2).
@@ -184,18 +195,17 @@ def TemperatureToRGB(c_temp):
     blue[(c_temp > 19) & (c_temp < 66)] = 138.5177312231*np.log(c_temp_range) - 305.0447927307
     
     # cut off values and convert to floats
-    R = np.clip(red, 0, 255)/255
-    G = np.clip(green, 0, 255)/255
-    B = np.clip(blue, 0, 255)/255
+    red = np.clip(red, 0, 255)/255
+    green = np.clip(green, 0, 255)/255
+    blue = np.clip(blue, 0, 255)/255
     
-    R[low] = 0.2
-    G[low] = 0.2
-    B[low] = 0.2
-    
-    return np.array([R, G, B])
+    red[low] = 0.2
+    green[low] = 0.2
+    blue[low] = 0.2
+    return np.array([red, green, blue])
 
 
-def WavelengthToRGB(wavelength, maxI=1):
+def wavelength_to_rgb(wavelength, max_intensity=1):
     """Converts wavelength in nm to RGB values (approximation). 
     maxI is the maximum output of colour values.
     Input: array-like
@@ -205,9 +215,8 @@ def WavelengthToRGB(wavelength, maxI=1):
         wavelength = np.array(wavelength)
     
     # edited from source code at: http://www.efg2.com/Lab/ScienceAndEngineering/Spectra.htm
-     # Gamma determines gradient between colours, max_intensity determines max output value
-    Gamma = 0.8
-    max_intensity = maxI
+    # Gamma determines gradient between colours, max_intensity determines max output value
+    gamma = 0.8
     
     red = np.zeros(len(wavelength))
     green = np.zeros(len(wavelength))
@@ -247,20 +256,19 @@ def WavelengthToRGB(wavelength, maxI=1):
     mask_7 = (wavelength >= 380) & (wavelength < 420)
     mask_8 = (wavelength >= 420) & (wavelength < 700)
     mask_9 = (wavelength >= 700) & (wavelength <= 780)
-    factor = np.zeros(len(wavelength))
+    factor = np.zeros_like(wavelength)
     factor[mask_7] = 0.3 + 0.7*(wavelength[mask_7] - 380)/(420 - 380)
     factor[mask_8] = 1.0
     factor[mask_9] = 0.3 + 0.7*(780 - wavelength[mask_9])/(780 - 700)
   
-    def Adjust(colour, factor):
+    def adjust(colour, reduce_factor):
         # Don't want 0^x = 1 for x != 0
-        return (colour != 0.0)*max_intensity*(colour*factor)**Gamma
+        return (colour != 0.0)*max_intensity*(colour*reduce_factor)**gamma
             
-    R = Adjust(red,   factor)
-    G = Adjust(green, factor)
-    B = Adjust(blue,  factor)
-  
-    return np.array([R, G, B])
+    red = adjust(red, factor)
+    green = adjust(green, factor)
+    blue = adjust(blue, factor)
+    return np.array([red, green, blue])
 
 
 

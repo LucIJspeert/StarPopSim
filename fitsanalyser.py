@@ -1,7 +1,4 @@
-# Luc IJspeert
-# Part of starpopsim: (basic) PSF photometry
-##
-"""This module contains the analysis functions for fits files. 
+"""This module contains the analysis functions for fits files.
 It is likely biased towards the purpose of the main program.
 It is assumed that the fits data is in a folder called 'images', 
 positioned within the working directory.
@@ -10,6 +7,7 @@ import os
 import pickle
 
 import numpy as np
+import scipy.spatial as sps
 import matplotlib.pyplot as plt
 import astropy as apy
 import astropy.modeling as asm
@@ -71,13 +69,13 @@ def FindStarMatch(x, y, mag, x_ref, y_ref, mag_ref):
         dists[i], ind_final[i] =  tbl_tree.query(data_point, k=1)
         ind_final[i] = ind_s[ind_final[i]]                                                          # convert back to original indexing
         
-    # determine the bad matches (more than 1.5 pixel radial distance)
+    # determine the bad matches (more than 1.5 pixel radial distance_3d)
     outliers = (((x_ref[ind_final] - x)**2 + (y_ref[ind_final] - y)**2)**(1/2) > 1.5*pix_scale)
     return dists, ind_final, outliers
     
     
 def FindCoordMatch(x, y, x_ref, y_ref):
-    """Matches (x,y) coordinates to a reference set by closest distance.
+    """Matches (x,y) coordinates to a reference set by closest distance_3d.
     Expects arrays as input. Outputs distances, reference indices and outlier mask.
     """
     data_points = np.column_stack([x, y])
