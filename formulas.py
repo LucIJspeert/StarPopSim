@@ -83,9 +83,9 @@ def bb_magnitude(T_eff, R, filters, filter_means=None):
     
     # make shapes broadcastable, if not dealing with single numbers
     if hasattr(T_eff, '__len__'):
-        T_eff = T_eff.reshape((len(T_eff),) + (1,)*(len(np.shape(lam_arr)) - (len(filters) == 1)))
+        T_eff = T_eff.reshape((len(T_eff),) + (1,)*(np.ndim(lam_arr) - (len(filters) == 1)))
     if hasattr(R, '__len__'):
-        R = R.reshape((len(R),) + (1,)*(len(np.shape(lam)) - (len(filters) == 1)))
+        R = R.reshape((len(R),) + (1,)*(np.ndim(lam) - (len(filters) == 1)))
     
     spec_radiance = plank_bb(lam_arr, T_eff, var='wavl')        # W/sr^1/m^3
     spec_radiance = np.mean(spec_radiance, axis=-1)             # take the mean
@@ -230,46 +230,46 @@ def absolute_magnitude(mag, distance, ext=0):
 
 def mass_fraction_from_limits(mass_limits, imf=None):
     """Returns the fraction of stars in a population above and below certain mass_limits (Msol)."""
-    if not imf:
-        imf = default_imf_par
-    M_low, M_high = imf
-    M_mid = 0.5  # fixed turnover position (where slope changes)
-    M_lim_low, M_lim_high = mass_limits
-    
-    # same constants as are in the IMF:
-    c_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
-    c_low = (1/0.35*M_low**(-0.35) + c_mid - M_mid/1.35*M_high**(-1.35))**(-1)
-    
-    if (M_lim_low > M_mid):
-        f = c_low*M_mid/1.35*(M_lim_low**(-1.35) - M_lim_high**(-1.35))
-    elif (M_lim_high < M_mid):
-        f = c_low/0.35*(M_lim_low**(-0.35) - M_lim_high**(-0.35))
+    if imf is None:
+        imf = np.full([len(mass_limits), len(default_imf_par)], default_imf_par)
     else:
-        f = c_low*(c_mid + M_lim_low**(-0.35)/0.35 - M_mid*M_lim_high**(-1.35)/1.35)
-    
-    return f
+        imf = np.atleast_2d(imf)
+    M_low, M_high = imf[:, 0], imf[:, 1]
+    M_mid = 0.5  # fixed turnover position (where slope changes)
+    M_lim_low, M_lim_high = mass_limits[:, 0], mass_limits[:, 1]
+
+    # same constants as are in the IMF:
+    c_mid = (1 / 1.35 - 1 / 0.35) * M_mid**(-0.35)
+    c_low = (1 / 0.35 * M_low**(-0.35) + c_mid - M_mid / 1.35 * M_high**(-1.35))**(-1)
+
+    condition1 = (M_lim_low > M_mid)
+    condition2 = (M_lim_high < M_mid)
+    condition3 = (M_lim_low <= M_mid) & (M_lim_high >= M_mid)
+    frac = condition1 * c_low * M_mid / 1.35 * (M_lim_low**(-1.35) - M_lim_high**(-1.35))
+    frac += condition2 * c_low / 0.35 * (M_lim_low**(-0.35) - M_lim_high**(-0.35))
+    frac += condition3 * c_low * (c_mid + M_lim_low**(-0.35) / 0.35 - M_mid * M_lim_high**(-1.35) / 1.35)
+    return frac
 
 
 def mass_limit_from_fraction(frac, M_max=None, imf=None):
     """Returns the lower mass limit to get a certain fraction of stars generated."""
-    if not imf:
-        imf = default_imf_par
-    M_low, M_high = imf
+    if imf is None:
+        imf = np.full([len(frac), len(default_imf_par)], default_imf_par)
+    else:
+        imf = np.atleast_2d(imf)
+    M_low, M_high = imf[:, 0], imf[:, 1]
     M_mid = 0.5  # fixed turnover position (where slope changes)
     if (M_max is None):
         M_max = M_high
-    
+
     # same constants as are in the IMF:
-    c_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
-    c_low = (1/0.35*M_low**(-0.35) + c_mid - M_mid/1.35*M_high**(-1.35))**(-1)
+    c_mid = (1 / 1.35 - 1 / 0.35) * M_mid**(-0.35)
+    c_low = (1 / 0.35 * M_low**(-0.35) + c_mid - M_mid / 1.35 * M_high**(-1.35))**(-1)
     # the mid value in the CDF
-    N_mid = c_low*M_mid/1.35*(M_mid**(-1.35) - M_high**(-1.35))
-    
-    if (frac < N_mid):
-        M_lim = (1.35*frac/(c_low*M_mid) + M_max**(-1.35))**(-1/1.35)
-    else:
-        M_lim = (0.35*(frac/c_low - c_mid + M_mid/1.35*M_max**(-1.35)))**(-1/0.35)
-        
+    N_mid = c_low * M_mid / 1.35 * (M_mid**(-1.35) - M_high**(-1.35))
+
+    M_lim = (frac < N_mid) * (1.35 * frac / (c_low * M_mid) + M_max**(-1.35))**(-1 / 1.35)
+    M_lim += (frac >= N_mid) * (0.35 * (frac / c_low - c_mid + M_mid / 1.35 * M_max**(-1.35)))**(-1 / 0.35)
     return M_lim
 
 
@@ -309,9 +309,12 @@ def remnant_mass(M_init, Z=Z_sun):
     if hasattr(M_init, '__len__'):
         M_init = np.array(M_init)
 
-    # metallicity as fraction of solar
-    Z_f = Z/Z_sun
-    
+    # make Z same length and metallicity as fraction of solar
+    Z = np.atleast_1d(Z)
+    if (len(Z) == 1):
+        Z = np.full_like(M_init, Z)  # else assume it has the same length
+    Z_f = Z / Z_sun
+
     # define the mass intervals
     mask_1 = M_init < 0.85
     mask_2 = (M_init >= 0.85) & (M_init < 2.85)
@@ -335,10 +338,10 @@ def remnant_mass(M_init, Z=Z_sun):
     # NS/BH masses
     M_72_11 = 1.28  # mass range 7.20-11 (to close the gap, based on [C.L.Fryer 2011])
     M_11_30 = (1.1 + 0.2*np.exp((M_init[mask_6] - 11)/4) 
-              - (2.0 + Z_f)*np.exp(0.4*(M_init[mask_6] - 26)))  # mass range 11-30 [C.L.Fryer 2011]
+              - (2.0 + Z_f[mask_6])*np.exp(0.4*(M_init[mask_6] - 26)))  # mass range 11-30 [C.L.Fryer 2011]
     
-    M_30_50_1 = 33.35 + (4.75 + 1.25*Z_f)*(M_init[mask_789] - 34)
-    M_30_50_2 = M_init[mask_789] - (Z_f)**0.5*(1.3*M_init[mask_789] - 18.35)
+    M_30_50_1 = 33.35 + (4.75 + 1.25*Z_f[mask_789])*(M_init[mask_789] - 34)
+    M_30_50_2 = M_init[mask_789] - (Z_f[mask_789])**0.5*(1.3*M_init[mask_789] - 18.35)
     M_30_50 = np.min([M_30_50_1, M_30_50_2], axis=0)  # mass range 30-50 [C.L.Fryer 2011]
     M_50_90_high = 1.8 + 0.04*(90 - M_init[mask_8])  # mass range 50-90, high Z [C.L.Fryer 2011]
     M_90_high = 1.8 + np.log10(M_init[mask_9] - 89)  # mass above 90, high Z [C.L.Fryer 2011]
@@ -354,13 +357,9 @@ def remnant_mass(M_init, Z=Z_sun):
     M_remnant[mask_5] = M_72_11
     M_remnant[mask_6] = M_11_30
     M_remnant[mask_7] = M_30_50[mask_789_7]
-    if (Z >= Z_sun):
-        M_remnant[mask_8] = M_50_90_high
-        M_remnant[mask_9] = M_90_high
-    else:
-        M_remnant[mask_8] = M_50_90_low
-        M_remnant[mask_9] = M_90_low
-        
+    M_remnant[mask_8] = M_50_90_high * (Z[mask_8] >= Z_sun) + M_50_90_low * (Z[mask_8] < Z_sun)
+    M_remnant[mask_9] = M_90_high * (Z[mask_9] >= Z_sun) + M_90_low * (Z[mask_9] < Z_sun)
+
     return M_remnant
 
 

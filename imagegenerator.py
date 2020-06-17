@@ -18,12 +18,12 @@ def MakeSource(astobj, filter='V'):
     """Makes a SimCADO Source object from an AstObj.
     filter determines what magnitudes are used (corresponding to that filter).
     """
-    coords_as = astobj.CoordsArcsec()
+    coords_as = astobj.coords_arcsec()
     x_as = coords_as[:, 0]
     y_as = coords_as[:, 1]
     
-    magnitudes = astobj.ApparentMagnitudes(filter=filter)
-    spec_i, spec_names = astobj.SpectralTypes()
+    magnitudes = astobj.apparent_magnitudes(filter=filter)
+    spec_i, spec_names = astobj.spectral_types()
     
     src = sim.source.stars(mags=magnitudes, x=x_as, y=y_as, filter=filter, 
                            spec_types=spec_names[spec_i])
@@ -45,17 +45,17 @@ def MakeSource(astobj, filter='V'):
     return src
 
 
-def MakeImage(src, exposure=60, NDIT=1, view='wide', chip='centre', filter='V', ao_mode='scao', 
-              filename=default_image_file_name, internals=None, return_int=False):
+def MakeImage(src, exp_time=60, ndit=1, fov='wide', chip='centre', filter='V', ao_mode='scao',
+              file_name=default_image_file_name, internals=None, return_int=False):
     """Make the image with SimCADO.
-    exposure = time in seconds, NDIT = number of exposures taken.
-    view = mode = ['wide', 'zoom']: fov 53 arcsec (4 mas/pixel) or 16 (1.5 mas/pixel)
+    exp_time = time in seconds, ndit = number of exposures taken.
+    fov = mode = ['wide', 'zoom']: field of view 53 arcsec (4 mas/pixel) or 16 (1.5 mas/pixel)
     chip = detector_layout = ['small', 'centre', 'full']: 
         1024x1024 pix, one whole detector (4096x4096 pix) or full array of 9 detectors
     filter = the filter used in the 'observation'
     ao_mode = PSF file used [scao, ltao, (mcao not available yet)]
     """
-    savename = os.path.join('images', filename)
+    savename = os.path.join('images', file_name)
     if (savename[-5:] != '.fits'):
         savename += '.fits'
     
@@ -64,16 +64,16 @@ def MakeImage(src, exposure=60, NDIT=1, view='wide', chip='centre', filter='V', 
     else:
         cmd, opt, fpa = None, None, None
     
-    image_int = sim.run(src, 
-                        filename=savename, 
-                        mode=view, 
-                        detector_layout=chip, 
-                        filter_name=filter, 
-                        SCOPE_PSF_FILE=ao_mode, 
-                        OBS_EXPTIME=exposure, 
-                        OBS_NDIT=NDIT,
+    image_int = sim.run(src,
+                        filename=savename,
+                        mode=fov,
+                        detector_layout=chip,
+                        filter_name=filter,
+                        SCOPE_PSF_FILE=ao_mode,
+                        OBS_EXPTIME=exp_time,
+                        OBS_NDIT=ndit,
                         cmds=cmd,
-                        opt_train=opt, 
+                        opt_train=opt,
                         fpa=fpa,
                         return_internals=return_int,
                         FPA_LINEARITY_CURVE='FPA_linearity.dat'

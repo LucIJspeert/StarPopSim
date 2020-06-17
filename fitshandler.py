@@ -151,7 +151,7 @@ def new_hdr(keywords, values, comments=None):
 
 
 def new_fits(filename, input_data, input_header=None):
-    """Saves the input_data to a new file 'filename'. 
+    """Saves the input_data to a new file 'file_name'.
     Optional arg: input_header (header object)
     """
     if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):
@@ -162,7 +162,7 @@ def new_fits(filename, input_data, input_header=None):
 
 
 def add_to_fits(filename, input_data, input_header=None):
-    """Appends the header/data to fits file if 'filename' exists, creates one if not. 
+    """Appends the header/data to fits file if 'file_name' exists, creates one if not.
     Optional arg: input_header (header object).
     """
     if ((filename[-5:] != '.fits') & (filename[-4:] != '.fit')):

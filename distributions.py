@@ -14,36 +14,53 @@ def pdf_kroupa_imf(M, imf=None):
     """(Forward) Initial Mass Function (=probability density function), 
     normalized to 1 probability.
     Modified Salpeter IMF; actually Kroupa IMF above 0.08 solar mass.
+
+    M: int or array of float
+    imf: 1D or 2D array of float (in pairs of 2), optional
+
+    out:
+        array of float
     """
-    if not imf:
-        imf = default_imf_par
-    M_low, M_high = imf
+    M = np.atleast_1d(M)
+    if imf is None:
+        imf = np.full([len(M), len(default_imf_par)], default_imf_par)
+    else:
+        imf = np.atleast_2d(imf)
+    M_low, M_high = imf[:, 0], imf[:, 1]
     M_mid = 0.5  # fixed turnover position (where slope changes)
-    c_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
-    c_low = (1/0.35*M_low**(-0.35) + c_mid - M_mid/1.35*M_high**(-1.35))**-1
-    c_high = c_low*M_mid
-    return (M < M_mid)*c_low*M**(-1.35) + (M >= M_mid)*c_high*M**(-2.35)
+    c_mid = (1/1.35 - 1/0.35) * M_mid**(-0.35)
+    c_low = (1/0.35 * M_low**(-0.35) + c_mid - M_mid/1.35 * M_high**(-1.35))**-1
+    c_high = c_low * M_mid
+    return (M < M_mid) * c_low * M**(-1.35) + (M >= M_mid) * c_high * M**(-2.35)
 
 
 def kroupa_imf(n=1, imf=None):
-    """Generate masses distributed like the Kroupa Initial Mass Function. 
+    """Generate masses distributed like the Kroupa Initial Mass Function.
     Spits out n masses between lower and upper bound in 'imf'.
+
+    n: int or array of int
+    imf: 1D or 2D array of float (in pairs of 2), optional
+
+    out:
+        array of float
     """
-    generator = np.random.default_rng()
-    if not imf:
-        imf = default_imf_par
-    M_low, M_high = imf
+    n = np.atleast_1d(n).astype(int)
+    if imf is None:
+        imf = np.full([len(n), len(default_imf_par)], default_imf_par)
+    else:
+        imf = np.atleast_2d(imf)
+    M_low, M_high = imf[:, 0], imf[:, 1]
     M_mid = 0.5  # fixed turnover position (where slope changes)
-    n_uniform = generator.uniform(0, 1, int(n))
+    n_uniform = np.random.random_sample(n)
     # same constants as are in the IMF:
-    c_mid = (1/1.35 - 1/0.35)*M_mid**(-0.35)
-    c_low = (1/0.35*M_low**(-0.35) + c_mid - M_mid/1.35*M_high**(-1.35))**-1
+    c_mid = (1/1.35 - 1/0.35) * M_mid**(-0.35)
+    c_low = (1/0.35 * M_low**(-0.35) + c_mid - M_mid/1.35 * M_high**(-1.35))**-1
     # the mid value in the CDF
-    n_mid = c_low/0.35*(M_low**(-0.35) - M_mid**(-0.35))
+    n_mid = c_low/0.35 * (M_low**(-0.35) - M_mid**(-0.35))
     # the inverted CDF (for masses below M_mid (a) and for masses above M_mid (b))
-    M_a = (M_low**(-0.35) - 0.35*n_uniform/c_low)**(-1/0.35)
-    M_b = ((1.35/0.35*M_low**(-0.35) - M_mid**(-0.35)/0.35 - 1.35*n_uniform/c_low)/M_mid)**(-1/1.35)
-    return (n_uniform < n_mid)*M_a + (n_uniform >= n_mid)*M_b
+    M_a = (M_low**(-0.35) - 0.35 * n_uniform/c_low)**(-1/0.35)
+    M_b = ((1.35/0.35 * M_low**(-0.35) - M_mid**(-0.35)/0.35 - 1.35 * n_uniform/c_low)/M_mid)**(-1/1.35)
+    return (n_uniform < n_mid) * M_a + (n_uniform >= n_mid) * M_b
 
 
 # below: general distributions (i.e. for Cartesian coordinates)
@@ -51,9 +68,8 @@ def uniform(n=1, min_val=0, max_val=1, power=1):
     """Uniformly distributed parameter between min and max.
     power=2 gives the cylindrical distribution, power=3 the spherical one.
     """
-    generator = np.random.default_rng()
     c = (max_val**power - min_val**power)
-    return (c * generator.uniform(0, 1, int(n)) + min_val**power)**(1/power)
+    return (c*np.random.rand(int(n)) + min_val**power)**(1/power)
 
 
 def normal(n=1, mean=0.0, s=1.0):
@@ -63,38 +79,33 @@ def normal(n=1, mean=0.0, s=1.0):
 
 def log_normal(n=1, mean=0.0, s=1.0):
     """Log-normal distribution with some mean and width (s=sigma). Draws n numbers."""
-    generator = np.random.default_rng()
-    #  base 10! (numpy gives 'e**generator.normal')
-    return 10.0**generator.normal(mean, s, n)
+    #  base 10! (numpy gives 'e**np.random.normal')
+    return 10.0**np.random.normal(mean, s, n)
 
 
 def ln_normal(n=1, mean=0.0, s=1.0):
     """Natural-log-normal distribution with some mean and width (s=sigma). Draws n numbers."""
-    generator = np.random.default_rng()
-    # turns out 10.0**generator.normal is a tad bit slower.
-    # Note: these are a different base! (numpy gives e**generator.normal)
-    return generator.lognormal(mean, s, n)
+    # turns out 10.0**np.random.normal is a tad bit slower. 
+    # Note: these are a different base! (numpy gives e**np.random.normal)
+    return np.random.lognormal(mean, s, n)
 
 
 def exponential(n=1, s=1.0):
     """exponential distribution with scale height s. Draws n numbers."""
-    generator = np.random.default_rng()
-    # self made function -s*np.log(1-generator.uniform(0, 1, int(n)) is a bit slower
-    return generator.exponential(s, n)
+    # self made function -s*np.log(1-np.random.rand(int(n))) is a bit slower
+    return np.random.exponential(s, n)
 
 
 def double_exponential(n=1, s=1.0, origin=0.0):
     """Double sided exponential distribution with scale height s. 
     Draws n numbers around origin.
     """
-    generator = np.random.default_rng()
-    return generator.laplace(origin, s, n)
+    return np.random.laplace(origin, s, n)
 
 
 def power_law(n=1, power=-2.0, min_val=1e-9, max_val=1):
     """Power law distribution with index power (<-1). Draws n numbers between min and max."""
-    generator = np.random.default_rng()
-    n_uniform = generator.uniform(0, 1, int(n))
+    n_uniform = np.random.rand(int(n))
     p1 = power + 1
     c = max_val**p1 - min_val**p1
     return (n_uniform*c + min_val**p1)**(1/p1)
@@ -103,16 +114,14 @@ def power_law(n=1, power=-2.0, min_val=1e-9, max_val=1):
 # below: distributions for spherical/cylindrical coordinates (marked '_r')
 def angle_phi(n=1):
     """Uniformly chosen angle(s) between 0 and 2 pi."""
-    generator = np.random.default_rng()
-    return 2 * np.pi * generator.uniform(0, 1, int(n))
+    return 2*np.pi*np.random.rand(int(n)) 
 
 
 def angle_theta(n=1, min_val=0, max_val=np.pi):
     """Angle(s) between min and max chosen from a sine distribution.
     Default is between 0 and pi for a whole sphere.
     """
-    generator = np.random.default_rng()
-    n_uniform = generator.uniform(0, 1, int(n))
+    n_uniform = np.random.rand(int(n))
     return np.arccos(np.cos(min_val) - n_uniform*(np.cos(min_val) - np.cos(max_val)))
 
 
@@ -120,53 +129,48 @@ def exponential_r(n=1, s=1.0):
     """Radial exponential distribution with scale height s. Draws n numbers.
     For both spherical and cylindrical distribution.
     """
-    generator = np.random.default_rng()
     r_vals = np.logspace(-3, 4, 1000)  # short to medium tail (max radius 10**4!)
     N_vals_exp = cdf_exponential(r_vals, s)
-    return np.interp(generator.uniform(0, 1, int(n)), N_vals_exp, r_vals)
+    return np.interp(np.random.rand(int(n)), N_vals_exp, r_vals)
 
 
 def normal_r(n=1, s=1.0, spher=True):
     """Radial normal (gaussian) distribution with scale height s. Draws n numbers.
     For either spherical or cylindrical distribution (keyword spher).
     """
-    generator = np.random.default_rng()
     r_vals = np.logspace(-3, 4, 1000)  # quite short tail (max radius 10**4!)
     n_vals = cdf_normal(r_vals, s, spher=spher)
-    return np.interp(generator.uniform(0, 1, int(n)), n_vals, r_vals)
+    return np.interp(np.random.rand(int(n)), n_vals, r_vals)
 
 
 def squared_cauchy_r(n=1, s=1.0, spher=True):
     """Radial squared Cauchy distribution (Schuster with m=2) with scale height s. 
     Draws n numbers. For either spherical or cylindrical distribution (keyword spher).
     """
-    generator = np.random.default_rng()
     r_vals = np.logspace(-3, 6, 1000)  # very long tail (max radius 10**6!)
     n_vals = cdf_squared_cauchy(r_vals, s, spher=spher)
-    return np.interp(generator.uniform(0, 1, int(n)), n_vals, r_vals)
+    return np.interp(np.random.rand(int(n)), n_vals, r_vals)
 
 
 def pearson_vii_r(n=1, s=1.0, spher=True):
     """Radial Pearson type VII distribution (Schuster with m=2.5) with scale height s. 
     Draws n numbers. For either spherical or cylindrical distribution (keyword spher).
     """
-    generator = np.random.default_rng()
     r_vals = np.logspace(-3, 4, 1000)  # medium tail (max radius 10**4!)
     n_vals = cdf_pearson_vii(r_vals, s, spher=spher)
-    return np.interp(generator.uniform(0, 1, int(n)), n_vals, r_vals)
+    return np.interp(np.random.rand(int(n)), n_vals, r_vals)
 
 
 def king_globular_r(n=1, s=1.0, R=None, spher=True):
     """Radial King distribution for globular clusters with scale height s and outter radius R. 
     Draws n numbers. For either spherical or cylindrical distribution (keyword spher).
     """
-    generator = np.random.default_rng()
     if (R is None):
         # typical globular cluster has R/s ~ 30
         R = 30*s
     r_vals = np.logspace(-2, np.log10(R), 1000)
     n_vals = cdf_king_globular(r_vals, s, R, spher=spher)
-    return np.interp(generator.uniform(0, 1, int(n)), n_vals, r_vals)
+    return np.interp(np.random.rand(int(n)), n_vals, r_vals)
 
 
 # below: pdf and cdf distributions for the distributions using interpolation
